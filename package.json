@@ -1,0 +1,28 @@
+{
+  "name": "my-librarian",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A stateful, discursive personal context librarian — MCP server over an Obsidian vault. S1 walking skeleton: source-only retrieval.",
+  "bin": {
+    "my-librarian": "./dist/stdio.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "reindex": "tsx src/reindex.ts",
+    "search": "tsx src/search-cli.ts",
+    "start": "tsx src/stdio.ts",
+    "start:built": "node dist/stdio.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "gray-matter": "^4.0.3",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
