@@ -1,0 +1,3 @@
+# Flow effort registry — used for effort resolution when no slug is passed
+active-efforts:
+  - s1-5-ambient-capture
