@@ -6,3 +6,8 @@ data/
 *.db-wal
 .DS_Store
 *.log
+
+# flow working artifacts (spec/, evals/, dissents, shipped/ ARE committed)
+efforts/*/flow-state.yaml
+efforts/*/generations/
+.flow-index/

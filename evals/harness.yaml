@@ -1,0 +1,257 @@
+# evals/harness.yaml — effort s1-5-ambient-capture
+#
+# Canonical harness. Suite 0.2.0 (flow-eval DESIGN pass, 2026-07-25): datasets are now
+# populated (one task per acceptance criterion across SCN-001..004, plus SR-100/101/102/103
+# and the six INV-* pairs), every mapping's `tasks` list is filled, and all six invariant
+# grader specs are authored (status: ready, threshold 1.0, hard-cull). Mapping is NO LONGER
+# PENDING.
+#
+# flow-generate MAY now rely on: the full task ID set per dataset below; the six-dimension
+# Pareto vector (correctness/performance/maintainability/documentation/security/cost); and
+# the six invariant graders as hard-cull gates. What is NOT yet built: the runner SCRIPTS
+# (node:test / perf_hooks / tsc+complexity / egress+stdout harnesses) — those are authored
+# with the gen-1 implementation, not by flow-eval in DESIGN mode (see `runners:` below).
+#
+# Goodhart posture and the accepted real-only gaps (performance/maintainability/
+# documentation) are recorded in evals/GOODHART.md.
+#
+# Constitution override (v2.0.0): default dimension `accessibility` replaced by
+# `documentation` (headless stdio MCP server, no UI; SR-103 docs-currency home).
+
+schema-version: "1.0"
+suite-version: "0.2.0"
+spec-version: "2.0.1"
+status: active
+mapping-pending: false
+
+dimensions:
+  - name: correctness
+    graders: [correctness]
+    datasets: [correctness-real-v1, correctness-adv-v1]
+    threshold: 0.95
+  - name: performance
+    graders: [performance]
+    datasets: [performance-real-v1]
+    threshold: 0.80
+  - name: maintainability
+    graders: [maintainability]
+    datasets: [maintainability-real-v1]
+    threshold: 0.70
+  - name: documentation          # constitution override: replaces accessibility
+    graders: [documentation]
+    datasets: [documentation-real-v1]
+    threshold: 0.90
+  - name: security
+    graders: [security]
+    datasets: [security-real-v1, security-adv-v1]
+    threshold: 1.0
+  - name: cost
+    graders: [cost]
+    datasets: []
+    threshold: 0.50
+
+weights:                          # sum = 1.0; documentation inherits accessibility's 0.10
+  correctness: 0.35
+  performance: 0.15
+  maintainability: 0.15
+  documentation: 0.10
+  security: 0.15
+  cost: 0.10
+
+goodhart-mitigation:
+  adversarial-required-for: [correctness, security]
+  rotation-period-days: 90
+  score-climb-flag-threshold: 0.30
+
+metastable:
+  stability-threshold: 0.85
+  spec-proximity-threshold: 0.60
+  pareto-dimension-minimum: 2
+
+# ---------------------------------------------------------------------------
+# Scenario mappings (correctness dimension) — one per SCN.
+# tasks: real correctness task IDs (one per acceptance criterion); adversarial-tasks:
+# the metric-gaming holdouts in correctness-adv-v1 that probe the same scenario.
+# ---------------------------------------------------------------------------
+mappings:
+  scenarios:
+    - scenario: SCN-001
+      title: A session's outcome is captured ambiently at session end
+      dimension: correctness
+      dataset: correctness-real-v1
+      grader: correctness
+      mapping-pending: false
+      derived-requirements: [SR-001, SR-002, SR-003, SR-004]
+      tasks: [COR-R-001, COR-R-002, COR-R-003, COR-R-004]
+      adversarial-tasks: [COR-A-001, COR-A-002, COR-A-003]  # in correctness-adv-v1
+
+    - scenario: SCN-002
+      title: Robin recalls recent work with librarian-recent
+      dimension: correctness
+      dataset: correctness-real-v1
+      grader: correctness
+      mapping-pending: false
+      derived-requirements: [SR-005, SR-006, SR-007]
+      tasks: [COR-R-005, COR-R-006, COR-R-007, COR-R-008]
+      adversarial-tasks: [COR-A-005, COR-A-008]  # phantom sessions; mtime-faked order
+
+    - scenario: SCN-003
+      title: Search results are quietly enriched with prior engagement
+      dimension: correctness
+      dataset: correctness-real-v1
+      grader: correctness
+      mapping-pending: false
+      derived-requirements: [SR-008, SR-009, SR-010]
+      tasks: [COR-R-009, COR-R-010, COR-R-011]
+      adversarial-tasks: [COR-A-004, COR-A-007]  # sneaky re-rank/noise; annotate unreferenced
+
+    - scenario: SCN-004
+      title: Stateful use is instrumented so the desirability gate is measurable
+      dimension: correctness
+      dataset: correctness-real-v1
+      grader: correctness
+      mapping-pending: false
+      derived-requirements: [SR-011, SR-012]
+      tasks: [COR-R-012, COR-R-013, COR-R-014]
+      adversarial-tasks: [COR-A-006]  # one search double-counted as many events
+
+  # -------------------------------------------------------------------------
+  # Non-functional SR mappings — consolidated onto the six Pareto dimensions
+  # at flow-init (was: schema-conformance / safety ad-hoc dimensions).
+  # -------------------------------------------------------------------------
+  requirements:
+    - requirement: SR-100
+      text: Session-record frontmatter is mdbase-compatible (typed schema).
+      dimension: correctness            # deterministic schema-validation task
+      dataset: correctness-real-v1
+      grader: correctness
+      mapping-pending: false
+      tasks: [COR-R-015, COR-R-016]
+
+    - requirement: SR-101
+      text: Untrusted session summaries / refs stored+rendered as inert text.
+      dimension: security
+      dataset: security-adv-v1          # was adversarial-input-v1; folded in
+      grader: security
+      mapping-pending: false
+      tasks: [SEC-A-001, SEC-A-002, SEC-A-003, SEC-A-004, SEC-A-005, SEC-A-006, SEC-A-007, SEC-A-008, SEC-A-009, SEC-A-010, SEC-A-011, SEC-A-012]
+      benign-controls: [SEC-R-004, SEC-R-005]  # in security-real-v1 (guard over-sanitizing)
+
+    - requirement: SR-102
+      text: No vault or session content committed to the code repository.
+      dimension: security
+      dataset: security-real-v1         # was repo-hygiene-v1; folded in
+      grader: security
+      mapping-pending: false
+      tasks: [SEC-R-001, SEC-R-002, SEC-R-003]
+
+    - requirement: SR-103
+      text: User-facing how-to docs updated at every shipped development stage.
+      dimension: documentation
+      dataset: documentation-real-v1    # was docs-currency-real-v1; renamed
+      grader: documentation
+      mapping-pending: false
+      tasks: [DOC-R-001, DOC-R-002, DOC-R-003, DOC-R-004, DOC-R-005]
+
+  # -------------------------------------------------------------------------
+  # Invariant mappings — dedicated grader + real/adversarial dataset pair each,
+  # threshold 1.0. Failure = hard cull regardless of Pareto position.
+  # Graders (status: ready) + datasets authored in suite 0.2.0. NOT shared with SR graders.
+  # -------------------------------------------------------------------------
+  invariants:
+    - invariant: INV-1
+      text: Local-first / no network egress.
+      grader: invariant-local-first
+      datasets: {real: local-first-real-v1, adversarial: adversarial-network-v1}
+      threshold: 1.0
+      mapping-pending: false
+      tasks: {real: [INV1-R-001, INV1-R-002], adversarial: [INV1-A-001, INV1-A-002, INV1-A-003]}
+
+    - invariant: INV-2
+      text: Store immutability — writes confined to _librarian/ and data/.
+      grader: invariant-store-immutable
+      datasets: {real: store-immutable-real-v1, adversarial: adversarial-write-v1}
+      threshold: 1.0
+      mapping-pending: false
+      tasks: {real: [INV2-R-001, INV2-R-002], adversarial: [INV2-A-001, INV2-A-002, INV2-A-003]}
+
+    - invariant: INV-3
+      text: No hard-delete of memory-of-use records.
+      grader: invariant-no-hard-delete
+      datasets: {real: no-delete-real-v1, adversarial: adversarial-delete-v1}
+      threshold: 1.0
+      mapping-pending: false
+      tasks: {real: [INV3-R-001, INV3-R-002], adversarial: [INV3-A-001, INV3-A-002, INV3-A-003]}
+
+    - invariant: INV-4
+      text: SQLite index fully rebuildable from vault + _librarian/.
+      grader: invariant-rebuildable
+      datasets: {real: rebuild-real-v1, adversarial: adversarial-rebuild-v1}
+      threshold: 1.0
+      mapping-pending: false
+      tasks: {real: [INV4-R-001, INV4-R-002], adversarial: [INV4-A-001, INV4-A-002, INV4-A-003]}
+
+    - invariant: INV-5
+      text: Stdout purity under stdio (MCP frames only).
+      grader: invariant-stdout-pure
+      datasets: {real: stdout-real-v1, adversarial: adversarial-stdout-v1}
+      threshold: 1.0
+      mapping-pending: false
+      tasks: {real: [INV5-R-001, INV5-R-002], adversarial: [INV5-A-001, INV5-A-002, INV5-A-003]}
+
+    - invariant: INV-6
+      text: No LLM / model inference in the server.
+      grader: invariant-no-llm
+      datasets: {real: no-llm-real-v1, adversarial: adversarial-inference-v1}
+      threshold: 1.0
+      mapping-pending: false
+      tasks: {real: [INV6-R-001, INV6-R-002], adversarial: [INV6-A-001, INV6-A-002, INV6-A-003]}
+
+  # -------------------------------------------------------------------------
+  # Cross-cutting dimension mappings — not tied to a single SCN/SR. Real-only
+  # by default (accepted Goodhart gap; see evals/GOODHART.md). Performance tasks
+  # trace to the SCN/INV whose operation they time; maintainability is a
+  # self-referential scan of the variant's own src/ tree.
+  # -------------------------------------------------------------------------
+  dimensions-cross-cutting:
+    - dimension: performance
+      dataset: performance-real-v1
+      grader: performance
+      mapping-pending: false
+      tasks: [PERF-R-001, PERF-R-002, PERF-R-003, PERF-R-004, PERF-R-005]
+    - dimension: maintainability
+      dataset: maintainability-real-v1
+      grader: maintainability
+      mapping-pending: false
+      tasks: [MAINT-R-001, MAINT-R-002, MAINT-R-003, MAINT-R-004, MAINT-R-005]
+    - dimension: cost
+      dataset: null                     # harness-tracked telemetry, no task corpus
+      grader: cost
+      mapping-pending: false
+      tasks: []                         # intentionally empty — assembled from pipeline telemetry
+
+# ---------------------------------------------------------------------------
+# Runner decisions the grader specs assumed. NOTE: flow-eval (DESIGN mode) does
+# NOT build these runner scripts — they are authored with the gen-1 implementation
+# (the implementation exposes the code paths and test/bench entry points these
+# runners drive). Recorded here so gen-1 knows the expected runner shape.
+# ---------------------------------------------------------------------------
+runners:
+  correctness:
+    deterministic: "Node 22 built-in node:test (via tsx); machine-readable pass/fail per task against a throwaway temp vault + _librarian/ + temp data/librarian.db."
+    llm-judge: "client-side claude judge for COR-R-001 (curated-not-transcript) and COR-R-009 (annotation reads as additive); judge MUST NOT run inside the server (INV-6)."
+  security:
+    deterministic: "node:test attack-corpus runner against a throwaway _librarian/ + git sandbox; static gitignore/check-ignore probes for SR-102."
+    llm-judge: "client-side claude judge for SEC-A-010 (prompt-injection surface presented as delimited data)."
+  performance:
+    deterministic: "tsx bench script using perf_hooks; warm+measured iterations, reports p50/p95, seeded deterministic fixture corpora; records host specs. node:sqlite cold-open excluded (measured warm)."
+  maintainability:
+    deterministic: "tsc --noEmit (npm run typecheck) for the binary sub-score; complexity + import-graph via typescript-eslint complexity rule or ts-morph; file-size line count."
+    llm-judge: "client-side claude readability judge anchored to S1 src/vault.ts + src/search.ts (weight 0.20)."
+  documentation:
+    deterministic: "surface-inventory step enumerates the S1.5 user-visible surface from spec + variant."
+    llm-judge: "client-side claude coverage judge over README.md + docs/, per-behavior covered/partial/absent + wrong-statement flagging."
+  cost:
+    deterministic: "no runner — sums tokens-to-generate + tokens-to-evaluate + elapsed-ms counters emitted by flow-generate and this evaluator."
+  invariants:
+    deterministic: "static scans (network/stdout/destructive-op/dependency imports) + runtime harnesses: egress monitor (no-network namespace or syscall trace) for INV-1/6; write-path interposition + vault hash-diff for INV-2; record-preservation checks for INV-3; delete-and-rebuild + corruption-recovery for INV-4; separated stdout/stderr capture + MCP frame parser for INV-5. All threshold 1.0, hard-cull."
