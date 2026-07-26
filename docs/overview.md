@@ -29,13 +29,15 @@ A small always-running process holds that database open and offers three abiliti
 
 - `librarian-search` — search the vault; return ranked notes with their path, type, status, date, and a matching snippet. If a past session engaged one of the results, it carries a quiet "prior engagement" note with the date — purely additive, never re-ranked, silent otherwise.
 - `librarian-get-note` — return one full note by its path.
-- `librarian-recent` — *"what was I working on lately?"* — your recent session summaries, newest first, with dates and the notes each touched. Takes an optional day-window or count.
+- `librarian-recent` — *"what was I working on lately?"* — your recent session summaries, newest first, with dates, the project each came from, and the notes each touched. Takes an optional project name, day-window, or count.
 
 The assistant talks to this server using MCP (Model Context Protocol), the standard way AI tools connect to external data. On your Mac, that conversation is plain messages passed between the two programs.
 
+The server also hands the assistant a short note about **when to use these abilities** — reach for `librarian-recent` when the question is about recent work, and `librarian-search` when it's "have I seen this before?" — before it goes rummaging through files itself. That note lives in the server, so it applies in every project you connect from, with nothing to set up per project.
+
 ### Part 3: the memory (written as you work)
 
-Session memory lives **in your vault**, as ordinary markdown you can open in Obsidian: one file per day at `_librarian/sessions/<date>.md`, one curated line per session — not a transcript. Each line records what the session decided or produced and references the notes it touched by path *plus a content fingerprint*, so the record still tells you what you saw even after a note changes later. Records are only ever added to, never deleted — that's a hard rule, not a habit. Because it's plain markdown in your vault, it's yours: readable, editable, and committed to git along with your notes.
+Session memory lives **in your vault**, as ordinary markdown you can open in Obsidian: one file per day at `_librarian/sessions/<date>.md`, one curated line per session — not a transcript. Each line records what the session decided or produced and references the notes it touched by path *plus a content fingerprint*, so the record still tells you what you saw even after a note changes later. It also notes **which project the session was in** — worked out from the folder you were in, so a day spent across three efforts still reads clearly. Nothing to label; older entries that predate this simply don't show a project. Records are only ever added to, never deleted — that's a hard rule, not a habit. Because it's plain markdown in your vault, it's yours: readable, editable, and committed to git along with your notes.
 
 ### Where the intelligence lives
 
@@ -125,6 +127,10 @@ To read a specific result in full, ask Claude to open it — Claude calls `libra
 Ask about your own recent work and Claude calls `librarian-recent`:
 
 > What was I working on this past week?
+
+Narrow it to one effort by naming it — Claude passes it through as a project filter:
+
+> What have I been doing on my-librarian lately?
 
 And check whether the memory is earning its keep (the two-week gate readout):
 

@@ -1,6 +1,7 @@
 import { toInertLine } from "./sanitize.js";
 import { buildRef, type VersionedRef } from "./refs.js";
 import { appendSession, isDuplicateEntry, type SessionEntry } from "./session-record.js";
+import { deriveWorkspace } from "./workspace.js";
 
 /**
  * Ambient capture (SCN-001): turn a client-produced session summary into exactly
@@ -16,6 +17,12 @@ export interface CapturePayload {
   refs?: string[];
   /** Claude Code session id, when the hook can supply it. */
   sessionId?: string;
+  /**
+   * The session's working directory, as the Stop payload reports it (SCN-005).
+   * Everything else about workspace provenance is derived from this one value by
+   * workspace.ts; absent, it is simply omitted (SR-016).
+   */
+  cwd?: string;
   /** Injectable clock for deterministic tests; defaults to now. */
   now?: Date;
 }
@@ -50,12 +57,19 @@ export function captureSession(payload: CapturePayload): CaptureResult {
 
   const { refs, rejectedRefs } = resolveRefs(payload.refs ?? []);
   const now = payload.now ?? new Date();
+  // SCN-005: provenance is derived here, from the reported cwd alone, with no user
+  // action. It is a best-effort enrichment -- deriveWorkspace never throws and
+  // returns undefined for what it cannot resolve, so a capture is never blocked or
+  // failed by provenance (SR-016). The field is spread last so it is simply absent
+  // (not null) when there is nothing to record.
+  const workspace = deriveWorkspace(payload.cwd);
   const entry: SessionEntry = {
     id: compactId(now),
     ...(payload.sessionId ? { session_id: payload.sessionId } : {}),
     time: now.toISOString(),
     summary,
     refs,
+    ...(workspace ? { workspace } : {}),
   };
 
   // SR-013 idempotence. Claude Code fires the Stop event at the END OF EVERY
@@ -67,7 +81,10 @@ export function captureSession(payload: CapturePayload): CaptureResult {
   // the server-normalized entry (inert summary + server-hashed refs), never on
   // raw input, and no-op so the record stays byte-identical (COR-R-017/A-009).
   // A payload with NO session id has no dedupe key and keeps append behavior
-  // (direct-CLI test payloads); isDuplicateEntry returns false for it.
+  // (direct-CLI test payloads); isDuplicateEntry returns false for it. The entry's
+  // workspace provenance is invisible to this check by construction (SR-018): the
+  // key is built from session id + summary + refs only, so a cwd that moved between
+  // firings still dedupes to a byte-identical no-op (COR-R-022).
   //
   // Atomicity: this compare and the appendSession write below share one
   // synchronous call stack (no await between them), so within a process no Stop

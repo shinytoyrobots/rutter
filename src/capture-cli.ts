@@ -9,10 +9,14 @@ import { parseSessionDirective, type SessionDirective } from "./directive.js";
  * directive out of the transcript and stores it.
  *
  * Two accepted stdin shapes:
- *   1. A direct capture payload: {"summary": "...", "refs": [...], "sessionId": "..."}
- *   2. A Claude Code Stop payload: {"transcript_path": "...", "session_id": "..."}
+ *   1. A direct capture payload: {"summary": "...", "refs": [...], "sessionId": "...", "cwd": "..."}
+ *   2. A Claude Code Stop payload: {"transcript_path": "...", "session_id": "...", "cwd": "..."}
  *      -- from which the last `librarian-session` directive is extracted.
  * Anything else, or an empty/absent directive, is a clean no-op (SR-004).
+ *
+ * Claude Code reports the session's working directory as `cwd` on the Stop event.
+ * It is passed straight through to capture, which derives workspace provenance
+ * from it (SCN-005); a payload without it captures exactly as before (SR-016).
  */
 
 interface StopPayload {
@@ -21,6 +25,8 @@ interface StopPayload {
   summary?: string;
   refs?: string[];
   sessionId?: string;
+  /** Working directory of the session (Claude Code Stop field, also accepted direct). */
+  cwd?: string;
 }
 
 async function main(): Promise<void> {
@@ -38,9 +44,13 @@ async function main(): Promise<void> {
     summary: directive.summary,
     refs: directive.refs,
     sessionId: payload.session_id ?? payload.sessionId,
+    cwd: payload.cwd,
   });
   if (result.captured) {
-    console.error(`[librarian-capture] captured 1 entry into ${result.day} session record.`);
+    // Diagnostics on stderr only, never stdout (INV-5). The project is named when
+    // provenance resolved, so a mis-wired hook is visible without opening the record.
+    const project = result.entry?.workspace ? ` [${result.entry.workspace.project}]` : "";
+    console.error(`[librarian-capture] captured 1 entry${project} into ${result.day} session record.`);
     if (result.rejectedRefs.length) {
       console.error(`[librarian-capture] rejected unresolvable refs: ${result.rejectedRefs.join(", ")}`);
     }
