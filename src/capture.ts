@@ -1,6 +1,6 @@
 import { toInertLine } from "./sanitize.js";
 import { buildRef, type VersionedRef } from "./refs.js";
-import { appendSession, type SessionEntry } from "./session-record.js";
+import { appendSession, isDuplicateEntry, type SessionEntry } from "./session-record.js";
 
 /**
  * Ambient capture (SCN-001): turn a client-produced session summary into exactly
@@ -22,6 +22,13 @@ export interface CapturePayload {
 
 export interface CaptureResult {
   captured: boolean;
+  /**
+   * True when the capture was a SR-013 idempotent no-op: this session already
+   * had an entry with identical normalized content, so nothing was appended and
+   * the record is byte-identical. Distinct from an empty-summary no-op (SR-004),
+   * where `deduped` is false.
+   */
+  deduped?: boolean;
   /** `YYYY-MM-DD` the entry landed in (only when captured). */
   day?: string;
   entry?: SessionEntry;
@@ -50,6 +57,34 @@ export function captureSession(payload: CapturePayload): CaptureResult {
     summary,
     refs,
   };
+
+  // SR-013 idempotence. Claude Code fires the Stop event at the END OF EVERY
+  // assistant turn (and around clear/compact), not only at session end, so the
+  // SAME directive is re-presented to this code path many times per session.
+  // If this session already recorded an entry with identical normalized content
+  // -- anywhere in _librarian/sessions/, including a prior UTC day for a session
+  // that straddled midnight -- appending again would duplicate. We compare on
+  // the server-normalized entry (inert summary + server-hashed refs), never on
+  // raw input, and no-op so the record stays byte-identical (COR-R-017/A-009).
+  // A payload with NO session id has no dedupe key and keeps append behavior
+  // (direct-CLI test payloads); isDuplicateEntry returns false for it.
+  //
+  // Atomicity: this compare and the appendSession write below share one
+  // synchronous call stack (no await between them), so within a process no Stop
+  // firing can interleave. Across processes -- Claude Code can fire Stop for a
+  // subagent and the main turn near-simultaneously -- the write in fs-safe.ts is
+  // a full-file recompute published by atomic temp+rename, so two concurrent
+  // identical firings converge on the same superset (last rename wins) rather
+  // than each appending; no duplicate results. RESIDUAL RACE (documented, not
+  // guarded): two truly concurrent FIRST firings of a brand-new directive could
+  // both pass this check and write entries whose only difference is the capture
+  // timestamp -- one entry, but not byte-identical to a single firing. A lock
+  // file was rejected here: a stale lock would durably wedge capture, violating
+  // the "a hook failure must never break the session" contract. The evaluated
+  // per-turn reality is sequential re-firing, which this handles exactly.
+  if (isDuplicateEntry(entry)) {
+    return { captured: false, deduped: true, rejectedRefs };
+  }
 
   appendSession(isoDay(now), entry);
   return { captured: true, day: isoDay(now), entry, rejectedRefs };
