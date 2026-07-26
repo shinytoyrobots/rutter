@@ -44,6 +44,10 @@ async function main(): Promise<void> {
     if (result.rejectedRefs.length) {
       console.error(`[librarian-capture] rejected unresolvable refs: ${result.rejectedRefs.join(", ")}`);
     }
+  } else if (result.deduped) {
+    // SR-013: the Stop event fires every turn; an unchanged directive already
+    // recorded for this session is a no-op, so re-firing never duplicates.
+    console.error("[librarian-capture] directive unchanged for this session; already recorded, nothing appended.");
   } else {
     console.error("[librarian-capture] empty summary; no entry written.");
   }

@@ -19,8 +19,10 @@
 # `documentation` (headless stdio MCP server, no UI; SR-103 docs-currency home).
 
 schema-version: "1.0"
-suite-version: "0.2.0"
-spec-version: "2.0.1"
+suite-version: "0.3.0"   # 0.2.0 -> 0.3.0: SCN-001 v3.0.0 amendment tasks (COR-R-017/018, COR-A-009).
+                         # Dataset REFINEMENT: prior variants (incl. shipped var-3) re-evaluate
+                         # against the extended correctness dataset per the eval protocol.
+spec-version: "3.0.0"
 status: active
 mapping-pending: false
 
@@ -76,14 +78,14 @@ metastable:
 mappings:
   scenarios:
     - scenario: SCN-001
-      title: A session's outcome is captured ambiently at session end
+      title: A session's outcome is captured ambiently, exactly once per distinct directive
       dimension: correctness
       dataset: correctness-real-v1
       grader: correctness
       mapping-pending: false
-      derived-requirements: [SR-001, SR-002, SR-003, SR-004]
-      tasks: [COR-R-001, COR-R-002, COR-R-003, COR-R-004]
-      adversarial-tasks: [COR-A-001, COR-A-002, COR-A-003]  # in correctness-adv-v1
+      derived-requirements: [SR-001, SR-002, SR-003, SR-004, SR-013, SR-014]
+      tasks: [COR-R-001, COR-R-002, COR-R-003, COR-R-004, COR-R-017, COR-R-018]  # 017/018 added @ spec v3.0.0
+      adversarial-tasks: [COR-A-001, COR-A-002, COR-A-003, COR-A-009]  # in correctness-adv-v1; 009 added @ spec v3.0.0
 
     - scenario: SCN-002
       title: Robin recalls recent work with librarian-recent
