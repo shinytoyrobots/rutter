@@ -11,3 +11,8 @@ data/
 efforts/*/flow-state.yaml
 efforts/*/generations/
 .flow-index/
+
+# Memory-of-use lives in the vault's _librarian/ overlay, never in the code repo
+# (SR-102 / prohibition 6). Ignored defensively in case a vault or stray overlay
+# is ever created inside the repo tree.
+_librarian/
