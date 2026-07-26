@@ -101,7 +101,7 @@ You can also ask directly: "search my vault for X" or "what was I working on thi
 
 5. Open a new Claude Code session and confirm the connection with the `/mcp` command. You should see `my-librarian` with three tools.
 
-6. **Turn on remembering** (one-time): register the Stop hook in `~/.claude/settings.json` so session summaries are captured automatically at session end:
+6. **Turn on remembering** (one-time, two pieces): first, register the Stop hook in `~/.claude/settings.json` so session summaries are captured automatically at session end:
 
    ```json
    {
@@ -112,7 +112,7 @@ You can also ask directly: "search my vault for X" or "what was I working on thi
    }
    ```
 
-   Then start a fresh Claude Code session (hooks are read at session start). The marker convention Claude uses to hand the hook its one-line summary is described in [`memory-of-use.md`](./memory-of-use.md) §2.
+   Second, add a standing rule to your global `~/.claude/CLAUDE.md` telling Claude to leave the one-line summary marker at the end of any session worth remembering — the hook only *collects* the marker; without the rule, nothing gets captured. The exact marker convention (and the rule text to copy) is in [`memory-of-use.md`](./memory-of-use.md) §2 and the README. Then start a fresh Claude Code session — hooks and CLAUDE.md are both read at session start.
 
 ## Use it
 
