@@ -42,6 +42,50 @@ A note reference is stored as a **versioned identity** — the vault-relative pa
 plus a content-hash captured as it was read — so the reference still tells you
 *what you saw* even after the note changes later.
 
+### Which workspace an entry came from
+
+Because a single day can span several efforts, each entry also records **where the
+session happened** — automatically, with nothing for you to name or configure:
+
+```yaml
+- id: 20260726T101500123Z
+  time: 2026-07-26T10:15:00.123Z
+  summary: Shipped workspace provenance.
+  refs: []
+  workspace:
+    cwd: /Users/you/Development/personal/my-librarian
+    project: my-librarian
+    repo: https://github.com/you/my-librarian.git
+```
+
+- **`cwd`** — the session's working directory, exactly as Claude Code reported it
+  on the Stop event.
+- **`project`** — derived from that directory: the name of the enclosing git
+  working tree, or the directory's own name when it isn't in a repo. A session run
+  from `my-librarian/src` is still project `my-librarian`. It is **never something
+  you supply** — being asked to name it would make capture non-ambient.
+- **`repo`** — the `origin` URL, read straight out of `.git/config`. The librarian
+  never runs `git` (no subprocess) and never contacts the remote (no network); the
+  URL is just a string it found in a file.
+
+Everything about this is best-effort and never blocks a capture:
+
+- No working directory in the payload → the whole `workspace` field is omitted and
+  the entry is captured as usual.
+- Not inside a repository (or no `origin`) → `repo` is omitted; `cwd` and
+  `project` still land.
+- A `.git` redirect (linked worktree/submodule) is followed only when its target
+  is itself git metadata (a path containing `.git`); anything else is refused and
+  `repo` is omitted — the reader can't be steered into arbitrary directories.
+- **Entries captured before this existed stay valid, untouched.** `workspace` is an
+  *additive-optional* field on the same record schema (`session-record@1`) — there
+  is no migration, no rewrite of old records, and a day file can hold a mix of old
+  and new entries.
+- **It never affects duplicate detection.** Identity is the *directive*, so a Stop
+  firing whose directory changed (a rename, a subdirectory, or none at all) is
+  still an unchanged directive and still a byte-identical no-op. Moving a project
+  does not fork your history.
+
 ---
 
 ## 2. Ambient capture — setting it up
@@ -86,7 +130,9 @@ entry. It always exits cleanly, so a capture hiccup can never break your session
 > add the one-liner from the README's "Enable ambient capture" step 2 to your global
 > `~/.claude/CLAUDE.md`, and every session emits it without being asked. You can also
 > capture directly for testing:
-> `echo '{"summary":"...","refs":["Notes/x.md"]}' | npm run capture`.
+> `echo '{"summary":"...","refs":["Notes/x.md"],"cwd":"/path/to/project"}' | npm run capture`
+> (`cwd` is optional; the real Stop event supplies it, and the hook passes it straight
+> through).
 
 ---
 
@@ -94,22 +140,65 @@ entry. It always exits cleanly, so a capture hiccup can never break your session
 
 Ask *"what was I working on lately?"* and Claude calls the **`librarian-recent`**
 tool. It returns recent session summaries **most-recent-first**, each with its
-date and the versioned provenance of the notes it references.
+date, its project, and the versioned provenance of the notes it references:
 
+```
+2026-07-26 10:15:00 [my-librarian] — Shipped workspace provenance.
+   refs: Notes/foo.md@sha256:…
+2026-07-25 21:40:00 [novel] — Drafted chapter three.
+2026-07-24 09:12:00 — An entry captured before provenance existed.
+```
+
+- **Project:** shown in brackets when the entry recorded one. An entry without
+  provenance shows nothing there — no "unknown project" placeholder, because that
+  would be noise about the record rather than information about the work.
+- **Project filter:** *"what have I been doing on the novel?"* → `project: "novel"`.
+  Matching is on the recorded project name and is **case-insensitive**, so `Novel`
+  works too. It matches the whole name, not part of it.
+  Entries with no provenance are **excluded** from a filtered answer — the
+  librarian will not match your filter against a summary's wording or a note path
+  to manufacture a result it cannot actually vouch for.
 - **Window:** limit to a recent span, e.g. *"what did I do last week?"* →
   `window: 7` (the last 7 days).
 - **Count:** cap the number of sessions, e.g. `count: 3` for the three most
   recent.
 - **Empty state:** with no records yet, it returns a plain
-  *"No recent sessions recorded yet."* message — never an error.
+  *"No recent sessions recorded yet."* message — never an error. A filter that
+  matches nothing says so specifically.
+
+Filters only ever *remove* entries: the order you get is the same order you would
+have got unfiltered.
 
 From the terminal:
 
 ```bash
-npm run recent            # everything, most-recent-first
-npm run recent -- 3       # the 3 most recent
-npm run recent -- --days 7  # just the last week
+npm run recent                        # everything, most-recent-first
+npm run recent -- 3                   # the 3 most recent
+npm run recent -- --days 7            # just the last week
+npm run recent -- --project my-librarian   # just one project
 ```
+
+---
+
+## 3a. How your client knows to ask
+
+You do not have to tell Claude (or any other MCP client) when to use the
+librarian. The server declares its own **MCP instructions**, which every client
+receives on connect:
+
+> Recency questions → `librarian-recent`. Prior-engagement and content questions →
+> `librarian-search`. Consult them before reading files directly. Then
+> `librarian-get-note` to read a note in full.
+
+This matters because guidance in a project's `CLAUDE.md` only helps in that
+project. Instructions that ship *with the server* travel to every client and every
+directory it's connected from — one install, not one per repo. (The one thing that
+does still live in your global `CLAUDE.md` is the *summary directive* from step 2
+above: writing the line is inference, which is your client's job, not the
+server's.)
+
+The guidance says *when the tools are the right answer* — it does not tell your
+client to call them unprompted. Memory stays quiet until it's relevant.
 
 ---
 
@@ -169,7 +258,9 @@ stateful-use per ISO week (gate target: >=3):
 
 ## Guarantees
 
-- **Local-first (INV-1):** no network calls, ever.
+- **Local-first (INV-1):** no network calls, ever. Repository identity is resolved
+  by reading `.git/config` — no `git` subprocess, and a remote URL is recorded as
+  text, never fetched.
 - **Store immutability (INV-2):** the librarian only writes under `_librarian/`
   and `data/`; it never creates, modifies, or deletes vault notes.
 - **No hard-delete (INV-3):** memory-of-use records are only appended.
