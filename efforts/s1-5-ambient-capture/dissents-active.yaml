@@ -67,10 +67,17 @@
         fine-grained modularity is amplifying change cost rather than isolating it —
         re-test velocity's simpler-surface thesis.
   status: active
-  last-checked: 2026-07-25
+  last-checked: 2026-07-26
   reactivation-count: 0
   history:
     - 2026-07-25: raised at gen-1 convergence checkpoint; provisional resolution ship var-3.
+    - >
+      2026-07-26: conditions re-checked at spec v3.1.0 (workspace provenance + client
+      adoption guidance; HITL-approved). NOT reactivated. Notes: (a) the desirability-gate
+      clock RESTARTS at the v3.1.0 ship (HITL decision 2026-07-26), so the time trigger's
+      "2026-08-08 verdict" reads as "~14 days after the v3.1.0 ship"; (b) the shell trigger
+      (>=8 distinct src/ files for one new behavior) must be evaluated against the gen-3
+      diff at cull.
 
 - id: dissent-2026-07-25-0002
   raised-at: 2026-07-25
@@ -147,7 +154,14 @@
         re-run it against var-3's `aggregateRefs` shape to CONFIRM the counterposition's claim
         that var-3 is staleness-free under grading, not merely under today's single-entry tests.
   status: active
-  last-checked: 2026-07-25
+  last-checked: 2026-07-26
   reactivation-count: 0
   history:
     - 2026-07-25: raised at gen-1 convergence checkpoint; provisional resolution ship var-3 format.
+    - >
+      2026-07-26: spec-change trigger evaluated at v3.1.0 (SCN-005 adds a `workspace`
+      field to session entries). NOT reactivated: the field is additive-OPTIONAL on
+      session-record@1 — schema id unchanged, pre-v3.1.0 records validate as-is, no
+      migration, SR-100 untouched, mdbase adoption still out of scope. The v3.1.0
+      acceptance criteria pin this (SCN-005/AC-additive-optional; task COR-R-021
+      grades it). Record count at check: 1 real day-file.
