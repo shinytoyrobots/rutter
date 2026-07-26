@@ -78,6 +78,22 @@
       "2026-08-08 verdict" reads as "~14 days after the v3.1.0 ship"; (b) the shell trigger
       (>=8 distinct src/ files for one new behavior) must be evaluated against the gen-3
       diff at cull.
+    - >
+      2026-07-26 (gen-3 convergence checkpoint, candidate gen-3/var-1 @ c0cc3c7): all three
+      conditions re-checked. NOT reactivated. (a) time: verdict not yet due — the gate clock
+      restarts at the v3.1.0 ship, so the verdict lands ~2026-08-09. (b) metric: `grep -rn
+      budget evals/harness.yaml` still returns NOTHING; the 150000 figure exists only at
+      `evals/graders/cost.md:65`, explicitly labelled "DRAFT budget ... placeholder". The
+      condition is UNMET for a THIRD consecutive generation, and every variant across
+      gen-1/2/3 has landed in the 0.00-0.15 band, so the axis carries no information. That
+      persistence — not the axis itself — is the subject of new dissent-2026-07-26-0004,
+      which CITES this entry rather than amending it. (c) shell: `git diff --name-only
+      3cb3b61..c0cc3c7 -- 'src/*.ts' | wc -l` = 7, for TWO scenarios (SCN-005 + SCN-006),
+      below the >=8 threshold. `capture.ts` absorbed a 1-field/1-call delta; `fs-safe.ts`
+      and `refs.ts` were untouched; the bulk of new logic landed in one new module
+      (`src/workspace.ts`). Recorded as a calibration data point AGAINST the
+      change-amplification thesis: two generations of new behavior have now landed on the
+      lineage without tripping the trigger.
 
 - id: dissent-2026-07-25-0002
   raised-at: 2026-07-25
@@ -165,3 +181,266 @@
       migration, SR-100 untouched, mdbase adoption still out of scope. The v3.1.0
       acceptance criteria pin this (SCN-005/AC-additive-optional; task COR-R-021
       grades it). Record count at check: 1 real day-file.
+    - >
+      2026-07-26 (gen-3 convergence checkpoint, candidate gen-3/var-1 @ c0cc3c7): NOT
+      reactivated, but one condition is now met in the CONFIRMING direction. (a) spec-change:
+      mdbase adoption is still out of scope, SR-100 untouched; the only `migrat*` hits in
+      spec.md are assertions that NO migration is required. (b) shell record count: 1 day
+      file / 5 entries at `~/Documents/knowledge-vault/_librarian/sessions/` — far below 90,
+      and the accumulated set is genuinely tiny, as the original resolution assumed. (c)
+      shell SCHEMA_ID: `src/session-record.ts:29` still `"session-record@1"`; var-1 added
+      only a comment explaining why an additive-optional field does not bump it. (d) metric
+      (multi-entry-day / mdbase-fidelity grader): **now PARTIALLY MET** — COR-R-021
+      (`evals/datasets/correctness-real-v1.jsonl:21`) grades a mixed pre-/post-v3.1.0
+      MULTI-ENTRY day file for schema validation, byte-preservation of the old entry, and
+      readability of both, and it PASSED for all three gen-3 variants (correctness 1.00).
+      That is the counterposition's central claim ("var-3's shape is staleness-free")
+      confirmed under grading rather than under single-entry tests only — the precise gap the
+      position named. Residual: no grader yet exercises frontmatter/body DIVERGENCE on a
+      multi-entry day (the var-2 staleness class), and the real day-file at check already has
+      5 entries, so the untested case is the live case. Status left `active` at reduced force;
+      once a divergence grader lands and passes, this warrants resolution via `flow-dissent`
+      acknowledge rather than continued latency.
+
+- id: dissent-2026-07-26-0003
+  raised-at: 2026-07-26
+  raised-by: flow-chavruta-pair / stability-bias
+  generation: 3
+  context: >
+    Gen-3 convergence checkpoint, ship candidate gen-3/var-1 (maintainability-lineage) @
+    `c0cc3c7`, which strictly dominates ex-cost and is about to merge to
+    `feat/workspace-provenance` and ship. SCN-005 requires repository identity to be
+    resolved "by local filesystem reads only" (SR-017). var-1 resolves it in
+    `src/workspace.ts` by walking up to the first `.git`, and — because this project's own
+    flow worktrees are that shape — FOLLOWING a `.git`-as-file `gitdir:` redirect and then
+    the target's `commondir`. Two facts about the implementation as shipped:
+    `resolveGitDir` (workspace.ts:111-125) uses `fs.statSync`, which follows symlinks, and
+    resolves the redirect with `path.resolve` and NO containment check
+    (`grep -cE 'isWithin|realpathSync|lstatSync' src/workspace.ts` == 0). The culled
+    security-biased var-3 reasoned about this exact fork and chose the opposite: fail closed
+    on `gitdir:` redirects, refuse a symlinked `.git`, and stop the walk at a `.git` it
+    cannot safely interpret — 13 dedicated SEC-A-013 tests, and an explicit HITL note that
+    its refusal costs `repo` in linked worktrees. var-3 was culled on maintainability (0.88
+    vs 0.97) and documentation, NOT on security; the two variants' security scores are
+    identical at 1.00.
+  position: >
+    Following the redirect widens the librarian's read surface from "inside the repo I am
+    standing in" to "any directory a `.git` file names," and the widened read has a durable
+    write channel behind it. Concretely: a `.git` FILE anywhere in an ancestor of the session
+    cwd sends `readOriginUrl` to an attacker-chosen directory, where it reads `config`, then
+    `commondir`, then `resolve(target, commondir)/config`; any `[remote "origin"] url` found
+    there is copied — inert, 512-bounded, but verbatim — into
+    `_librarian/sessions/<date>.md`, a git-committed record that INV-3 forbids ever
+    hard-deleting. Git remote URLs are a well-known carrier of embedded credentials
+    (`https://user:token@host/...`), so the failure mode is not a crash, it is a credential
+    or a foreign repo identity permanently laminated into memory-of-use, attributed to a
+    session that had nothing to do with it. The claim that this is safe rests on var-1's
+    security score, and that score is not evidence: cull finding #5 records the
+    security-adv-v1 dataset as SATURATED at 1.00 for every variant across three generations,
+    and the six discriminating vectors var-3's evaluator recorded — out-of-tree `gitdir:`,
+    symlinked `.git`, `include`/`includeIf` chaining — are exactly the untested territory.
+    The one variant that actually reasoned about the redirect refused it. That asymmetry
+    should be respected, or the middle path var-3 itself proposed (bound the resolved target
+    to the repo root, or require it to be `.git`-shaped; `lstatSync` so a symlinked `.git`
+    is refused) should be taken before the store starts accruing `repo` values — because
+    under INV-3 a wrong provenance value can only ever be superseded, never removed.
+  counterposition: >
+    (Accepted majority.) Ship as-is. The threat model does not survive contact with what
+    this product is: a single-user, local-first, stdio MCP server reading a vault on Robin's
+    own laptop. The precondition for the attack is write access to an ancestor of the session
+    cwd — an adversary with that access can write the vault directly, or edit
+    `hooks/`, and does not need a provenance side channel. Against that, the read surface is
+    narrow by construction, not by luck: exactly two literal filenames (`config`,
+    `commondir`) are ever opened, both bounded at 256KB, and `parseOriginUrl` is deliberately
+    NOT a general INI parser — it looks only for `url` inside `[remote "origin"]`, so
+    `include`/`includeIf` chaining is refused by omission and nothing but a single remote URL
+    is recoverable. Meanwhile the cost of var-3's refusal is measured, not hypothetical:
+    var-3's own notes record that a refused `.git` also ENDS the walk, so in flow's own
+    worktrees var-3 writes `project: agent-a468b2632d515cd48` and no `repo` at all. SCN-005's
+    stated purpose is that "any later reader can tell which effort a record belongs to" —
+    `agent-<hash>` with no repo fails that in the exact environment where this feature will
+    be dogfooded for the next 14 days, and the desirability gate is measured from that
+    dogfooding. Refusing the redirect does not make provenance safer; it makes provenance
+    not work where it is about to be used. var-3's own evaluator agreed, flagging its
+    refusal for HITL and proposing that "a future spec could allow a redirect whose target
+    is `.git`-shaped and bounded" — the security-biased variant did not treat its own
+    refusal as final.
+  provisional-resolution: >
+    Ship var-1's redirect-following as-is (stability loses this round). The team is buying
+    working provenance in linked worktrees — the environment the gate will be measured in —
+    at the price of an unbounded `gitdir:` target whose read is confined to two literal
+    filenames, under a single-user local threat model. The team is explicitly NOT buying
+    evidence that the redirect path is safe: the dataset that would demonstrate it is
+    saturated and cannot discriminate, so the security 1.00 on this diff is a null result,
+    not a pass. The named mitigation, if any reactivation condition fires, is var-3's own
+    middle path and is small: in `resolveGitDir`, require the resolved `gitdir:` target to
+    live under the discovered repo root or to be `.git`-shaped, and switch `statSync` to
+    `lstatSync` so a symlinked `.git` is refused — roughly ten lines, no behavior change for
+    real worktrees, which is why deferring it is cheap rather than free.
+  reactivation-conditions:
+    - type: spec-change
+      check: "grep -nEi 'shared vault|multi-user|shared store|remote hosting' spec/spec.md"
+      condition: >
+        If a shared or multi-user vault, or capture from repositories Robin did not create,
+        moves into scope, the single-user threat model that justifies following the redirect
+        no longer holds. Reactivate immediately and bound the target before further captures
+        — the glossary already contemplates "or a shared vault", so this is anticipated, not
+        speculative.
+    - type: metric
+      check: "eval suite finding #5 actioned — security-adv-v1 extended with var-3's six discriminating vectors"
+      condition: >
+        On extension, run the out-of-tree `gitdir:`, symlinked-`.git`, and
+        `include`/`includeIf` probes against the SHIPPED `src/workspace.ts`. A pass confirms
+        the counterposition and this dissent should be resolved; a fail makes the risk
+        concrete and it should be mitigated with the bounded-target patch. Until the dataset
+        can discriminate, neither reviewer's claim is testable.
+    - type: shell
+      check: "grep -cE 'isWithin|realpathSync|lstatSync' src/workspace.ts (== 0 today) AND grep -rc 'deriveWorkspace' src/ (== 2 today)"
+      condition: >
+        If containment is still absent AND `deriveWorkspace` gains a caller beyond
+        `captureSession` — a second, unaudited entry point reaching the same unbounded
+        target resolution — the blast radius has grown without the guard. Add the guard
+        before the second caller lands.
+    - type: shell
+      check: "grep -h 'repo:' ~/Documents/knowledge-vault/_librarian/sessions/*.md | sort -u"
+      condition: >
+        If any recorded `repo` value is not a remote of a repository Robin actually works in,
+        or contains userinfo (`| grep -E '://[^/ ]*@'`), a redirect target supplied a foreign
+        or credential-bearing URL and the widened read has been exercised in the wild.
+        Mitigate immediately; note that INV-3 means the recorded value can only be
+        superseded, never deleted, so detection latency is itself the cost.
+  status: mitigated
+  last-checked: 2026-07-26
+  reactivation-count: 0
+  history:
+    - >
+      2026-07-26: raised at the gen-3 convergence checkpoint on fork (c)+(d) adjudication;
+      provisional resolution ship var-1's commondir-following as-is. Recorded because the
+      culled var-3 held the opposite position deliberately and was culled for unrelated
+      reasons — a defeated argument that becomes correct the moment the vault stops being
+      single-user.
+    - >
+      2026-07-26 MITIGATED pre-ship (HITL chose "micro-harden first, then ship"): the
+      named bounded-target middle path landed in src/workspace.ts — a gitdir redirect or
+      commondir target is followed ONLY when some path segment is literally `.git`
+      (isGitShaped), matching every real worktree/submodule shape while refusing a
+      crafted `.git` file that names an arbitrary directory. Two adversarial tests added
+      (redirect-to-loot-config refused with the credential URL unrecorded; escaping
+      commondir refused while the benign ../.. worktree shape still resolves). Full
+      suite 69/69 post-mitigation. Reactivation conditions remain armed as regression
+      sentinels — in particular the recorded-repo userinfo scan, which now tests the
+      guard rather than the gap.
+
+- id: dissent-2026-07-26-0004
+  raised-at: 2026-07-26
+  raised-by: flow-chavruta-pair / velocity-bias
+  generation: 3
+  context: >
+    Gen-3 convergence checkpoint. var-1 (maintainability-LINEAGE — its brief is explicitly
+    "continue the shipped var-3/gen-2 architecture") is selected as the ship candidate on
+    STRICT DOMINATION EX-COST. On the weighted scalar the harness actually computes, var-1
+    is SECOND: 0.896 against var-2's 0.901 (var-3 0.885). var-1 also carries the WORST cost
+    score of the three (0.00 vs var-2's 0.10 and var-3's 0.05). The two axes on which var-1
+    strictly beats var-2 are maintainability (0.97 vs 0.96) and documentation (1.00 vs
+    0.97) — margins of 0.01 and 0.03. The cost axis was excluded from domination by
+    unanimous evaluator finding, on the correct observation that no authoritative budget is
+    declared anywhere (`grep -rn budget evals/harness.yaml` returns nothing; 150000 appears
+    only in `evals/graders/cost.md:65`, self-labelled a DRAFT placeholder). This is the
+    THIRD consecutive generation in which that exclusion has been necessary, and
+    dissent-2026-07-25-0001's reactivation condition #2 (recalibrate the budget, then re-check
+    whether the lineage still leads) has now gone UNMET across all three. Concretely, var-1
+    spends ~188 lines in a new `src/workspace.ts` to record three strings; var-2 does the
+    same work in ~70 inline lines and scores 0.990 ex-cost against var-1's 0.995. This
+    entry cites dissent-0001; it does not amend it.
+  position: >
+    The selection rule has been adjusted, generation after generation, in the direction that
+    keeps the same lineage winning. Not dishonestly — the cost axis genuinely carries no
+    information — but the cumulative effect is that the one axis that would price
+    constitution preference 5 ("cheapest useful slice behind a kill gate — do not gold-plate
+    ahead of the desirability verdict") is the axis that keeps getting set aside, and the
+    candidate it would have penalized hardest is the one that keeps shipping. Strip the
+    exclusion and the harness's own scalar ranks var-2 first. Keep the exclusion and var-1's
+    "strict" domination rests on a 0.01 maintainability delta whose grader variance has never
+    been characterized — that is a tie being reported as a win. Meanwhile the thing all of
+    this investment is supposedly serving has never once been delivered: the desirability
+    verdict. The gate clock is about to restart for the THIRD time (ship-0001 started it,
+    ship-0002's hotfix ran alongside it, v3.1.0 restarts it again by HITL decision), so the
+    slice has now been built three times and measured zero times. A kill gate whose clock
+    resets every time the slice improves is not a kill gate. The right move at gen-3 is to
+    fix the measurement before making a fourth selection with it: recalibrate the budget (or
+    formally suspend the axis in `harness.yaml` with a recorded amendment, so the exclusion
+    is a rule rather than a per-generation judgment), then ship whichever variant that
+    honest vector picks — probably still var-1, but provably rather than by default.
+  counterposition: >
+    (Accepted majority.) Ship var-1 now. The harness's stated rule is that the VECTOR
+    decides, not the scalar — the scalar exists for reporting — so "var-2 leads on the
+    scalar" is an artifact of exactly the axis under dispute, and the position needs that
+    axis to be informative in order to argue that it matters. It is not informative: three
+    generations, every variant, 0.00-0.15, against a budget number that exists only as an
+    illustrative example inside a grader's prose. Excluding a provably non-discriminating
+    axis is not moving the goalposts; INCLUDING it would let an unratified placeholder in a
+    markdown file choose the product's architecture, which is a far worse governance failure
+    than the one alleged. On the merits of the lineage: continuity has now paid twice, in
+    measurement, not in principle. The gen-2 hotfix landed a spec-level semantic correction
+    (idempotent capture per distinct directive) cleanly; gen-3 landed two whole scenarios in
+    7 `src/*.ts` files with `capture.ts` absorbing a 1-field/1-call delta and the `fs-safe.ts`
+    write choke point untouched — dissent-0001's own change-amplification trigger did not
+    fire, twice. Switching vehicles at gen-3 to bank a 0.005 ex-cost difference would discard
+    that record and reset Pareto-front stability (currently 0.83, the component holding
+    convergence at 0.92) to zero. And the cost of the position's preferred alternative is not
+    abstract: recalibrating the budget is eval-suite work that cannot change THIS ship's
+    outcome, while the gate clock — the only scarce resource in a slice explicitly built to be
+    killable — stays stopped for the duration. The recalibration is already a recorded
+    pre-converge action item. Do it next; do not hold the experiment for it.
+  provisional-resolution: >
+    Ship var-1 (velocity loses this round, as at gen-1). The team is buying vector-domination
+    on the five informative axes plus three generations of lineage continuity, and is
+    accepting three things explicitly: (1) the ship candidate is second on the scalar the
+    harness computes, (2) its strict-domination margin over var-2 is 0.01 on a grader whose
+    variance is uncharacterized, and (3) the desirability gate clock restarts a third time
+    with the verdict still never delivered, so the authoring premium of the lineage remains
+    unpriced against a benefit that has never been observed. Cost-budget recalibration
+    (~250k) is carried as a pre-converge action item, NOT as a ship gate.
+  reactivation-conditions:
+    - type: metric
+      check: "grep -nE 'budget' evals/harness.yaml returns a declared budget AND that budget != 150000"
+      condition: >
+        On recalibration, re-score the three PRESERVED gen-3 branches
+        (`worktree-agent-a468b2632d515cd48`, `flow/gen-3/var-2-simplicity`,
+        `flow/gen-3/var-3-security`) under the real budget. If var-1 does not lead on the
+        full six-axis vector, the lineage has been winning by axis exclusion for three
+        generations — escalate to HITL before gen-4 compounds further investment on var-1's
+        shape. This is dissent-0001 condition #2 carried forward with the specific branches
+        named so the re-score is actually runnable.
+    - type: time
+      check: "desirability-gate verdict ~2026-08-09 (14 days after the v3.1.0 ship)"
+      condition: >
+        If the verdict is NEGATIVE, this fires together with dissent-0001's time trigger and
+        the H2/H3-or-stop HITL (constitution escalation trigger 2) must weigh the CUMULATIVE
+        premium across three generations of lineage investment, not just gen-1's ~30k. If the
+        verdict is POSITIVE, resolve this dissent: the premium bought a slice that earned its
+        successor.
+    - type: shell
+      check: "grep -ric 'clock restart' spec/spec.md efforts/s1-5-ambient-capture/flow-state.yaml efforts/s1-5-ambient-capture/generations/*/summary.md"
+      condition: >
+        If the desirability-gate clock is restarted a FOURTH time without a verdict ever
+        being rendered, the gate has become unfalsifiable and constitution preference 5 is
+        no longer constraining anything. Reactivate regardless of scores and escalate the
+        gate's design itself to HITL — this failure is independent of any variant.
+    - type: metric
+      check: "maintainability grader inter-run variance characterized (suite-hardening item from the gen-3 Goodhart section)"
+      condition: >
+        If characterized variance exceeds 0.01, var-1's strict domination over var-2 does not
+        reproduce and the gen-3 first front was a TIE, not a win. Record it against this
+        entry: it would mean the vehicle for gen-3 was chosen inside grader noise, which
+        retroactively strengthens the position without changing the shipped code.
+  status: active
+  last-checked: 2026-07-26
+  reactivation-count: 0
+  history:
+    - >
+      2026-07-26: raised at the gen-3 convergence checkpoint on the cost-axis/lineage fork;
+      provisional resolution ship var-1. Cites dissent-2026-07-25-0001 (same underlying
+      thesis, now at its third recurrence with three generations of unmet recalibration
+      behind it). Recorded so that the audit trail shows the exclusion was noticed at the
+      moment of each selection, not reconstructed afterwards.

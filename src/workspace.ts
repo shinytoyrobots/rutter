@@ -121,7 +121,18 @@ function resolveGitDir(dotGit: string): string | undefined {
 
   const redirect = readSmall(dotGit)?.match(/^\s*gitdir:\s*(.+)$/m)?.[1]?.trim();
   if (!redirect || redirect.includes("\0")) return undefined;
-  return path.resolve(path.dirname(dotGit), redirect);
+  const target = path.resolve(path.dirname(dotGit), redirect);
+  // Containment (dissent-2026-07-26-0003 mitigation): a redirect is followed only
+  // when its target is itself git-metadata-shaped -- some path segment is `.git`,
+  // as every real worktree/submodule gitdir is (`<repo>/.git/worktrees/<name>`,
+  // `<repo>/.git/modules/<name>`). A crafted `.git` file pointing at an arbitrary
+  // directory is refused, so this read cannot be steered outside git metadata.
+  return isGitShaped(target) ? target : undefined;
+}
+
+/** True when some path segment is literally `.git` (git-metadata containment). */
+function isGitShaped(abs: string): boolean {
+  return abs.split(path.sep).includes(".git");
 }
 
 /**
@@ -143,7 +154,10 @@ function readOriginUrl(gitDir: string): string | undefined {
 function resolveCommonDir(gitDir: string): string | undefined {
   const rel = readSmall(path.join(gitDir, "commondir"))?.trim();
   if (!rel || rel.includes("\0")) return undefined;
-  return path.resolve(gitDir, rel);
+  const shared = path.resolve(gitDir, rel);
+  // Same containment as the gitdir redirect: a real commondir names the shared
+  // `.git` directory; anything else is refused rather than read.
+  return isGitShaped(shared) ? shared : undefined;
 }
 
 const INI_SECTION = /^\s*\[([^\]]*)\]/;

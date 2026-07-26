@@ -71,7 +71,14 @@ const DAY_MS = 86_400_000;
  */
 function matchesProject(entry: RecentEntry, project: string): boolean {
   if (!entry.workspace) return false;
-  return entry.workspace.project.toLowerCase() === project.trim().toLowerCase();
+  // NFC-normalize both sides so an NFD-spelled filter (macOS paths, some IMEs)
+  // matches an NFC-stored project name -- "café" is one project, however spelled.
+  return fold(entry.workspace.project) === fold(project.trim());
+}
+
+/** Case- and unicode-normalization fold for whole-name project comparison. */
+function fold(name: string): string {
+  return name.normalize("NFC").toLowerCase();
 }
 
 function flatten(records: SessionRecord[]): RecentEntry[] {
