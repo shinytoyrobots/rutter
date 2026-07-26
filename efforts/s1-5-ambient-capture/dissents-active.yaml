@@ -1,4 +1,153 @@
 # Dissent registry — effort s1-5-ambient-capture
 # Append-only. Authored by flow-chavruta-pair / flow-evaluator only (see flow-dissent-protocol).
-# No dissents yet: spec v1.0.0 was a bootstrap authoring with no convergence checkpoint.
-[]
+# Prior note: spec v1.0.0 was a bootstrap authoring with no convergence checkpoint.
+# First entries raised at the gen-1 convergence checkpoint (metastable ship of var-3 @ 2442f6bb).
+
+- id: dissent-2026-07-25-0001
+  raised-at: 2026-07-25
+  raised-by: flow-chavruta-pair / velocity-bias
+  generation: 1
+  context: >
+    Gen-1 convergence checkpoint. The orchestrator selected var-3 (maintainability
+    bias, 23 fine-grained modules, single fs-safe.ts write choke point, typed-record
+    source-of-truth) as the metastable ship candidate on the strength of stability 1.0
+    and spec-proximity 1.0. var-1 (simplicity bias) carries the HIGHER weighted scalar
+    (0.908 vs 0.899), is the cheapest to have authored (159k vs var-3's 189k generation
+    tokens), and reads memory-of-use straight from markdown (INV-4 true by construction).
+    var-3 is the most expensive slice to build for a behavior that a 2-week desirability
+    kill gate may retire outright. Constitution preference 5 is explicit: "cheapest
+    useful slice behind a kill gate — do not gold-plate ahead of the desirability verdict."
+  position: >
+    Ship var-1, not var-3. var-3's maintainability machinery (23 modules averaging ~60
+    lines, a dedicated confinement choke point, typed-record/regenerated-body split) is
+    real engineering value, but it is investment BEFORE the desirability verdict exists —
+    exactly the gold-plating pref 5 warns against. The scalar gap favors var-1, and var-1's
+    only blemish (the 352-line sessions.ts god-module) is a cosmetic maintainability ding
+    on a slice we might delete in 14 days. The cost of building var-3 buys auditability we
+    cannot yet know we need; the cheapest instrument that can measure the gate is the
+    correct instrument to run the experiment with. If the gate passes, var-3's shape can
+    be re-derived at H2 with the mandate that justifies it.
+  counterposition: >
+    (Accepted majority.) Ship var-3. Weighted-scalar leadership by var-1 is almost entirely
+    an artifact of the cost dimension, which the eval suite itself flagged as miscalibrated
+    (all five variants fail cost; the axis currently measures only "which bias is cheapest,"
+    not "within budget" — recalibration to ~250k is pending HITL). Strip that noise and
+    var-3 leads on the axis that matters for an append-only, never-hard-deletable memory
+    store: a single auditable write choke point and byte-identical S1 core (blast radius
+    low, reversibility high). var-1's god-module is the kind of debt that compounds precisely
+    as memory-of-use accretes. When the thing you are about to start accumulating is
+    irreversible by invariant (INV-3), the maintainability premium is not gold-plating — it
+    is the cheapest defensible slice.
+  provisional-resolution: >
+    Ship var-3 (velocity loses this round). The team is buying auditability and low blast
+    radius at a one-time ~30k-token authoring premium and a heavier module surface, on the
+    judgment that the cost-dimension scalar edge for var-1 is measurement noise and that an
+    append-only store rewards a single confinement choke point. The team is NOT buying a
+    proven need for that machinery — that proof is what the desirability gate will or will
+    not deliver.
+  reactivation-conditions:
+    - type: time
+      check: "2026-08-08 desirability-gate verdict"
+      condition: >
+        If the 2-week desirability gate verdict is NEGATIVE (Robin did not reach for
+        stateful behavior unprompted ≥3×/week for 2 weeks), reactivate: var-3's authoring
+        premium was spent on a retired slice and velocity's cheapest-instrument thesis was
+        right. Feeds the H2/H3-or-stop HITL decision (constitution escalation trigger 2).
+    - type: metric
+      check: "eval suite finding #1 actioned — cost budget recalibrated in evals/harness (budget != 150000)"
+      condition: >
+        After recalibration, if var-3 no longer leads its surviving Pareto neighbours on
+        weighted scalar, the maintainability premium is not buying rank — reconsider the
+        vehicle before gen-2 investment compounds on var-3's shape.
+    - type: shell
+      check: "next SCN/SR-implementing generation diff touches src/ breadth"
+      condition: >
+        If landing one new behavior requires editing >= 8 distinct files under src/
+        (`git diff --name-only <var-3-base>..<head> -- 'src/*.ts' | wc -l` >= 8), the
+        fine-grained modularity is amplifying change cost rather than isolating it —
+        re-test velocity's simpler-surface thesis.
+  status: active
+  last-checked: 2026-07-25
+  reactivation-count: 0
+  history:
+    - 2026-07-25: raised at gen-1 convergence checkpoint; provisional resolution ship var-3.
+
+- id: dissent-2026-07-25-0002
+  raised-at: 2026-07-25
+  raised-by: flow-chavruta-pair / stability-bias
+  generation: 1
+  context: >
+    Shipping var-3 hard-commits an on-disk session-record format that memory-of-use will
+    accumulate in from day one: typed frontmatter as source of truth (collection
+    "librarian.sessions", schema id "session-record@1", typed `day`, `sessions[]` entries,
+    aggregate `refs`) with a regenerated markdown body view (src/session-record.ts). Three
+    distinct record shapes existed across survivors (var-1 entries-in-frontmatter; var-2
+    frontmatter-once + JSON body lines, which carries an empirically confirmed multi-entry-day
+    frontmatter-staleness gap that no current grader catches; var-3 typed-frontmatter +
+    regenerated body). SR-100 asks the shape to be "mdbase-compatible" so H2 mdbase adoption
+    is a drop-in — but mdbase is NOT adopted in S1.5 (out of scope), so `session-record@1`
+    is a GUESS at a schema that H2 will ratify. INV-3 forbids hard-deleting any memory-of-use
+    record, and records grow ~1/day, so every day after ship makes a format migration a
+    forward-only, larger operation.
+  position: >
+    A format that accretes append-only records under a no-hard-delete invariant is the single
+    least reversible decision at this checkpoint, and it is being fixed on a guessed mdbase
+    shape before mdbase exists. If H2's real mdbase collection schema differs from
+    `session-record@1` (field names, ref typing, collection identity), every accumulated
+    record must be migrated forward — never rewritten in place, never dropped — and the
+    migration surface grows daily. This is exactly the class of decision that warrants either
+    one more generation to cross-pollinate the surviving record shapes against a hardened
+    schema grader, OR an explicit, tested forward-migration path shipped alongside the format,
+    BEFORE the store starts filling. The eval suite has not yet ratified any record shape as
+    mdbase-faithful — var-2's staleness gap proves current graders test single-entry records
+    only and cannot distinguish a faithful shape from a lossy one.
+  counterposition: >
+    (Accepted majority.) Ship var-3's shape now. Of the three surviving shapes it is the most
+    migration-friendly by construction: typed frontmatter is the source of truth (not a
+    reconstruction of body lines), the format carries an explicit `schema: session-record@1`
+    version string so a v2 is a normal versioned migration rather than a format archaeology
+    project, and `aggregateRefs()` recomputes the frontmatter refs on every append — so var-3
+    provably AVOIDS the var-2 multi-entry-day staleness gap that motivates the worry. Delaying
+    ship to guess mdbase "more correctly" is speculative: mdbase's schema is an H2 artifact
+    that may itself change, and SR-100's mandate is precisely to shape a compatible sidecar
+    now, not to adopt mdbase. A versioned, source-of-truth-typed record IS the migration path;
+    holding the desirability experiment hostage to a not-yet-existent downstream schema pays
+    for a problem that has not happened.
+  provisional-resolution: >
+    Ship var-3's format (stability loses this round). The team is buying an early, real-world
+    accumulation of memory-of-use in a versioned, typed, staleness-free shape — accepting the
+    risk that H2 mdbase diverges and forces a forward-only migration over a growing record set.
+    The `schema: session-record@1` version string is the acknowledged escape hatch; the team is
+    accepting that no migration tooling exists yet and that the record set is small today (near
+    zero) so the migration cost is lowest it will ever be — deferring the tooling until a
+    concrete divergence or record-count threshold makes it load-bearing.
+  reactivation-conditions:
+    - type: spec-change
+      check: "grep -nE 'adopt mdbase|mdbase (schema|collection)|migrat' spec/spec.md"
+      condition: >
+        If spec.md moves mdbase adoption in scope, publishes an actual mdbase collection
+        schema, or SR-100 changes, reactivate immediately and compare the ratified schema
+        against `session-record@1` for divergence before any further records accrue.
+    - type: shell
+      check: "find _librarian/sessions -name '*.md' | wc -l"
+      condition: >
+        If accumulated record count exceeds 90 (~3 months of daily capture) AND no tested
+        forward-migration path exists yet, the INV-3 forward-only migration cost has crossed
+        from trivial to material — require migration tooling before the next schema change.
+    - type: shell
+      check: "grep -rn 'session-record@2\\|SCHEMA_ID' src/session-record.ts"
+      condition: >
+        If SCHEMA_ID is bumped past @1 (a real second schema version appears), the migration
+        risk is now concrete — dissent should be resolved via mitigate (ship migration tooling)
+        rather than remaining a latent worry.
+    - type: metric
+      check: "eval suite finding #2 actioned — multi-entry-day mdbase-fidelity grader added"
+      condition: >
+        When the adversarial multi-entry-day / mdbase-fidelity correctness task is created,
+        re-run it against var-3's `aggregateRefs` shape to CONFIRM the counterposition's claim
+        that var-3 is staleness-free under grading, not merely under today's single-entry tests.
+  status: active
+  last-checked: 2026-07-25
+  reactivation-count: 0
+  history:
+    - 2026-07-25: raised at gen-1 convergence checkpoint; provisional resolution ship var-3 format.
