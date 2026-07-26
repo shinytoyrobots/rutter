@@ -86,10 +86,53 @@ export function readAllRecords(): SessionRecord[] {
 }
 
 /**
+ * Normalized dedupe key for one entry (SR-013). Built ONLY from already-inert,
+ * server-derived fields -- the toInertLine'd summary and the resolved refs
+ * (path + content-hash computed by the server, never trusted from the client) --
+ * so the comparison is on normalized content, never on raw input. Refs are
+ * sorted so ordering cannot defeat the match. The session id is part of the key,
+ * so the same directive in two different sessions is (correctly) not a duplicate.
+ */
+function contentKey(sessionId: string, summary: string, refs: VersionedRef[]): string {
+  const refKey = refs.map((r) => `${r.path}@${r.hash}`).sort();
+  // JSON-encode the tuple so field boundaries are unambiguous: no crafted
+  // session id or summary can smuggle a separator to collide two distinct
+  // directives into one key (or split one into two) -- fail-closed on identity.
+  return JSON.stringify([sessionId, summary, refKey]);
+}
+
+/**
+ * SR-013 idempotence guard: is an entry with this entry's session id AND
+ * identical normalized content already recorded ANYWHERE in
+ * `_librarian/sessions/`? The scan spans every day's record, not just the
+ * entry's own day, because a session can straddle the UTC midnight boundary --
+ * the first capture may live in a previous day's file, and dedupe must still
+ * find it. An entry with NO session id has no dedupe key (SR-013 is scoped to
+ * carrier-of-session-id captures), so it is never treated as a duplicate and
+ * keeps plain append behavior -- matching the direct-CLI test-payload path.
+ */
+export function isDuplicateEntry(entry: SessionEntry): boolean {
+  if (!entry.session_id) return false; // no dedupe key -> append (SR-013 scope)
+  const key = contentKey(entry.session_id, entry.summary, entry.refs);
+  for (const record of readAllRecords()) {
+    for (const s of record.sessions) {
+      if (s.session_id === entry.session_id && contentKey(s.session_id, s.summary, s.refs) === key) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/**
  * Add one session entry to its day's record, preserving every prior entry
  * (INV-3: records are only appended, never destroyed). The read-merge-write is
  * published atomically via temp-then-rename (see fs-safe.atomicWrite), so a
  * pre-existing record is replaced by a superset, never truncated in place.
+ *
+ * Idempotence/revision (SR-013/SR-014) is decided by the caller before this is
+ * reached (see capture.ts): an unchanged directive never gets here, a changed
+ * one appends a fresh entry alongside the untouched earlier ones.
  */
 export function appendSession(day: string, entry: SessionEntry): void {
   const existing = readRecord(day);
