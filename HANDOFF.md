@@ -123,3 +123,4 @@ In the repo: `README.md`, `docs/overview.md` (plain-English), `DESIGN.md` (stora
 - Plan/design → write to a file, don't implement until told. American English. Keep CLAUDE.md files <40 lines.
 - Vault access: read/write local `~/Documents/knowledge-vault/` directly.
 - Keep this HANDOFF.md updated as the single resume-point; refresh it at the end of significant sessions.
+- **At every ship: annotate the wish log.** Check `<vault>/_librarian/wish-log.md` for entries the ship addresses and append a one-line `STATUS: SHIPPED <date> (<spec/ship id>)` above each — append-only, never edit the wish text (it is gate evidence), one line max (it is not a changelog), and note any residual gap as a pointer to a possible new wish. Client/human judgment only — the server never writes this file.
