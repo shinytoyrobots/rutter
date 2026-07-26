@@ -1,9 +1,12 @@
-import { resetLibrarian, writeNote, sessionExists, readSession } from "./setup.js";
+import { resetLibrarian, writeNote, sessionExists, readSession, vaultRoot, sessionsDir } from "./setup.js";
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import matter from "gray-matter";
 import crypto from "node:crypto";
 import fs from "node:fs";
+import path from "node:path";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { captureSession } from "../src/capture.js";
 import { readRecord, RecordSchema } from "../src/session-record.js";
 
@@ -64,6 +67,85 @@ test("COR-R-004 SCN-001/AC-4: capture is ambient -- no MCP tool call, only a sum
   const result = captureSession({ summary: "Ambiently captured at session end.", now: NOON });
   assert.equal(result.captured, true);
   assert.equal(readRecord(DAY)!.sessions.length, 1);
+});
+
+test("COR-R-017 SCN-001/AC-idempotence (SR-013): re-firing the same directive 5x leaves the record byte-identical, one entry", () => {
+  writeNote("Notes/foo.md", "# Foo\ncontent");
+  const directive = { summary: "Shipped idempotent capture; dedupe on session + content.", refs: ["Notes/foo.md"], sessionId: "S-cor-r-017" };
+  // First capture at the turn where the directive was emitted.
+  const first = captureSession({ ...directive, now: new Date("2026-07-24T10:00:00.000Z") });
+  assert.equal(first.captured, true, "first firing captures");
+  const afterFirst = readSession(DAY);
+  // Four more Stop firings for the SAME session with the identical directive,
+  // each at a LATER wall-clock instant (as real per-turn firing would be). The
+  // differing clock proves the guard keys on content, not on the timestamp.
+  for (let i = 1; i <= 4; i++) {
+    const r = captureSession({ ...directive, now: new Date(`2026-07-24T10:0${i}:00.000Z`) });
+    assert.equal(r.captured, false, `firing ${i + 1} appends nothing`);
+    assert.equal(r.deduped, true, `firing ${i + 1} is an idempotent no-op`);
+  }
+  const afterFifth = readSession(DAY);
+  assert.equal(afterFifth, afterFirst, "day record is byte-identical after firing 5 as after firing 1");
+  assert.equal(readRecord(DAY)!.sessions.length, 1, "exactly one entry for session S; no duplicates");
+});
+
+test("COR-R-018 SCN-001/AC-revision (SR-014): a changed directive appends [D1, D2] with D1's bytes unmodified", () => {
+  const D1 = captureSession({ summary: "D1: decided to store refs by content-hash.", sessionId: "S-cor-r-018", now: new Date("2026-07-24T09:00:00.000Z") });
+  assert.equal(D1.captured, true);
+  const entry0AfterD1 = readRecord(DAY)!.sessions[0]!;
+  // Same session id, CHANGED directive content -> a revision is appended.
+  const D2 = captureSession({ summary: "D2: revised -- also record the git ref when present.", sessionId: "S-cor-r-018", now: new Date("2026-07-24T11:30:00.000Z") });
+  assert.equal(D2.captured, true, "the changed directive is captured (revision, not no-op)");
+  assert.equal(D2.deduped ?? false, false);
+
+  const sessions = readRecord(DAY)!.sessions;
+  assert.equal(sessions.length, 2, "two entries for session S: [D1, D2]");
+  assert.deepEqual(sessions[0], entry0AfterD1, "D1's entry is preserved byte-for-byte (INV-3: never overwritten/deleted)");
+  assert.equal(sessions[0]!.summary, "D1: decided to store refs by content-hash.", "D1 first, in order");
+  assert.equal(sessions[1]!.summary, "D2: revised -- also record the git ref when present.", "D2 appended after D1 (last-directive-wins as revision)");
+});
+
+test("COR-A-009 SCN-001/AC-idempotence (SR-013/SR-001): hammering the FULL Stop-hook entry path 5x yields one byte-identical entry", () => {
+  // Exercises the real hook entry point (capture-cli reading a Stop-event
+  // payload + transcript fixture), NOT the inner captureSession -- the
+  // mechanism holdout the shipped gen-1 variant missed.
+  writeNote("Notes/bar.md", "# Bar\nsome content");
+  const transcriptPath = path.join(vaultRoot, "cc-transcript.jsonl");
+  const directive = '<!-- librarian-session {"summary":"Hardened capture against per-turn Stop firing.","refs":["Notes/bar.md"]} -->';
+  const lines = [
+    { message: { content: "Working on the hotfix." } },
+    { message: { content: [{ type: "text", text: `Here is the outcome. ${directive}` }] } },
+    { message: { content: "Follow-up turn 1 (no directive)." } },
+    { message: { content: "Follow-up turn 2 (no directive)." } },
+    { message: { content: "Follow-up turn 3, simulated around a clear/compact boundary." } },
+    { message: { content: "Follow-up turn 4 (no directive)." } },
+  ];
+  fs.writeFileSync(transcriptPath, lines.map((l) => JSON.stringify(l)).join("\n"), "utf8");
+
+  const cli = fileURLToPath(new URL("../src/capture-cli.ts", import.meta.url));
+  const stopPayload = JSON.stringify({ transcript_path: transcriptPath, session_id: "S-cor-a-009" });
+  const day = new Date().toISOString().slice(0, 10); // child uses the real clock
+  const dayFile = path.join(sessionsDir, `${day}.md`);
+
+  const fire = () => {
+    const res = spawnSync(process.execPath, ["--import", "tsx", cli], {
+      input: stopPayload,
+      // Same throwaway vault as the in-process tests, passed to the child so it
+      // writes into the shared temp _librarian/ (INV-1: no real vault touched).
+      env: { ...process.env, LIBRARIAN_VAULT_PATH: vaultRoot, LIBRARIAN_DB_PATH: path.join(vaultRoot, "data", "librarian.db") },
+      encoding: "utf8",
+    });
+    assert.equal(res.status, 0, `hook exits clean; stderr: ${res.stderr}`);
+  };
+
+  fire(); // end of the turn that emitted the directive
+  const afterFirst = fs.readFileSync(dayFile, "utf8");
+  for (let i = 0; i < 4; i++) fire(); // four more per-turn firings, same transcript
+  const afterFifth = fs.readFileSync(dayFile, "utf8");
+
+  assert.equal(afterFifth, afterFirst, "record byte-identical after firing 1 and firing 5");
+  const record = matter(afterFifth).data as { sessions: unknown[] };
+  assert.equal(record.sessions.length, 1, "exactly one entry across all 5 Stop firings");
 });
 
 test("COR-R-015 SR-100: fresh record frontmatter validates against the typed schema", () => {
