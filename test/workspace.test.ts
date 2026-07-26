@@ -243,3 +243,50 @@ test("SR-017 derivation: a repository with no origin remote records cwd + projec
   assert.equal(workspace.project, "no-remote");
   assert.equal(workspace.repo, undefined, "no origin url in the config -> repo omitted");
 });
+
+test("dissent-0003 mitigation (SR-017): a gitdir redirect to a non-git-shaped directory is refused, not read", () => {
+  // The attack chavruta's stability reviewer described: a crafted `.git` FILE
+  // whose `gitdir:` names an arbitrary directory holding a config with a
+  // credential-bearing origin URL. Containment refuses any redirect target
+  // without a `.git` path segment, so that config is never opened.
+  const trap = path.join(vaultRoot, "containment", "not-git-metadata");
+  fs.mkdirSync(trap, { recursive: true });
+  fs.writeFileSync(
+    path.join(trap, "config"),
+    '[remote "origin"]\n\turl = https://user:secret-token@evil.invalid/loot.git\n',
+    "utf8"
+  );
+  const victim = path.join(vaultRoot, "containment", "victim-project");
+  fs.mkdirSync(victim, { recursive: true });
+  fs.writeFileSync(path.join(victim, ".git"), `gitdir: ${trap}\n`, "utf8");
+
+  const workspace = deriveWorkspace(victim)!;
+  assert.equal(workspace.project, "victim-project", "project still derives (capture never blocked, SR-016)");
+  assert.equal(workspace.repo, undefined, "the redirected config is refused -- no credential URL recorded");
+});
+
+test("dissent-0003 mitigation (SR-017): a commondir escaping git metadata is refused, while the real worktree shape still resolves", () => {
+  // Hostile: a .git-shaped gitdir whose commondir points OUTSIDE git metadata.
+  const mainRepo = makeRepo("containment/outer", "https://example.invalid/outer.git");
+  const gitDir = path.join(mainRepo, ".git", "worktrees", "wt");
+  fs.mkdirSync(gitDir, { recursive: true });
+  const loot = path.join(vaultRoot, "containment", "loot-dir");
+  fs.mkdirSync(loot, { recursive: true });
+  fs.writeFileSync(
+    path.join(loot, "config"),
+    '[remote "origin"]\n\turl = https://evil.invalid/exfil.git\n',
+    "utf8"
+  );
+  fs.writeFileSync(path.join(gitDir, "commondir"), path.relative(gitDir, loot) + "\n", "utf8");
+  const linked = path.join(vaultRoot, "containment", "wt");
+  fs.mkdirSync(linked, { recursive: true });
+  fs.writeFileSync(path.join(linked, ".git"), `gitdir: ${gitDir}\n`, "utf8");
+
+  const hostile = deriveWorkspace(linked)!;
+  assert.equal(hostile.repo, undefined, "an escaping commondir is refused");
+
+  // Control (the benign shape from the redirect test still works after the guard):
+  fs.writeFileSync(path.join(gitDir, "commondir"), "../..\n", "utf8");
+  const benign = deriveWorkspace(linked)!;
+  assert.equal(benign.repo, "https://example.invalid/outer.git", "the real worktree commondir shape still resolves");
+});

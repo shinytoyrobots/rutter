@@ -74,6 +74,9 @@ Everything about this is best-effort and never blocks a capture:
   the entry is captured as usual.
 - Not inside a repository (or no `origin`) → `repo` is omitted; `cwd` and
   `project` still land.
+- A `.git` redirect (linked worktree/submodule) is followed only when its target
+  is itself git metadata (a path containing `.git`); anything else is refused and
+  `repo` is omitted — the reader can't be steered into arbitrary directories.
 - **Entries captured before this existed stay valid, untouched.** `workspace` is an
   *additive-optional* field on the same record schema (`session-record@1`) — there
   is no migration, no rewrite of old records, and a day file can hold a mix of old

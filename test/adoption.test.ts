@@ -152,3 +152,12 @@ test("SCN-006/AC-4 (SR-011): display and filtering do not change instrumentation
   assert.equal(events.length, 3, "one stateful-use event per librarian-recent call, filtered or not");
   for (const e of events) assert.equal(e.kind, "librarian-recent");
 });
+
+test("chavruta finding (SR-019): unicode-normalization-insensitive project matching -- NFD filter matches NFC-stored project", () => {
+  seed("2026-07-20", "Journaled at the café.", "café-notes"); // NFC "é"
+  // The same name spelled NFD (e + combining acute), as macOS paths and some IMEs produce it.
+  const nfd = "café-notes";
+  assert.equal(recent({ project: nfd }).entries.length, 1, "NFD filter matches the NFC-stored project");
+  assert.equal(recent({ project: "CAFÉ-NOTES" }).entries.length, 1, "case folding still composes with normalization");
+  assert.equal(recent({ project: "cafe-notes" }).entries.length, 0, "an accent-stripped name is a DIFFERENT project, not a match");
+});
