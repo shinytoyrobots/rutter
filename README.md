@@ -58,10 +58,13 @@ npm run recent -- --days 7                        # just the last week
 npm run gate                                       # per-ISO-week stateful-use count (the gate)
 ```
 
-## Enable ambient capture
+## Enable ambient capture (three steps, one-time)
 
-Build, then register the Stop hook so sessions are remembered automatically at session end
-(details, incl. the summary directive convention, in [`docs/memory-of-use.md`](./docs/memory-of-use.md)):
+Remembering needs all three of these — the hook alone captures nothing if Claude never
+leaves a summary. (Full detail in [`docs/memory-of-use.md`](./docs/memory-of-use.md).)
+
+**1. Register the Stop hook** in `~/.claude/settings.json` (build first — the hook runs
+`dist/capture-cli.js`):
 
 ```json
 {
@@ -70,6 +73,20 @@ Build, then register the Stop hook so sessions are remembered automatically at s
   }
 }
 ```
+
+**2. Tell Claude to leave the summary.** The server never summarizes (no AI in it) — the
+hook lifts a directive Claude writes during the session. Add a standing rule to your
+global `~/.claude/CLAUDE.md` so this happens every session without asking:
+
+```markdown
+- Librarian memory: at the end of any session that decided or produced something, emit
+  one directive line `<!-- librarian-session {"summary":"<one plain-English line>","refs":["<vault-relative paths touched>"]} -->`
+  (last one wins; omit for trivial sessions — a Stop hook captures it into the vault).
+```
+
+**3. Restart Claude Code.** Hooks and CLAUDE.md are read at session start; a fresh
+session also picks up the newly built server. Verify with `/mcp` (three tools), then
+check captures land in `<vault>/_librarian/sessions/` after your next real session.
 
 ## Wire it into Claude Code
 
