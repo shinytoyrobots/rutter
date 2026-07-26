@@ -1,0 +1,19 @@
+# Rollout plan — ship-2026-07-25-0001 (single-user local tool: rings collapse to one)
+rings:
+  - name: ring-0-dogfood
+    audience: Robin, this Mac (Claude Code via registered my-librarian MCP server)
+    flag-coverage: n/a (no feature-flag platform; the merge IS the rollout)
+    entry-actions:
+      - "npm run build && npm run reindex (DONE at ship)"
+      - "Install Stop hook in ~/.claude/settings.json (USER ACTION — see comms/start-dogfooding.md)"
+      - "Restart Claude Code session so the registered server picks up dist/"
+    dwell: 2 weeks (2026-07-25 -> ~2026-08-08)
+    exit-condition: |
+      DESIRABILITY GATE (the effort's kill gate, constitution escalation trigger 2):
+      unprompted stateful use >= 3x/week for 2 consecutive weeks, measured by
+      `npm run gate` (per-ISO-week counts) + manual wish-log review for
+      prompted/unprompted classification. Verdict is a MANDATORY HITL:
+      pass -> H2 or H3 per wish log; fail -> product stops here.
+    eval-tier: post-ship-eval/config.md (weekly)
+# No ring-1+. Cross-client (ChatGPT via GitHub) distribution is a later, separate
+# decision requiring push to origin — out of scope for this ship.
