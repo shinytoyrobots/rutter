@@ -5,6 +5,7 @@ import { z } from "zod";
 import { config } from "./config.js";
 import { atomicWrite } from "./fs-safe.js";
 import { RefSchema, type VersionedRef } from "./refs.js";
+import { WorkspaceSchema } from "./workspace.js";
 
 /**
  * The on-disk format of a session record and the operations over it. One file
@@ -18,6 +19,13 @@ import { RefSchema, type VersionedRef } from "./refs.js";
  */
 
 export const COLLECTION = "librarian.sessions";
+/**
+ * The record format version. It stays at `@1` across spec v3.1.0: `workspace` is
+ * an ADDITIVE-OPTIONAL field, so every record written before v3.1.0 still
+ * validates unchanged and there is no migration to run (SCN-005/AC-additive-optional,
+ * COR-R-021; dissent-2026-07-25-0002 was checked against this change and not
+ * reactivated). Bumping this id is what a *breaking* shape change would look like.
+ */
 export const SCHEMA_ID = "session-record@1";
 
 export const SessionEntrySchema = z.object({
@@ -26,6 +34,9 @@ export const SessionEntrySchema = z.object({
   time: z.string(), // ISO-8601 instant of capture
   summary: z.string(), // the one curated, inert line
   refs: z.array(RefSchema), // versioned identities this session touched
+  // Where the session happened (SCN-005). Optional in both directions: absent on
+  // pre-v3.1.0 entries, and omitted on any capture whose cwd was unavailable.
+  workspace: WorkspaceSchema.optional(),
 });
 export type SessionEntry = z.infer<typeof SessionEntrySchema>;
 
@@ -92,6 +103,11 @@ export function readAllRecords(): SessionRecord[] {
  * so the comparison is on normalized content, never on raw input. Refs are
  * sorted so ordering cannot defeat the match. The session id is part of the key,
  * so the same directive in two different sessions is (correctly) not a duplicate.
+ *
+ * Workspace provenance is deliberately NOT part of this key (SR-018): identity is
+ * the *directive*, so a Stop firing whose cwd drifted (a rename, a subdirectory,
+ * or no cwd at all) is still the same directive and still a byte-identical no-op
+ * (COR-R-022). Keying on provenance would turn one session into many entries.
  */
 function contentKey(sessionId: string, summary: string, refs: VersionedRef[]): string {
   const refKey = refs.map((r) => `${r.path}@${r.hash}`).sort();
@@ -175,7 +191,11 @@ function renderBody(record: SessionRecord): string {
   const lines = record.sessions.map((s) => {
     const time = s.time.slice(11, 19); // HH:MM:SS of the ISO instant
     const provenance = s.refs.map((r) => `${r.path}@${r.hash.slice(0, 14)}`).join(", ");
-    return `- ${time} - ${s.summary}${provenance ? ` (refs: ${provenance})` : ""}`;
+    // The project is shown when the entry carries provenance and simply omitted
+    // when it does not -- no placeholder for pre-v3.1.0 entries (SR-019's
+    // quiet-when-absent rule, applied to the human-readable view too).
+    const project = s.workspace ? ` [${s.workspace.project}]` : "";
+    return `- ${time}${project} - ${s.summary}${provenance ? ` (refs: ${provenance})` : ""}`;
   });
   return `# Sessions - ${record.day}\n\n${lines.join("\n")}\n`;
 }

@@ -148,6 +148,41 @@ test("COR-A-009 SCN-001/AC-idempotence (SR-013/SR-001): hammering the FULL Stop-
   assert.equal(record.sessions.length, 1, "exactly one entry across all 5 Stop firings");
 });
 
+test("SR-015 SCN-005/AC-auto: the REAL Stop-hook entry path threads the payload's `cwd` into provenance", () => {
+  // The mechanism holdout: capture.ts deriving provenance is worthless if the hook
+  // entry point drops the field Claude Code actually sends. This drives capture-cli
+  // with a Stop payload shaped like the real event (transcript_path + session_id + cwd).
+  const repo = path.join(vaultRoot, "stop-hook", "my-librarian");
+  fs.mkdirSync(path.join(repo, ".git"), { recursive: true });
+  fs.writeFileSync(
+    path.join(repo, ".git", "config"),
+    '[remote "origin"]\n\turl = https://example.invalid/my-librarian.git\n',
+    "utf8"
+  );
+  const transcriptPath = path.join(vaultRoot, "cc-transcript-cwd.jsonl");
+  const directive = '<!-- librarian-session {"summary":"Threaded cwd through the hook."} -->';
+  fs.writeFileSync(transcriptPath, JSON.stringify({ message: { content: directive } }), "utf8");
+
+  const cli = fileURLToPath(new URL("../src/capture-cli.ts", import.meta.url));
+  const res = spawnSync(process.execPath, ["--import", "tsx", cli], {
+    input: JSON.stringify({ transcript_path: transcriptPath, session_id: "S-cwd", cwd: repo }),
+    env: { ...process.env, LIBRARIAN_VAULT_PATH: vaultRoot, LIBRARIAN_DB_PATH: path.join(vaultRoot, "data", "librarian.db") },
+    encoding: "utf8",
+  });
+  assert.equal(res.status, 0, `hook exits clean; stderr: ${res.stderr}`);
+  assert.equal(res.stdout, "", "the hook writes nothing to stdout (INV-5)");
+
+  const day = new Date().toISOString().slice(0, 10); // child uses the real clock
+  const record = matter(fs.readFileSync(path.join(sessionsDir, `${day}.md`), "utf8")).data as {
+    sessions: { workspace?: { cwd: string; project: string; repo?: string } }[];
+  };
+  const workspace = record.sessions[0]!.workspace;
+  assert.ok(workspace, "the Stop payload's cwd reached the stored entry");
+  assert.equal(workspace.cwd, repo);
+  assert.equal(workspace.project, "my-librarian", "project derived automatically, no user action");
+  assert.equal(workspace.repo, "https://example.invalid/my-librarian.git");
+});
+
 test("COR-R-015 SR-100: fresh record frontmatter validates against the typed schema", () => {
   writeNote("Notes/foo.md", "# Foo");
   captureSession({ summary: "Typed record.", refs: ["Notes/foo.md"], now: NOON });

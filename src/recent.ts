@@ -13,6 +13,8 @@ export interface RecentOptions {
   windowDays?: number;
   /** Cap the number of returned entries after ordering. */
   count?: number;
+  /** Keep only entries whose workspace project matches, case-insensitively (SR-019). */
+  project?: string;
   /** Injectable clock for the window cutoff; defaults to now. */
   now?: Date;
 }
@@ -31,7 +33,10 @@ export interface RecentResult {
 /**
  * Flatten every session across all records, order reverse-chronologically by
  * SESSION DATE then capture time (never by file mtime, so touching an old file
- * can't fake recency -- COR-A-008), then apply the optional window/count limits.
+ * can't fake recency -- COR-A-008), then apply the optional project/window/count
+ * limits. Filters only ever REMOVE entries: the ordering rule is the same one
+ * unfiltered callers get (SCN-006/AC-4), and `empty` keeps meaning "no records at
+ * all" rather than "nothing matched".
  */
 export function recent(
   opts: RecentOptions = {},
@@ -40,6 +45,9 @@ export function recent(
   const all = flatten(records).sort(byMostRecent);
   let selected = all;
 
+  if (opts.project !== undefined) {
+    selected = selected.filter((e) => matchesProject(e, opts.project!));
+  }
   if (opts.windowDays !== undefined) {
     const cutoff = new Date((opts.now ?? new Date()).getTime() - opts.windowDays * DAY_MS);
     const cutoffDay = isoDay(cutoff);
@@ -53,6 +61,18 @@ export function recent(
 }
 
 const DAY_MS = 86_400_000;
+
+/**
+ * Project filter (SR-019). Matches ONLY the entry's derived
+ * `workspace.project`, case-insensitively, as a whole name. An entry with no
+ * workspace provenance can never match: it is excluded silently rather than
+ * fabricated into one by substring-matching its summary or its ref paths, which
+ * would invent coverage the record does not have (COR-A-010).
+ */
+function matchesProject(entry: RecentEntry, project: string): boolean {
+  if (!entry.workspace) return false;
+  return entry.workspace.project.toLowerCase() === project.trim().toLowerCase();
+}
 
 function flatten(records: SessionRecord[]): RecentEntry[] {
   return records.flatMap((r) => r.sessions.map((s) => ({ ...s, day: r.day })));
