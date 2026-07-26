@@ -31,8 +31,12 @@ markdown:
 - **You can read and edit it.** It's your markdown, in your vault. Open it in
   Obsidian, edit it, commit it.
 - **It is never auto-deleted.** Records are only ever appended to. The librarian
-  has no prune or delete path that destroys memory-of-use; a re-capture on the
-  same day *appends*, it never overwrites earlier entries.
+  has no prune or delete path that destroys memory-of-use. The Claude Code Stop
+  hook fires at the end of *every* assistant turn, so the same session's summary
+  is offered for capture many times — capture is **idempotent per directive**: an
+  unchanged summary is a no-op (the file is left byte-identical, no duplicate
+  entry), and a *changed* summary is appended as a **revision** after the earlier
+  one. Nothing is ever overwritten or deleted.
 
 A note reference is stored as a **versioned identity** — the vault-relative path
 plus a content-hash captured as it was read — so the reference still tells you

@@ -1,9 +1,13 @@
 ---
-version: "2.0.1"
+version: "3.0.0"
 status: active
 effort: s1-5-ambient-capture
 last-amended: 2026-07-25
 mapping-pending: false
+# v3.0.0 (major): SCN-001 amended — post-ship dogfooding proved the Claude Code Stop
+# event fires at the END OF EVERY ASSISTANT TURN (and around clear/compact), not only
+# at session termination. Capture is now specified idempotent per distinct directive:
+# SR-001 revised, SR-013 (idempotence) + SR-014 (revision append) added. HITL-approved.
 # v2.0.1 (patch): mapping-pending cleared — eval suite 0.2.0 populated every
 # SCN/SR/INV mapping (86 tasks, 19 datasets, 12 graders). No semantic change.
 # v2.0.0: constitution amendment (accessibility→documentation eval dimension).
@@ -67,23 +71,34 @@ it does not fabricate mechanism detail.
 
 ## Behavioral scenarios
 
-### SCN-001: A session's outcome is captured ambiently at session end
-**Given** Robin is working in a Claude Code session with the librarian registered
-**When** the session ends and the Stop hook fires
-**Then** the librarian's session record for that day shall gain exactly one curated
-summary line describing what the session decided or produced, referencing any store
-notes touched by versioned identity — with no proactive action required from Robin.
+### SCN-001: A session's outcome is captured ambiently, exactly once per distinct directive
+**Given** Robin is working in a Claude Code session with the librarian registered and
+the Stop hook installed
+**When** a Stop event fires — which Claude Code does at the end of **every** assistant
+turn and around clear/compact, not only at session termination (v3.0.0 correction from
+post-ship observation)
+**Then** the librarian's session record for that day shall reflect exactly one summary
+entry per **distinct** session directive — capturing a newly seen directive, treating
+an unchanged directive as a no-op, and appending a revision when the session's
+directive has changed — referencing any store notes touched by versioned identity,
+with no proactive action required from Robin.
 
 **Acceptance criteria:**
 - After a session that produced a decision, `_librarian/sessions/<YYYY-MM-DD>.md`
-  contains exactly one new summary entry for that session (not the raw transcript).
+  contains exactly one entry per distinct directive from that session (not the raw
+  transcript, and not one entry per Stop firing).
+- **Idempotence:** a repeat capture for the same session with an unchanged directive
+  (identical normalized summary and refs) appends nothing and leaves the record
+  byte-identical — regardless of how many Stop events fire.
+- **Revision:** a capture for the same session with a changed directive appends a new
+  entry for that session; earlier entries are preserved, never overwritten or deleted.
 - A summary entry that names a store note records that note by vault-relative path
   plus a content-hash or git ref captured as-read (not path alone).
 - A session that yields no summary (empty/failed hook) adds no entry and creates no
   empty record file; existing entries are unchanged.
 - Capture requires zero explicit user action within the session (ambient).
 
-**Derived requirements:** SR-001, SR-002, SR-003, SR-004
+**Derived requirements:** SR-001 (revised), SR-002, SR-003, SR-004, SR-013, SR-014
 
 ---
 
@@ -151,9 +166,10 @@ SRs (SR-100+) have no parent.
 
 ### Functional (scenario-derived)
 
-- **SR-001** — When a Claude Code session ends, the librarian's capture mechanism
-  shall append exactly one session-summary line to that day's session record.
-  *(event-driven)* `# ← SCN-001`
+- **SR-001** — When a Stop event fires and the session transcript contains a
+  `librarian-session` directive not yet recorded for that session, the capture
+  mechanism shall append exactly one session-summary entry to that day's session
+  record. *(event-driven)* `# ← SCN-001; revised v3.0.0`
 - **SR-002** — When a session summary is captured, the system shall persist it in
   `_librarian/sessions/<YYYY-MM-DD>.md` as durable markdown with mdbase-compatible
   frontmatter. *(event-driven)* `# ← SCN-001`
@@ -187,6 +203,13 @@ SRs (SR-100+) have no parent.
 - **SR-012** — The system shall expose a per-ISO-week count of stateful-use events
   over an arbitrary date range, sufficient to evaluate the ≥3×/week-for-2-weeks gate.
   *(ubiquitous)* `# ← SCN-004`
+- **SR-013** — If a capture invocation carries a session id and directive content
+  identical (after inert-line normalization) to an entry already recorded for that
+  session, then the system shall append nothing and leave the session record
+  byte-identical. *(unwanted-behavior)* `# ← SCN-001; added v3.0.0`
+- **SR-014** — When a capture invocation carries an already-recorded session id but a
+  changed directive, the system shall append a new entry for that session, preserving
+  all earlier entries. *(event-driven)* `# ← SCN-001; added v3.0.0`
 
 ### Non-functional (no scenario parent)
 
@@ -211,7 +234,7 @@ SRs (SR-100+) have no parent.
 
 | Scenario | Acceptance criteria → | Derived SRs | Related INV | Dataset (pending) | Grader (pending) |
 |----------|------------------------|-------------|-------------|-------------------|------------------|
-| SCN-001 | capture, storage, versioned ref, empty no-op | SR-001, SR-002, SR-003, SR-004 | INV-2, INV-3 | correctness-real-v1 | correctness |
+| SCN-001 | capture, idempotence, revision, storage, versioned ref, empty no-op | SR-001, SR-002, SR-003, SR-004, SR-013, SR-014 | INV-2, INV-3 | correctness-real-v1 | correctness |
 | SCN-002 | order, provenance, window, empty-state | SR-005, SR-006, SR-007 | — | correctness-real-v1 | correctness |
 | SCN-003 | annotate, quiet, no re-rank | SR-008, SR-009, SR-010 | — | correctness-real-v1 | correctness |
 | SCN-004 | log events, weekly count | SR-011, SR-012 | INV-4 | correctness-real-v1 | correctness |
@@ -290,6 +313,10 @@ finalized without an explicit `mapping-pending` acknowledgment from the orchestr
   (avoiding the collector's fallacy). In S1.5 appraisal is light/ambient: one curated
   line per session, not the raw transcript. Deeper appraisal (grading, forgetting) is
   H2.
+- **Stop event** — the Claude Code hook event the capture mechanism is wired to. It
+  fires at the end of *every* assistant turn and around clear/compact — not only at
+  session termination (v3.0.0; confirmed by post-ship observation). This is why
+  capture must be idempotent per distinct directive, not merely once-per-session.
 - **Stateful behavior** — a librarian behavior that depends on accrued memory-of-use:
   `librarian-recent`, and search results carrying prior-engagement signals. The
   desirability gate measures Robin reaching for these unprompted.
