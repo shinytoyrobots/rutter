@@ -78,8 +78,10 @@ The script reads the Stop event on stdin, extracts the directive, and appends on
 entry. It always exits cleanly, so a capture hiccup can never break your session.
 
 > **Manual-for-now honesty.** The exact hook wiring is an intentional spike. Today
-> capture depends on the client emitting the directive (a convention you or your
-> `CLAUDE.md` adopt). You can also capture directly for testing:
+> capture depends on the client emitting the directive — so make it a standing rule:
+> add the one-liner from the README's "Enable ambient capture" step 2 to your global
+> `~/.claude/CLAUDE.md`, and every session emits it without being asked. You can also
+> capture directly for testing:
 > `echo '{"summary":"...","refs":["Notes/x.md"]}' | npm run capture`.
 
 ---
