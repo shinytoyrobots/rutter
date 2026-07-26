@@ -19,10 +19,12 @@
 # `documentation` (headless stdio MCP server, no UI; SR-103 docs-currency home).
 
 schema-version: "1.0"
-suite-version: "0.3.0"   # 0.2.0 -> 0.3.0: SCN-001 v3.0.0 amendment tasks (COR-R-017/018, COR-A-009).
-                         # Dataset REFINEMENT: prior variants (incl. shipped var-3) re-evaluate
-                         # against the extended correctness dataset per the eval protocol.
-spec-version: "3.0.0"
+suite-version: "0.4.0"   # 0.3.0 -> 0.4.0: spec v3.1.0 additive tasks — SCN-005 workspace
+                         # provenance (COR-R-019..022, COR-A-011, SEC-A-013) + SCN-006 client
+                         # adoption guidance (COR-R-023/024, COR-A-010). Dataset REFINEMENT:
+                         # prior variants re-evaluate against the extended datasets per protocol.
+                         # (0.2.0 -> 0.3.0: SCN-001 v3.0.0 amendment tasks COR-R-017/018, COR-A-009.)
+spec-version: "3.1.0"
 status: active
 mapping-pending: false
 
@@ -117,6 +119,26 @@ mappings:
       tasks: [COR-R-012, COR-R-013, COR-R-014]
       adversarial-tasks: [COR-A-006]  # one search double-counted as many events
 
+    - scenario: SCN-005
+      title: Captured entries carry workspace provenance, derived automatically
+      dimension: correctness
+      dataset: correctness-real-v1
+      grader: correctness
+      mapping-pending: false
+      derived-requirements: [SR-015, SR-016, SR-017, SR-018]
+      tasks: [COR-R-019, COR-R-020, COR-R-021, COR-R-022]  # added @ spec v3.1.0
+      adversarial-tasks: [COR-A-011]  # no-subprocess/no-egress repo resolution; SEC-A-013 covers injection (security dim)
+
+    - scenario: SCN-006
+      title: The librarian teaches its clients when to reach for memory
+      dimension: correctness
+      dataset: correctness-real-v1
+      grader: correctness
+      mapping-pending: false
+      derived-requirements: [SR-019, SR-020]
+      tasks: [COR-R-023, COR-R-024]  # added @ spec v3.1.0
+      adversarial-tasks: [COR-A-010]  # filter must not fake coverage via summary-text matching
+
   # -------------------------------------------------------------------------
   # Non-functional SR mappings — consolidated onto the six Pareto dimensions
   # at flow-init (was: schema-conformance / safety ad-hoc dimensions).
@@ -136,7 +158,7 @@ mappings:
       dataset: security-adv-v1          # was adversarial-input-v1; folded in
       grader: security
       mapping-pending: false
-      tasks: [SEC-A-001, SEC-A-002, SEC-A-003, SEC-A-004, SEC-A-005, SEC-A-006, SEC-A-007, SEC-A-008, SEC-A-009, SEC-A-010, SEC-A-011, SEC-A-012]
+      tasks: [SEC-A-001, SEC-A-002, SEC-A-003, SEC-A-004, SEC-A-005, SEC-A-006, SEC-A-007, SEC-A-008, SEC-A-009, SEC-A-010, SEC-A-011, SEC-A-012, SEC-A-013]  # 013 provenance-injection @ v3.1.0
       benign-controls: [SEC-R-004, SEC-R-005]  # in security-real-v1 (guard over-sanitizing)
 
     - requirement: SR-102
