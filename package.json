@@ -10,8 +10,12 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts",
     "reindex": "tsx src/reindex.ts",
     "search": "tsx src/search-cli.ts",
+    "recent": "tsx src/recent-cli.ts",
+    "gate": "tsx src/gate-cli.ts",
+    "capture": "tsx src/capture-cli.ts",
     "start": "tsx src/stdio.ts",
     "start:built": "node dist/stdio.js"
   },
