@@ -21,12 +21,26 @@ const dbPath = expandHome(
   process.env.LIBRARIAN_DB_PATH ?? path.join(projectRoot, "data", "librarian.db")
 );
 
+// Memory-of-use lives in `_librarian/` INSIDE the vault (storage layer 2 in
+// DESIGN.md). It resolves relative to the configured vault path — not cwd — so
+// the same records are found no matter where Claude Code launches the server.
+// `_librarian/` is already excluded from the S1 FTS index (see `ignoreDirs`).
+const librarianDir = path.join(vaultPath, "_librarian");
+
 export const config = {
   /** Absolute path to the Obsidian vault (the source of truth). */
   vaultPath,
   /** Absolute path to the derived SQLite index (a regenerable cache). */
   dbPath,
-  /** Directory names never indexed. `_librarian/` is reserved for the H2 sidecar. */
+  /** Root of the memory-of-use overlay; every server write lands under here or `data/`. */
+  librarianDir,
+  /** Where per-day session records live: `_librarian/sessions/<YYYY-MM-DD>.md`. */
+  sessionsDir: path.join(librarianDir, "sessions"),
+  /** Append-only stateful-use instrumentation log (JSONL); durable, never in the DB. */
+  statefulLogPath: path.join(librarianDir, "stateful-use.jsonl"),
+  /** Directory names never indexed. `_librarian/` is reserved for the memory-of-use overlay. */
   ignoreDirs: [".git", ".obsidian", ".trash", "node_modules", "_librarian", ".smart-env"],
   defaultSearchLimit: 8,
+  /** Hard upper bound on a stored summary (SR-101 oversized-input guard). */
+  maxSummaryChars: 2000,
 };
