@@ -17,12 +17,20 @@ A **personal, persistent memory-of-use layer** for LLM conversation, built as an
 
 ## 2. Current status
 
-- **S1 walking skeleton: BUILT, VERIFIED, PUSHED.**
-  - Repo: `~/Development/personal/my-librarian` → **https://github.com/shinytoyrobots/my-librarian** (PRIVATE), branch `main`, origin via SSH. Initial commit pushed. Committer: `Robin Cannon <robin@shinytoyrobots.com>`.
+- **S1 walking skeleton: BUILT, VERIFIED, PUSHED, REGISTERED.**
+  - Repo: `~/Development/personal/my-librarian` → **https://github.com/shinytoyrobots/my-librarian** (PRIVATE), branch `main`, origin via SSH. Committer: `Robin Cannon <robin@shinytoyrobots.com>`.
   - Does: full-text search over the vault (node:sqlite FTS5) + two read-only MCP tools. No memory yet.
   - Verified against the real vault: **2,298 notes indexed in ~1s**; search returns provenance-tagged, snippet-highlighted results; MCP protocol smoke-tested over stdio (both tools register with `readOnlyHint`).
-- **NOT yet done:** registered into Claude Code / dogfooded; S1.5 (the first stateful slice); anything in H2/H3.
-- **Immediate next step:** build **S1.5 (memory-of-use capture)** — see §6.
+  - **Registered into Claude Code** — `librarian-search` and `librarian-get-note` are live as `mcp__my-librarian__*` tools.
+- **Docs are in sync:** HANDOFF.md and DESIGN.md are committed (`9388700`, PR #1); the memory-of-use framing, ambient-capture S1.5 revision, elevated thesis, and ks-kb/mdbase positioning are all folded into DESIGN.md.
+- **S1.5 spec: AUTHORED, APPROVED, FLOW-INITIALIZED.** Executable spec **v2.0.0** at `spec/spec.md` (4 SCN, 16 SR, 6 INV @ threshold 1.0) + `spec/constitution.md` v2.0.0 (7 prohibitions incl. docs-pass-at-every-stage; eval override: `accessibility` dimension replaced by `documentation` — headless server, no UI). Effort `s1-5-ambient-capture` (`flow.yaml`, `efforts/`), HITL-approved 2026-07-25. `flow-init` completion run done: canonical 6-dimension harness, placeholder grader specs (`evals/graders/`), empty datasets, `.flow-index/` codebase index, temperature 0.5.
+- **Eval suite: BOOTSTRAPPED (suite 0.2.0, spec v2.0.1, `mapping-pending` cleared).** 86 tasks / 19 datasets (one per acceptance criterion; correctness + security + all six invariants adversarially paired — `evals/GOODHART.md` records the accepted real-only gap for perf/maint/docs with close-triggers). Six INV graders `ready` @ threshold 1.0 (hard-cull); the six dimension graders stay `placeholder` because their **runner scripts are built with the gen-1 implementation** (recorded in `harness.yaml` `runners:` block).
+- **Gen-1: COMPLETE (5/5 variants, 0 failed).** Scaffolding committed on branch `s1.5-spec` @ `f26b3aa` (local only, not pushed). Five full S1.5 implementations on isolated worktree branches (SHAs + self-checks in `efforts/s1-5-ambient-capture/generations/gen-1/population/var-*/notes.md`): simplicity 45t, performance 37t + all benchmarks 1.00, maintainability 46t, security 52t, convention 37t. Isolation verified — no variant commit reachable from `s1.5-spec`/`main`. All five converged on the same Stop-hook answer (client-authored sentinel line, hook extracts deterministically — INV-6-safe, resolving the §8 spike); real forks recorded for cull/chavruta: stateful-log location (4-1 `_librarian/` vs `data/`), 3 session-record shapes, timezone + window-default choices.
+- **Gen-1 CULLED.** 0 invariant failures (30/30). First Pareto front = **var-1 (simplicity, 0.908), var-2 (performance, 0.899), var-3 (maintainability, 0.899)** — all three metastable candidates; **var-3 strongest** (stability 1.0, spec-proximity 1.0, best maint 0.99). var-4/var-5 dominated → `superseded/` (var-5 on a within-noise 0.01 judge delta, flagged). Full matrix + carry-forward forks in `generations/gen-1/summary.md`. Eval-suite findings queued for flow-eval: cost budget miscalibrated (all 5 fail it), latent SR-100 multi-entry-day staleness ungraded, enrichment O(records) scaling watch. Temp 0.4, convergence 0.65 rising.
+- **CONVERGE DECIDED: metastable ship of var-3, HITL-approved 2026-07-25.** Convergence 0.584 (gen-1 structural stability cap; shipped via metastable criteria — stability 1.0, 0 deferred SRs). Chavruta NON-BLOCKING; **2 active dissents** in `dissents-active.yaml` (0001 velocity ship-var-1-instead; 0002 stability record-format commitment) with concrete reactivation conditions incl. the 2026-08-08 gate verdict. Chavruta correction: var-3's enrichment is also O(records)/search — on the scaling watch list. Full rationale: `generations/gen-1/convergence-decision.md`.
+- **S1.5 SHIPPED — `ship-2026-07-25-0001`.** var-3 merged to `s1.5-spec` @ `dd58d14` (LOCAL, not pushed). Post-merge verified: build+tsc clean, 46/46 tests, real vault reindexes (2,306 notes/1.1s). Ship record, rollout plan (ring-0 only), post-ship eval config, and comms live under `efforts/s1-5-ambient-capture/shipped/ship-2026-07-25-0001/`. Rollback: `git revert -m 1 dd58d14`.
+- **NOT yet done:** (1) **USER: install the Stop hook** in `~/.claude/settings.json` + restart session — exact snippet in `shipped/ship-2026-07-25-0001/comms/start-dogfooding.md`; (2) **the 2-week desirability gate** — clock started 2026-07-25, verdict ~2026-08-08 (mandatory HITL: ≥3×/week unprompted stateful use via `npm run gate` + wish log, or the product stops); (3) push `s1.5-spec` + PR to `main` when ready; (4) flow-eval cost-budget recalibration (queued finding); (5) H2/H3 — wish log decides, only after gate passes.
+- **Immediate next step:** install the hook, restart, and **live with it**. Keep the wish log.
 
 ## 3. How the code works (S1)
 
@@ -96,26 +104,18 @@ All in `~/Documents/knowledge-vault/Notes/Reference/`:
 - **Invention-Skills/** — `invent/…/22-personal-librarian-mcp/invent.md` (SIT concepts), `collide/…/22-clinical-research-alexandria/collide.md` (Alexandria/clinical bisociation — obelus marks, Pinakes tier), `idea-score/…/22-personal-librarian-concepts/idea-score.md`, `idea-ach/…/22-personal-librarian-product-shape/idea-ach.md` (retrieval-is-not-the-value proof), `validate-plan/…/22-personal-librarian/validate-plan.md` (+ Day-0 Validation Signals) and `architecture-proposal.md` (the ADRs, walking-skeleton spec, DDL).
 - **Tech-Writer/generate/2026-07/25-librarian-overview/** — plain-English explanation.
 
-In the repo: `README.md`, `docs/overview.md` (plain-English), `DESIGN.md` (storage & capabilities roadmap — **note: predates the S1.5 ambient-capture revision, the memory-of-use framing, ks-kb/mdbase relationship, and the positioning; these need folding in — see §8**).
+In the repo: `README.md`, `docs/overview.md` (plain-English), `DESIGN.md` (storage & capabilities roadmap — current: includes the S1.5 ambient-capture revision, the memory-of-use framing, the elevated thesis, and the ks-kb/mdbase positioning).
 
-## 8. Pending doc updates (not yet written into DESIGN.md)
-
-These were agreed in conversation but not yet edited into `DESIGN.md`:
-1. **S1.5 revision:** replace the tool-call `retrieval_log` with **ambient capture** (Stop-hook one-line session summaries → appraised → written back as markdown). Note the coupling: useful ambient memory needs an appraisal step or it becomes noise/rot.
-2. **Memory-of-use framing** (§1 here): store (shareable) vs memory-of-use (personal); reference store by versioned ID; bitemporal tracks both my belief-change and the store changing under me.
-3. **Elevated thesis up top:** personal persistent-memory layer for LLM conversation; working-memory (context) vs long-term-memory (store) analogy; effortful cue-driven recall is a feature.
-4. **Vault-as-medium** (not just source), and the **generic-by-design / personal-first** positioning + **ks-kb relationship** + **mdbase** (adopt at memory layer; shape sidecar to be mdbase-compatible now).
-
-## 9. Open questions / unresolved
+## 8. Open questions / unresolved
 
 - Exact Stop-hook mechanism in Claude Code (how to capture the one-line summary reliably) — needs a spike.
 - What the memory-of-use record schema looks like concretely (make it mdbase-compatible).
 - Appraisal is the hard, unsolved core — for the personal build it can be ambient/light; ks-kb shows that at higher stakes it reverts to governed human review.
 - Whether to run the 2–4h Basic Memory spike before/while building S1.5 (benchmark semantic search vs Claude Code navigation on Robin's fuzzy queries).
 
-## 10. Working norms (Robin's rules)
+## 9. Working norms (Robin's rules)
 
 - Committer `Robin Cannon <robin@shinytoyrobots.com>`. Code goes through GitHub before any deploy; commit/push only when asked; branch off `main` for new work (don't commit S1.5 directly to main).
 - Plan/design → write to a file, don't implement until told. American English. Keep CLAUDE.md files <40 lines.
 - Vault access: read/write local `~/Documents/knowledge-vault/` directly.
-- **This HANDOFF.md is uncommitted** — offer to commit it (and it needs adding to the repo).
+- Keep this HANDOFF.md updated as the single resume-point; refresh it at the end of significant sessions.
