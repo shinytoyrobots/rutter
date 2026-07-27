@@ -17,12 +17,13 @@ capture / recall / enrichment / gate behaviors in depth.
 
 - Indexes the vault into a local SQLite FTS5 full-text index (a disposable, regenerable cache — the vault stays the source of truth).
 - **Captures memory-of-use ambiently:** at session end a Claude Code Stop hook appends **one curated line** per session to `<vault>/_librarian/sessions/<date>.md` — durable, git-committable, referencing touched notes by content-hash. No AI runs in the server; your client writes the line, the server only stores it.
+- **Keeps that line readable months later:** summaries carry a **plain-language style contract** — write for a smart reader in a hurry who wasn't in the session: lead with what was decided or produced, common words over session shorthand, no session-invented codenames or version tags. The contract is guidance to your *client*, in two places (the capture directive rule and the server's MCP instructions); the server itself stores whatever it is given **verbatim** and never rewrites, truncates, or rejects a summary on style.
 - **Records which workspace each session came from:** every captured entry also carries the session's working directory, a **project name derived from it automatically**, and the git remote URL when there is one — so a day that spans three efforts reads cleanly. Nothing to name or configure; resolution is pure local file reads (it never runs `git` and never contacts a remote).
 - Exposes read-only MCP tools:
   - `librarian-search` — ranked full-text search; every result carries its path, `type`/`status`/`created` provenance, and a matching snippet. Multi-word queries are AND-matched (so "blue man group" finds notes with all three, not any). A result you engaged in a past session also carries a quiet prior-engagement note (additive only — never re-ranks).
   - `librarian-get-note` — return one note's full content by path.
   - `librarian-recent` — *"what was I working on lately?"* — recent session summaries, most-recent-first, with dates, **project**, and provenance; optional `project` filter, `window` (days) or `count`.
-- **Tells your client when to use it:** the server ships its own MCP *instructions*, so any connected client is told to reach for `librarian-recent` on recency questions and `librarian-search` on "have I seen this before?" questions before reading files directly. No per-project client configuration required.
+- **Tells your client when to use it — and how to read it back:** the server ships its own MCP *instructions*, so any connected client is told to reach for `librarian-recent` on recency questions and `librarian-search` on "have I seen this before?" questions before reading files directly. The same instructions carry the summary style contract and ask the client to **report recalled summaries in plain language** — including entries written before the contract existed, which is the only way old, dense records ever read clearly (they are never rewritten on disk). No per-project client configuration required.
 - **Instruments stateful use** for the desirability gate: a local per-ISO-week count of how often you reach for recent/enriched behavior.
 
 See [`docs/memory-of-use.md`](./docs/memory-of-use.md) for setup (incl. the Stop-hook install),
@@ -88,16 +89,28 @@ global `~/.claude/CLAUDE.md` so this happens every session without asking:
 - Librarian memory: at the end of any session that decided or produced something, emit
   one directive line `<!-- librarian-session {"summary":"<one plain-English line>","refs":["<vault-relative paths touched>"]} -->`
   (last one wins; omit for trivial sessions — a Stop hook captures it into the vault).
+  Write the summary for a smart reader in a hurry who was not in this session: lead with
+  what was decided or produced, use common words rather than session shorthand, and
+  expand or avoid codenames, version tags and abbreviations the session invented (terms
+  the vault itself uses are fine). One line, not a build log.
 ```
+
+The second half of that rule is the **style contract** (see
+[`docs/memory-of-use.md`](./docs/memory-of-use.md) §2). If you installed an earlier
+version of this rule, replace it — the contract is the only thing standing between you
+and a vault full of summaries you can't read in six months. The server will not help
+here: it stores what it is given, verbatim, whatever style it is in.
 
 **3. Restart Claude Code.** Hooks and CLAUDE.md are read at session start; a fresh
 session also picks up the newly built server. Verify with `/mcp` (three tools), then
 check captures land in `<vault>/_librarian/sessions/` after your next real session.
 
 Only step 2 needs your `~/.claude/CLAUDE.md` — and only because the *summary* must come
-from the client (the server runs no AI). Knowing **when to call the tools** is not your
-job to configure: that guidance ships inside the server as MCP instructions and reaches
-every client on connect. The working directory arrives with the Stop event, so the
+from the client (the server runs no AI). Knowing **when to call the tools**, **how to
+write the summary**, and **how to report old records back** is not your job to configure:
+all of that guidance ships inside the server as MCP instructions and reaches every client
+on connect. (Step 2 restates the style contract because the directive is written by the
+hook's client, which may not be the client the server is talking to.) The working directory arrives with the Stop event, so the
 project on each entry needs no setup either.
 
 ## Wire it into Claude Code
