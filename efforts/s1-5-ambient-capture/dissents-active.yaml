@@ -67,7 +67,7 @@
         fine-grained modularity is amplifying change cost rather than isolating it —
         re-test velocity's simpler-surface thesis.
   status: active
-  last-checked: 2026-07-26
+  last-checked: 2026-07-27
   reactivation-count: 0
   history:
     - 2026-07-25: raised at gen-1 convergence checkpoint; provisional resolution ship var-3.
@@ -94,6 +94,15 @@
       (`src/workspace.ts`). Recorded as a calibration data point AGAINST the
       change-amplification thesis: two generations of new behavior have now landed on the
       lineage without tripping the trigger.
+    - >
+      2026-07-27: conditions re-checked at spec v3.2.0 (SCN-007 recall clarity; HITL-approved).
+      NOT reactivated. (a) time: verdict ~2026-08-09 UNCHANGED — HITL explicitly kept the
+      gate clock at this amendment (stateful behaviors under measurement are untouched;
+      this also avoids advancing dissent-0004's restart sentinel). (b) metric: budget
+      recalibration remains unmet; HITL this session explicitly deferred all flow-eval
+      queue items (cost budget, INV-4 grader defect, security-adv saturation) to H2/H3.
+      (c) shell: to be evaluated against the gen-4 diff at cull (expected far below 8 —
+      instruction prose + tests).
 
 - id: dissent-2026-07-25-0002
   raised-at: 2026-07-25
@@ -170,7 +179,7 @@
         re-run it against var-3's `aggregateRefs` shape to CONFIRM the counterposition's claim
         that var-3 is staleness-free under grading, not merely under today's single-entry tests.
   status: active
-  last-checked: 2026-07-26
+  last-checked: 2026-07-27
   reactivation-count: 0
   history:
     - 2026-07-25: raised at gen-1 convergence checkpoint; provisional resolution ship var-3 format.
@@ -201,6 +210,12 @@
       5 entries, so the untested case is the live case. Status left `active` at reduced force;
       once a divergence grader lands and passes, this warrants resolution via `flow-dissent`
       acknowledge rather than continued latency.
+    - >
+      2026-07-27: spec-change trigger evaluated at v3.2.0 (SCN-007 recall clarity). NOT
+      reactivated — cleanest check yet: zero record-format delta. session-record@1
+      untouched, no new fields, no migration, storage stays byte-verbatim by explicit
+      new requirement (SR-023); the change is instruction text and read-time guidance
+      only. Record count at check: 2 day files.
 
 - id: dissent-2026-07-26-0003
   raised-at: 2026-07-26
@@ -310,7 +325,7 @@
         Mitigate immediately; note that INV-3 means the recorded value can only be
         superseded, never deleted, so detection latency is itself the cost.
   status: mitigated
-  last-checked: 2026-07-26
+  last-checked: 2026-07-27
   reactivation-count: 0
   history:
     - >
@@ -435,7 +450,7 @@
         entry: it would mean the vehicle for gen-3 was chosen inside grader noise, which
         retroactively strengthens the position without changing the shipped code.
   status: active
-  last-checked: 2026-07-26
+  last-checked: 2026-07-27
   reactivation-count: 0
   history:
     - >
@@ -444,3 +459,11 @@
       thesis, now at its third recurrence with three generations of unmet recalibration
       behind it). Recorded so that the audit trail shows the exclusion was noticed at the
       moment of each selection, not reconstructed afterwards.
+    - >
+      2026-07-27: checked at spec v3.2.0 (SCN-007 recall clarity). NOT reactivated, and
+      the restart sentinel does NOT advance: HITL explicitly kept the desirability-gate
+      clock (verdict ~2026-08-09) — the first amendment since ship-0001 that improves the
+      slice without resetting its measurement, which is the behavior this dissent asked
+      for. Budget recalibration remains unmet (HITL deferred flow-eval queue to H2/H3);
+      gen-4 is single-variant hotfix-style, so no selection-rule judgment is exercised
+      (nothing to exclude a cost axis FROM).
