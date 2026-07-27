@@ -1,4 +1,4 @@
-import { resetLibrarian, readSession, sessionsDir, vaultRoot } from "./setup.js";
+import { resetLibrarian, readSession, sessionsDir, vaultRoot, increments } from "./setup.js";
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -126,7 +126,7 @@ test("COR-R-021 SCN-005/AC-additive-optional (SR-015/SR-100): a mixed pre-/post-
 
   // Both are consumable by the readers, old and new side by side.
   assert.equal(readAllRecords()[0]!.sessions.length, 2, "readAllRecords consumes the mixed record");
-  const summaries = recent().entries.map((e) => e.summary);
+  const summaries = increments(recent()).map((e) => e.summary);
   assert.equal(summaries.length, 2, "librarian-recent reads both entries");
   assert.ok(summaries.includes(legacyEntry.summary), "including the provenance-less one");
 });

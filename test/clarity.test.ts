@@ -1,4 +1,4 @@
-import { resetLibrarian, sessionsDir } from "./setup.js";
+import { resetLibrarian, sessionsDir, increments } from "./setup.js";
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -27,15 +27,33 @@ import { createServer, SERVER_INSTRUCTIONS, formatRecentEntry } from "../src/ser
 beforeEach(resetLibrarian);
 
 /**
- * The paragraph of the instructions that addresses AUTHORING a directive. The
- * four style elements are asserted WITHIN it rather than anywhere in the block,
- * because COR-R-025 requires them "tied to authoring the directive summary" --
- * four elements scattered across unrelated guidance would not be the contract.
+ * The CONTIGUOUS SECTION of the instructions that addresses AUTHORING a directive:
+ * from the emission trigger, through the literal syntax, to the style contract. The
+ * four style elements are asserted WITHIN this section rather than anywhere in the
+ * block, because COR-R-025 requires them "tied to authoring the directive summary"
+ * -- four elements scattered across unrelated guidance would not be the contract.
+ *
+ * v3.4.0 note: this was a single-paragraph lookup keyed on /librarian-session/.
+ * SR-025/SR-026 split authoring into three paragraphs (trigger, syntax, style), and
+ * only the syntax one now contains the literal token -- so the old lookup returned
+ * the bare example and the style assertions failed against it. Resolving the section
+ * by its boundaries keeps the original "tied together" property intact: the elements
+ * must still sit inside one unbroken run of authoring guidance, and the run must
+ * still be unique.
  */
-function authoringParagraph(): string {
-  const para = paragraphs().filter((p) => /librarian-session/.test(p));
-  assert.equal(para.length, 1, "exactly one paragraph addresses authoring the directive");
-  return para[0]!;
+function authoringSection(): string {
+  const all = paragraphs();
+  const start = all.findIndex((p) => /At the end of any session/.test(p));
+  const end = all.findIndex((p) => /report recalled summaries back/.test(p));
+  assert.ok(start >= 0, "the instructions open the authoring section with the emission trigger");
+  assert.ok(end > start, "and close it before the read-time paragraph");
+  const section = all.slice(start, end);
+  assert.equal(
+    section.filter((p) => /librarian-session/.test(p)).length,
+    1,
+    "exactly one paragraph in the authoring section carries the literal directive syntax"
+  );
+  return section.join("\n\n");
 }
 
 /** The paragraph addressing READ-TIME reporting of recalled summaries. */
@@ -50,7 +68,7 @@ function paragraphs(): string[] {
 }
 
 test("COR-R-025 SCN-007/AC-authoring-contract (SR-021): the instructions carry all four style elements, tied to authoring the directive", () => {
-  const contract = authoringParagraph();
+  const contract = authoringSection();
 
   // (a) later-reader framing -- write for someone without this session's context.
   assert.match(
@@ -105,7 +123,7 @@ test("COR-R-024/025/026 (SR-020/021/022): the extended guidance reaches a fresh 
     try {
       const declared = client.getInstructions();
       assert.equal(declared, SERVER_INSTRUCTIONS, "the declared guidance is the shipped guidance");
-      assert.ok(declared!.includes(authoringParagraph()), "the authoring contract arrives on connect");
+      assert.ok(declared!.includes(authoringSection()), "the authoring contract arrives on connect");
       assert.ok(declared!.includes(renderParagraph()), "the render guidance arrives on connect");
     } finally {
       await client.close();
@@ -175,11 +193,14 @@ test("COR-R-027 SCN-007/AC-verbatim (SR-023/SR-013): a summary that violates the
   const raw = fs.readFileSync(path.join(sessionsDir, "2026-07-27.md"), "utf8");
   assert.ok(raw.includes(`- 09:30:00 - ${DENSE_SUMMARY}\n`), "the record body line is the summary, verbatim and unannotated");
 
-  // Read path: librarian-recent returns the stored text unmodified.
-  const { entries } = runRecent({ now });
-  assert.equal(entries.length, 1);
-  assert.equal(entries[0]!.summary, DENSE_SUMMARY, "librarian-recent returns the stored text unmodified");
-  assert.ok(formatRecentEntry(entries[0]!).includes(DENSE_SUMMARY), "and renders it verbatim");
+  // Read path: librarian-recent returns the stored text unmodified. Grouping into
+  // sessions (SR-030) changed the container, never the text -- the whole point of
+  // collapsing at read time rather than merging is that stored bytes come back as
+  // stored bytes, so this assertion is unchanged in substance.
+  const returned = increments(runRecent({ now }));
+  assert.equal(returned.length, 1);
+  assert.equal(returned[0]!.summary, DENSE_SUMMARY, "librarian-recent returns the stored text unmodified");
+  assert.ok(formatRecentEntry(returned[0]!).includes(DENSE_SUMMARY), "and renders it verbatim");
 });
 
 test("COR-A-012 SCN-007/AC-verbatim (SR-023): reading does not launder the record -- dense legacy entries come back dense", async () => {
@@ -213,7 +234,7 @@ test("COR-A-012 SCN-007/AC-verbatim (SR-023): reading does not launder the recor
 
   // Every returned summary verbatim-matches its stored text.
   const storedSummaries = readRecord(day)!.sessions.map((s) => s.summary);
-  const returned = runRecent().entries.map((e) => e.summary);
+  const returned = increments(runRecent()).map((e) => e.summary);
   assert.deepEqual([...returned].sort(), [...storedSummaries].sort(), "no paraphrase, no elision, nothing dropped");
 
   // The dense one comes back dense, through the tool output too -- its jargon,

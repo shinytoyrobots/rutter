@@ -1,9 +1,58 @@
 ---
-version: "3.2.0"
+version: "3.5.0"
 status: active
 effort: s1-5-ambient-capture
 last-amended: 2026-07-27
 mapping-pending: false
+# v3.5.0 (minor): wish-log finding #4 (2026-07-27), revision half. HITL-approved
+# 2026-07-27 (constitution escalation trigger 1 — capture semantics). Fix (a) at
+# v3.3.0 closed the hash-churn leak; this closes the remaining one, where a session
+# revising its own wording appended a near-duplicate under SR-014. Rejected on the
+# way: mandatory user-stated supersede/append intent (unusable — it taxes the writer
+# at the moment they are trying to stop thinking), always-cumulative summaries
+# (fights SR-021, unbounded), and discard-to-newest-per-session (destroys real
+# milestones: the 2026-07-27 WEAVER morning is ONE session covering three separate
+# queries sent). Chosen: incremental capture + collapse at READ time.
+#   SCN-001 amended: the authoring contract is now incremental (+SR-033).
+#   SCN-002 amended: the unit of recall is the SESSION, not the Stop firing
+#   (+SR-030); `count` caps sessions rather than entries (+SR-031, BREAKING for
+#   callers of librarian-recent); new `detail` param with non-silent abbreviation
+#   (+SR-032). Read-time guidance extended to say a session is reported as ONE
+#   account (SR-022 amended).
+# The server GROUPS and never merges: merging is semantic and the server holds no
+# model (INV-6); rewriting on the way out would launder the record (COR-A-012).
+# No record schema change (session-record@1 untouched), no storage change, no
+# migration — grouping works on existing records because session_id is already
+# stored. Desirability-gate clock NOT restarted, but note SCN-004 instrumentation
+# now measures a changed output shape: the ~2026-08-09 verdict reads across both.
+# v3.4.0 (minor, additive): wish-log finding #5 (2026-07-27, "ambient capture
+# can't work for anyone but Robin"), HITL-approved 2026-07-27. An audit of the
+# shipped SERVER_INSTRUCTIONS found it carried the STYLE contract (SR-021) and
+# read-time guidance (SR-022) but NOT the emission trigger and NOT the literal
+# directive syntax — both existed only in a hand-installed ~/.claude/CLAUDE.md
+# rule, so ambient capture structurally worked for one person. SCN-006 extended:
+# +SR-025 (trigger), SR-026 (syntax), SR-027 (single in-repo source; README and
+# docs quote it and a drift test fails if they diverge), SR-028 (install requires
+# no user-authored contract text; hook registration stays external but scripted).
+# Also +SR-029: an unfilled <angle-bracketed> template summary is treated as no
+# directive, since shipping the syntax widely makes copy-without-filling a real
+# path. No record schema change, no output-shape change, no idempotence change.
+# Desirability-gate clock NOT restarted (verdict stays ~2026-08-09).
+# v3.3.0 (minor): wish-log finding #4 (2026-07-27, replicative entries), HITL-
+# approved 2026-07-27 (constitution escalation trigger 1 — capture semantics).
+# Fix (a) of that finding ONLY: a referenced note's CONTENT HASH no longer
+# participates in idempotence identity (+SR-024, SCN-001/AC-idempotence amended),
+# so a directive re-fired after the referenced file was edited again is still the
+# same directive and still a byte-identical no-op. Identity is now session id +
+# inert summary + ref PATH set; hashes are still recorded, just inert for
+# identity — the same treatment SR-018 already gives workspace provenance. This
+# NARROWS identity (strictly more dedupe, never less) and cannot merge entries
+# whose summaries differ, so no distinct recalled meaning can be lost. The
+# revision half of that finding (incremental capture + read-time collapse) is
+# deliberately NOT in this version — it changes the capture contract and is
+# specced separately. No record schema change (session-record@1 untouched), no
+# retrofit of existing records. Desirability-gate clock NOT restarted (verdict
+# stays ~2026-08-09).
 # v3.2.0 (minor, additive): wish-log finding #3 (2026-07-26, output clarity),
 # HITL-approved 2026-07-27 (constitution escalation trigger 1 — capture semantics).
 # SCN-007: recorded memory reads clearly at recall time — a plain-language style
@@ -121,34 +170,58 @@ with no proactive action required from Robin.
   contains exactly one entry per distinct directive from that session (not the raw
   transcript, and not one entry per Stop firing).
 - **Idempotence:** a repeat capture for the same session with an unchanged directive
-  (identical normalized summary and refs) appends nothing and leaves the record
-  byte-identical — regardless of how many Stop events fire.
+  (identical normalized summary and identical set of referenced note *paths*) appends
+  nothing and leaves the record byte-identical — regardless of how many Stop events
+  fire, and regardless of whether a referenced note's contents changed between
+  firings (v3.3.0: content hashes are recorded but inert for identity, per SR-024).
 - **Revision:** a capture for the same session with a changed directive appends a new
   entry for that session; earlier entries are preserved, never overwritten or deleted.
+- *(v3.5.0)* **Incremental authoring:** the contract instructs a client that a later
+  directive in the same session shall describe only what is new since its previous
+  one, not restate it. This is what makes the appended entries *steps* rather than
+  near-duplicate revisions; it is guidance, so a client that restates anyway is still
+  stored verbatim (SR-023) and the record is merely noisier, never wrong.
 - A summary entry that names a store note records that note by vault-relative path
   plus a content-hash or git ref captured as-read (not path alone).
 - A session that yields no summary (empty/failed hook) adds no entry and creates no
   empty record file; existing entries are unchanged.
 - Capture requires zero explicit user action within the session (ambient).
 
-**Derived requirements:** SR-001 (revised), SR-002, SR-003, SR-004, SR-013, SR-014
+**Derived requirements:** SR-001 (revised), SR-002, SR-003, SR-004, SR-013, SR-014,
+SR-024, SR-029, SR-033
 
 ---
 
 ### SCN-002: Robin recalls recent work with `librarian-recent`
 **Given** one or more session records exist in `_librarian/sessions/`
 **When** Robin invokes `librarian-recent` (optionally with a time window or count)
-**Then** the system shall return recent session summaries in reverse-chronological
-order, each carrying its date and provenance (the store items it references).
+**Then** the system shall return recent work in reverse-chronological order, grouped
+into **sessions** (v3.5.0 — the unit of recall is the session, not the Stop firing),
+each session carrying its date span and each of its steps with that step's provenance.
 
 **Acceptance criteria:**
-- Results are ordered most-recent-first by session date.
-- Each returned entry shows its date and the versioned provenance of referenced notes.
-- A supplied window (e.g. last 7 days) or count limit restricts results accordingly.
+- Results are ordered most-recent-first by session date; a session is ranked by its
+  most recent step.
+- Each returned step shows its date and the versioned provenance of referenced notes.
 - With no session records present, the tool returns an explicit empty-state message,
   not an error or an empty/ambiguous response.
+- *(v3.5.0)* **Grouped:** all steps recorded by one session in one project are
+  returned together, oldest-first within the session, and none are dropped. A session
+  that moved between projects splits by project; a step carrying no session id forms
+  its own single-step session; a session straddling UTC midnight is one session with a
+  date span rather than two halves.
+- *(v3.5.0)* **Count caps sessions.** A supplied count limits the number of sessions
+  returned, not the number of steps, so one chatty session cannot consume the whole
+  budget and hide every other session. *(Breaking change for existing callers.)*
+- *(v3.5.0)* **Detail is explicit.** A supplied detail level may return an abbreviated
+  view of each session (first and last step), and when it does the result states the
+  true total and marks itself abbreviated — abbreviation is never silent, and the
+  default is unabbreviated.
+- *(v3.5.0)* **Steps are grouped, never merged.** The returned text of every step is
+  the stored text; no summarizing, deduplication, or rewriting happens on the read
+  path (INV-6, and COR-A-012's laundering guard applies unchanged).
 
-**Derived requirements:** SR-005, SR-006, SR-007
+**Derived requirements:** SR-005, SR-006, SR-007, SR-030, SR-031, SR-032
 
 ---
 
@@ -245,8 +318,16 @@ cross-project recall is usable once provenance exists.
   project name matches case-insensitively; entries without provenance are excluded
   from filtered results, never fabricated into a match.
 - Result ordering and instrumentation (SCN-004) are unchanged by display or filter.
+- *(v3.4.0)* **Capture works with no user-authored contract text.** The declared
+  instructions carry everything a client needs to leave a summary: that one should be
+  emitted and when, the literal directive syntax, and how to write it. A user who
+  registers the Stop hook and connects the server gets working capture without adding
+  any rule to `CLAUDE.md` or equivalent.
+- *(v3.4.0)* **The contract has one in-repo source.** `SERVER_INSTRUCTIONS` is
+  authoritative; README and `docs/memory-of-use.md` quote it verbatim rather than
+  restating it, and a divergence between them is a test failure.
 
-**Derived requirements:** SR-019, SR-020
+**Derived requirements:** SR-019, SR-020, SR-025, SR-026, SR-027, SR-028
 
 ---
 
@@ -378,6 +459,46 @@ SRs (SR-100+) have no parent.
   the system shall store it byte-verbatim regardless: the server shall never
   rewrite, truncate, or reject a directive on style grounds. *(unwanted-behavior)*
   `# ← SCN-007; added v3.2.0; refines INV-6`
+- **SR-025** — The server-level instructions shall state that a session summary
+  directive is to be emitted, and when: at the end of a session that decided or
+  produced something, exactly one directive, omitted entirely for trivial sessions.
+  *(event-driven)* `# ← SCN-006; added v3.4.0`
+- **SR-026** — The server-level instructions shall include the literal directive
+  syntax the capture path parses, so a client that has never read the repository docs
+  can emit a well-formed directive. *(ubiquitous)* `# ← SCN-006; added v3.4.0`
+- **SR-027** — `SERVER_INSTRUCTIONS` shall be the single source of the capture
+  contract: any other in-repo copy (README, `docs/memory-of-use.md`) shall quote it
+  verbatim, and the system's tests shall fail if a copy diverges from it.
+  *(unwanted-behavior)* `# ← SCN-006; added v3.4.0`
+- **SR-028** — Enabling ambient capture shall require no user-authored contract text
+  in client configuration. Registering the Stop hook may remain external — MCP cannot
+  install a hook — but shall be scriptable from the repository. *(ubiquitous)*
+  `# ← SCN-006; added v3.4.0`
+- **SR-029** — If a directive's summary is an unfilled template (wrapped in angle
+  brackets), then the system shall treat it as no directive and capture nothing,
+  rather than storing the template text as a summary. *(unwanted-behavior)*
+  `# ← SCN-001; added v3.4.0`
+- **SR-030** — `librarian-recent` shall return entries grouped into sessions, keyed by
+  session id and project, ordered newest-session-first by each session's most recent
+  step, with steps oldest-first within a session and no step omitted. A step with no
+  session id shall form its own single-step session. *(event-driven)*
+  `# ← SCN-002; added v3.5.0`
+- **SR-031** — A supplied count shall limit the number of SESSIONS returned, not the
+  number of steps. *(event-driven)* `# ← SCN-002; added v3.5.0; BREAKING`
+- **SR-032** — When an abbreviated detail level is requested, the result shall report
+  each session's true step total and mark itself abbreviated; the system shall never
+  omit steps silently, and the unabbreviated view shall be the default.
+  *(unwanted-behavior)* `# ← SCN-002; added v3.5.0`
+- **SR-033** — The capture contract shall instruct that a directive emitted later in a
+  session describes only what is new since that session's previous directive, and does
+  not restate it. *(ubiquitous)* `# ← SCN-001; added v3.5.0; refines SR-021`
+- **SR-024** — A referenced note's content hash shall not participate in idempotence
+  identity: a repeat capture for the same session whose summary and referenced note
+  paths are unchanged shall remain a byte-identical no-op even if a referenced note's
+  contents changed between Stop firings. The hash shall still be recorded on the
+  entry, and the FIRST-read hash shall be retained (the no-op writes nothing, so the
+  stored identity stays the version captured as-read). *(unwanted-behavior)*
+  `# ← SCN-001; added v3.3.0; refines SR-013, mirrors SR-018`
 
 ### Non-functional (no scenario parent)
 
@@ -403,12 +524,12 @@ SRs (SR-100+) have no parent.
 
 | Scenario | Acceptance criteria → | Derived SRs | Related INV | Dataset (pending) | Grader (pending) |
 |----------|------------------------|-------------|-------------|-------------------|------------------|
-| SCN-001 | capture, idempotence, revision, storage, versioned ref, empty no-op | SR-001, SR-002, SR-003, SR-004, SR-013, SR-014 | INV-2, INV-3 | correctness-real-v1 | correctness |
-| SCN-002 | order, provenance, window, empty-state | SR-005, SR-006, SR-007 | — | correctness-real-v1 | correctness |
+| SCN-001 | capture, idempotence, revision, storage, versioned ref, empty no-op, unfilled template, incremental authoring | SR-001, SR-002, SR-003, SR-004, SR-013, SR-014, SR-024, SR-029, SR-033 | INV-2, INV-3 | correctness-real-v1 | correctness |
+| SCN-002 | order, provenance, window, empty-state, grouped, count-caps-sessions, detail, never-merged | SR-005, SR-006, SR-007, SR-030, SR-031, SR-032 | INV-6 | correctness-real-v1 | correctness |
 | SCN-003 | annotate, quiet, no re-rank | SR-008, SR-009, SR-010 | — | correctness-real-v1 | correctness |
 | SCN-004 | log events, weekly count | SR-011, SR-012 | INV-4 | correctness-real-v1 | correctness |
 | SCN-005 | auto provenance, local-reads-only, never-blocks, additive-optional, dedupe-unchanged, inert | SR-015, SR-016, SR-017, SR-018 | INV-1, INV-2 | correctness-real-v1, security-adv-v1 | correctness, security |
-| SCN-006 | server instructions, project display, project filter, no-behavior-drift | SR-019, SR-020 | — | correctness-real-v1 | correctness |
+| SCN-006 | server instructions, project display, project filter, no-behavior-drift, no-user-authored-contract, single-source | SR-019, SR-020, SR-025, SR-026, SR-027, SR-028 | — | correctness-real-v1 | correctness |
 | SCN-007 | authoring contract in instructions, read-time render guidance, directive-rule deployment, verbatim storage, no retrofit, no-behavior-drift | SR-021, SR-022, SR-023 | INV-3, INV-6 | correctness-real-v1, correctness-adv-v1 | correctness |
 | — | mdbase-compatible frontmatter | SR-100 | — | schema-real-v1 | schema-conformance |
 | — | untrusted-input handling | SR-101 | INV-2 | adversarial-input-v1 | safety |

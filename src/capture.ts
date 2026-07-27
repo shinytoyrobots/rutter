@@ -78,13 +78,15 @@ export function captureSession(payload: CapturePayload): CaptureResult {
   // If this session already recorded an entry with identical normalized content
   // -- anywhere in _librarian/sessions/, including a prior UTC day for a session
   // that straddled midnight -- appending again would duplicate. We compare on
-  // the server-normalized entry (inert summary + server-hashed refs), never on
+  // the server-normalized entry (inert summary + resolved ref paths), never on
   // raw input, and no-op so the record stays byte-identical (COR-R-017/A-009).
   // A payload with NO session id has no dedupe key and keeps append behavior
-  // (direct-CLI test payloads); isDuplicateEntry returns false for it. The entry's
-  // workspace provenance is invisible to this check by construction (SR-018): the
-  // key is built from session id + summary + refs only, so a cwd that moved between
-  // firings still dedupes to a byte-identical no-op (COR-R-022).
+  // (direct-CLI test payloads); isDuplicateEntry returns false for it. Two things
+  // are invisible to this check by construction, both because identity is the
+  // *directive* and not the world around it: workspace provenance (SR-018), so a
+  // cwd that moved between firings still no-ops (COR-R-022); and a ref's content
+  // hash (SR-024, v3.3.0), so a referenced note edited again between firings still
+  // no-ops (COR-R-028) instead of appending a summary-identical twin.
   //
   // Atomicity: this compare and the appendSession write below share one
   // synchronous call stack (no await between them), so within a process no Stop
