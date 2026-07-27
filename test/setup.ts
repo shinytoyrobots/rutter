@@ -48,3 +48,23 @@ export function readSession(day: string): string {
 export function sessionExists(day: string): boolean {
   return fs.existsSync(path.join(sessionsDir, `${day}.md`));
 }
+
+/**
+ * Flatten a grouped `recent()` result back to a newest-first list of increments.
+ *
+ * v3.5.0 changed the UNIT of recall from the increment to the session (SR-030), so
+ * `RecentResult.sessions` replaced `RecentResult.entries`. Plenty of properties are
+ * still genuinely entry-level and should keep being asserted there -- ordering by
+ * session date, versioned provenance, byte-verbatim summaries, no-phantom entries,
+ * project-filter membership. This helper lets those tests keep testing exactly what
+ * they tested before, rather than being rewritten into group assertions that would
+ * quietly cover less.
+ *
+ * Group-level semantics (grouping key, count-caps-sessions, brief) are asserted
+ * directly against `sessions` in recent.test.ts -- not through this helper.
+ */
+export function increments<T extends { sessions: { increments: E[] }[] }, E>(result: T): E[] {
+  // Sessions come newest-first with increments oldest-first inside; reversing each
+  // session's increments restores a strict newest-first stream over all of them.
+  return result.sessions.flatMap((s) => [...s.increments].reverse());
+}

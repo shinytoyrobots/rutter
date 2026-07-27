@@ -1,4 +1,4 @@
-import { resetLibrarian, writeNote, readSession } from "./setup.js";
+import { resetLibrarian, writeNote, readSession, increments } from "./setup.js";
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -60,7 +60,7 @@ test("INV-4: deleting and rebuilding the index preserves search + session-derive
 
   const before = {
     search: search("orbital telemetry").map((r) => r.path),
-    recent: recent().entries.map((e) => `${e.day}:${e.summary}`),
+    recent: increments(recent()).map((e) => `${e.day}:${e.summary}`),
     enriched: enrich(search("orbital telemetry")).signalCount,
     weekly: weeklyCounts(),
   };
@@ -69,7 +69,7 @@ test("INV-4: deleting and rebuilding the index preserves search + session-derive
   reindex(); // rebuild purely from vault + _librarian/
 
   assert.deepEqual(search("orbital telemetry").map((r) => r.path), before.search, "search set stable");
-  assert.deepEqual(recent().entries.map((e) => `${e.day}:${e.summary}`), before.recent, "recent stable");
+  assert.deepEqual(increments(recent()).map((e) => `${e.day}:${e.summary}`), before.recent, "recent stable");
   assert.equal(enrich(search("orbital telemetry")).signalCount, before.enriched, "enrichment stable");
   assert.deepEqual(weeklyCounts(), before.weekly, "weekly counts stable (log is not in the DB)");
 });
