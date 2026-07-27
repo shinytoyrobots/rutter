@@ -19,12 +19,13 @@
 # `documentation` (headless stdio MCP server, no UI; SR-103 docs-currency home).
 
 schema-version: "1.0"
-suite-version: "0.4.0"   # 0.3.0 -> 0.4.0: spec v3.1.0 additive tasks — SCN-005 workspace
-                         # provenance (COR-R-019..022, COR-A-011, SEC-A-013) + SCN-006 client
-                         # adoption guidance (COR-R-023/024, COR-A-010). Dataset REFINEMENT:
-                         # prior variants re-evaluate against the extended datasets per protocol.
-                         # (0.2.0 -> 0.3.0: SCN-001 v3.0.0 amendment tasks COR-R-017/018, COR-A-009.)
-spec-version: "3.1.0"
+suite-version: "0.5.0"   # 0.4.0 -> 0.5.0: spec v3.2.0 additive tasks — SCN-007 recall clarity
+                         # (COR-R-025..027, COR-A-012: authoring contract + render guidance in
+                         # server instructions; byte-verbatim storage; anti-laundering probe).
+                         # Dataset REFINEMENT: prior variants re-evaluate per protocol.
+                         # (0.3.0 -> 0.4.0: spec v3.1.0 SCN-005/006 tasks COR-R-019..024,
+                         # COR-A-010/011, SEC-A-013. 0.2.0 -> 0.3.0: SCN-001 v3.0.0 tasks.)
+spec-version: "3.2.0"
 status: active
 mapping-pending: false
 
@@ -138,6 +139,16 @@ mappings:
       derived-requirements: [SR-019, SR-020]
       tasks: [COR-R-023, COR-R-024]  # added @ spec v3.1.0
       adversarial-tasks: [COR-A-010]  # filter must not fake coverage via summary-text matching
+
+    - scenario: SCN-007
+      title: Recorded memory reads clearly at recall time
+      dimension: correctness
+      dataset: correctness-real-v1
+      grader: correctness
+      mapping-pending: false
+      derived-requirements: [SR-021, SR-022, SR-023]
+      tasks: [COR-R-025, COR-R-026, COR-R-027]  # added @ spec v3.2.0
+      adversarial-tasks: [COR-A-012]  # server must not launder records to fake clarity compliance
 
   # -------------------------------------------------------------------------
   # Non-functional SR mappings — consolidated onto the six Pareto dimensions
