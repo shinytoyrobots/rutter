@@ -65,13 +65,21 @@ npm run gate                                       # per-ISO-week stateful-use c
 Entries captured before workspace provenance existed simply show no project — there is no
 placeholder, and a `--project` filter skips them rather than guessing.
 
-## Enable ambient capture (three steps, one-time)
+## Enable ambient capture (two steps, one-time)
 
-Remembering needs all three of these — the hook alone captures nothing if Claude never
-leaves a summary. (Full detail in [`docs/memory-of-use.md`](./docs/memory-of-use.md).)
+There is **nothing to add to your `CLAUDE.md`.** From v3.4.0 the whole capture contract —
+that a summary should be left, the exact syntax, and how to write it — ships inside the
+server as MCP instructions and reaches every client on connect. Register the hook, restart,
+done. (Full detail in [`docs/memory-of-use.md`](./docs/memory-of-use.md).)
 
-**1. Register the Stop hook** in `~/.claude/settings.json` (build first — the hook runs
-`dist/capture-cli.js`):
+**1. Register the Stop hook.** Either run:
+
+```bash
+npm run build && npm run install-hook          # adds the hook to ~/.claude/settings.json
+```
+
+…or add it to `~/.claude/settings.json` by hand (the hook runs `dist/capture-cli.js`, so
+build first):
 
 ```json
 {
@@ -81,37 +89,43 @@ leaves a summary. (Full detail in [`docs/memory-of-use.md`](./docs/memory-of-use
 }
 ```
 
-**2. Tell Claude to leave the summary.** The server never summarizes (no AI in it) — the
-hook lifts a directive Claude writes during the session. Add a standing rule to your
-global `~/.claude/CLAUDE.md` so this happens every session without asking:
+**2. Restart Claude Code.** Hooks are read at session start; a fresh session also picks up
+the newly built server. Verify with `/mcp` (three tools), then check captures land in
+`<vault>/_librarian/sessions/` after your next real session.
 
-```markdown
-- Librarian memory: at the end of any session that decided or produced something, emit
-  one directive line `<!-- librarian-session {"summary":"<one plain-English line>","refs":["<vault-relative paths touched>"]} -->`
-  (last one wins; omit for trivial sessions — a Stop hook captures it into the vault).
-  Write the summary for a smart reader in a hurry who was not in this session: lead with
-  what was decided or produced, use common words rather than session shorthand, and
-  expand or avoid codenames, version tags and abbreviations the session invented (terms
-  the vault itself uses are fine). One line, not a build log.
-```
+### What the server tells the client
 
-The second half of that rule is the **style contract** (see
-[`docs/memory-of-use.md`](./docs/memory-of-use.md) §2). If you installed an earlier
-version of this rule, replace it — the contract is the only thing standing between you
-and a vault full of summaries you can't read in six months. The server will not help
-here: it stores what it is given, verbatim, whatever style it is in.
+The hook captures nothing if the client never leaves a summary, and the server contains no
+AI to write one — so the server *asks* for it. The block below is quoted verbatim from
+`SERVER_INSTRUCTIONS` in [`src/server.ts`](./src/server.ts), which is the single source of
+the contract; a test (COR-R-030) fails if this copy drifts from it.
 
-**3. Restart Claude Code.** Hooks and CLAUDE.md are read at session start; a fresh
-session also picks up the newly built server. Verify with `/mcp` (three tools), then
-check captures land in `<vault>/_librarian/sessions/` after your next real session.
+<!-- BEGIN capture-contract -->
+> At the end of any session that decided or produced something, leave a session summary so the next session can recall it -- emit exactly one directive line, in this form:
+>
+> `<!-- librarian-session {"summary":"<one plain-English line>","refs":["<paths touched, relative to the knowledge base>"]} -->`
+>
+> Omit it entirely for trivial sessions. A capture hook lifts the last such line out of the session; nothing else is needed, and no tool call records it.
+>
+> If you emit another directive later in the same session, describe ONLY what is new since your previous one -- do not restate or re-summarize earlier lines. A session's lines are stored as its successive steps and shown to the reader together, so restating produces near-identical duplicates.
+>
+> Write each line for a smart reader in a hurry who was not in this session: lead with what was decided or produced, prefer common words to this session's shorthand, and expand or avoid codenames, version tags and abbreviations this session invented (terms the vault itself uses are fine). One line, not a build log -- it is stored verbatim, so nothing downstream will clarify it later.
+<!-- END capture-contract -->
 
-Only step 2 needs your `~/.claude/CLAUDE.md` — and only because the *summary* must come
-from the client (the server runs no AI). Knowing **when to call the tools**, **how to
-write the summary**, and **how to report old records back** is not your job to configure:
-all of that guidance ships inside the server as MCP instructions and reaches every client
-on connect. (Step 2 restates the style contract because the directive is written by the
-hook's client, which may not be the client the server is talking to.) The working directory arrives with the Stop event, so the
-project on each entry needs no setup either.
+The last paragraph is the **style contract** (see
+[`docs/memory-of-use.md`](./docs/memory-of-use.md) §2) — the only thing standing between you
+and a vault full of summaries you can't read in six months. The server will not help here:
+it stores what it is given, verbatim, whatever style it is in. An unfilled template is the
+one exception: a summary still wrapped in `<angle brackets>` is treated as "no directive"
+rather than stored, so copying the line above without filling it in captures nothing.
+
+The working directory arrives with the Stop event, so the project on each entry needs no
+setup either.
+
+**If captures stop landing**, the fallback is the pre-v3.4.0 arrangement: paste the block
+above into your global `~/.claude/CLAUDE.md` as a standing rule. That is belt-and-braces,
+not a required step — and if you need it, that is a bug worth reporting, because the server
+is meant to carry this on its own.
 
 ## Wire it into Claude Code
 

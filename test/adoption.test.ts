@@ -1,4 +1,4 @@
-import { resetLibrarian } from "./setup.js";
+import { resetLibrarian, increments } from "./setup.js";
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -51,6 +51,61 @@ test("COR-R-024 SCN-006/AC-instructions (SR-020): the server declares MCP instru
   assert.match(SERVER_INSTRUCTIONS, /before reading files directly/, "directs clients to consult them first");
 });
 
+test("COR-R-030 SCN-006/AC-no-user-authored-contract (SR-025/SR-026): the instructions carry the emission trigger AND the literal directive syntax", () => {
+  // The v3.4.0 finding: before this, SERVER_INSTRUCTIONS carried the STYLE contract
+  // but neither the trigger nor the syntax, so a client with no CLAUDE.md rule knew
+  // a directive existed and how to style it -- but not to write one, nor its format.
+  // Capture therefore only worked for the one person who had hand-installed the rule.
+  assert.match(
+    SERVER_INSTRUCTIONS,
+    /At the end of any session that decided or produced something/,
+    "SR-025: states WHEN a directive is to be emitted"
+  );
+  assert.match(SERVER_INSTRUCTIONS, /emit exactly one directive line/, "SR-025: states THAT one is emitted");
+  assert.match(SERVER_INSTRUCTIONS, /Omit it entirely for trivial sessions/, "SR-025: and when not to");
+  // SR-026: the literal syntax the capture path actually parses. Asserted against
+  // directive.ts's own regex rather than a hand-copied string, so the instructions
+  // cannot describe a format the parser would reject.
+  const example = SERVER_INSTRUCTIONS.match(/<!--\s*librarian-session\s+([\s\S]*?)-->/);
+  assert.ok(example, "SR-026: includes a literal <!-- librarian-session ... --> example");
+  const payload = JSON.parse(example[1]!.trim());
+  assert.ok("summary" in payload, "the example's JSON carries a summary key the parser expects");
+  assert.ok("refs" in payload, "and a refs key");
+});
+
+test("COR-R-030 SCN-006/AC-single-source (SR-027): README and docs quote the contract, and drift is a failure", () => {
+  // SERVER_INSTRUCTIONS is authoritative. Before v3.4.0 the contract lived in four
+  // hand-maintained copies (server, README, docs, a user's global CLAUDE.md) and
+  // they had already drifted. This test is what makes "single source" enforceable.
+  const repoRoot = path.join(import.meta.dirname, "..");
+  const readme = fs.readFileSync(path.join(repoRoot, "README.md"), "utf8");
+  const docs = fs.readFileSync(path.join(repoRoot, "docs", "memory-of-use.md"), "utf8");
+
+  // Every sentence of the authoring contract must appear verbatim in the README's
+  // quoted block. Compared sentence-by-sentence so a failure names the drifted line
+  // rather than just reporting "the blocks differ".
+  const contract = SERVER_INSTRUCTIONS.slice(SERVER_INSTRUCTIONS.indexOf("At the end of any session"));
+  const authoring = contract.slice(0, contract.indexOf("When you report recalled summaries back"));
+  const quoted = readme.slice(readme.indexOf("<!-- BEGIN capture-contract -->"), readme.indexOf("<!-- END capture-contract -->"));
+  assert.ok(quoted.length > 0, "README carries a delimited capture-contract block");
+  for (const sentence of authoring.split("\n").map((s) => s.trim()).filter((s) => s !== "")) {
+    assert.ok(
+      quoted.includes(sentence),
+      `README's quoted contract has drifted from SERVER_INSTRUCTIONS; missing verbatim:\n  ${sentence}`
+    );
+  }
+
+  // Neither doc may still present a CLAUDE.md rule as a required install step
+  // (SR-028). Naming it as an explicit fallback is fine, and the README does.
+  assert.match(readme, /nothing to add to your `CLAUDE\.md`/i, "README states no CLAUDE.md edit is needed");
+  assert.match(docs, /nothing to add to your `CLAUDE\.md`/i, "docs state the same");
+  assert.equal(
+    /Add a standing rule to your\s+global `~\/\.claude\/CLAUDE\.md`/.test(readme),
+    false,
+    "the old 'add a standing rule to your global CLAUDE.md' install step is gone"
+  );
+});
+
 test("COR-R-024 SCN-006/AC-instructions (SR-020): the instructions arrive in the MCP initialize result, with no client config", () => {
   // A real handshake over an in-memory transport pair: this is exactly what a fresh
   // client sees on connect, and no client-side configuration participates.
@@ -80,7 +135,7 @@ test("COR-R-023 SCN-006/AC-display-filter (SR-019): every provenance-carrying en
   seed("2026-07-22", "Read the KS interviews.", "ks-research");
   seed("2026-07-23", "A pre-v3.1.0 entry with no workspace.");
 
-  const rendered = recent().entries.map(formatRecentEntry);
+  const rendered = increments(recent()).map(formatRecentEntry);
   assert.match(rendered[3]!, /\[my-librarian\]/, "project shown for a provenance-carrying entry");
   assert.match(rendered[2]!, /\[novel\]/);
   assert.match(rendered[1]!, /\[ks-research\]/);
@@ -95,7 +150,7 @@ test("COR-R-023 SCN-006/AC-display-filter (SR-019): a project filter matches cas
   seed("2026-07-23", "A pre-v3.1.0 entry with no workspace.");
 
   // Filter case differs from the recorded project name on purpose.
-  const filtered = recent({ project: "Novel" }).entries;
+  const filtered = increments(recent({ project: "Novel" }));
   assert.deepEqual(
     filtered.map((e) => e.summary),
     ["Novel, session two.", "Novel, session one."],
@@ -104,12 +159,12 @@ test("COR-R-023 SCN-006/AC-display-filter (SR-019): a project filter matches cas
   for (const e of filtered) assert.equal(e.workspace!.project, "novel");
 
   // Ordering is the unfiltered ordering with non-matches removed -- nothing re-sorts.
-  const unfilteredOrder = recent().entries.map((e) => e.summary);
+  const unfilteredOrder = increments(recent()).map((e) => e.summary);
   const expected = unfilteredOrder.filter((s) => s.startsWith("Novel"));
   assert.deepEqual(filtered.map((e) => e.summary), expected, "filter only removes; it never re-orders");
 
-  assert.equal(recent({ project: "NOVEL" }).entries.length, 2, "match is case-insensitive in both directions");
-  assert.equal(recent({ project: "nov" }).entries.length, 0, "a partial project name is not a match");
+  assert.equal(increments(recent({ project: "NOVEL" })).length, 2, "match is case-insensitive in both directions");
+  assert.equal(increments(recent({ project: "nov" })).length, 0, "a partial project name is not a match");
   assert.equal(recent({ project: "novel" }).empty, false, "empty still means 'no records at all', not 'no matches'");
 });
 
@@ -129,7 +184,7 @@ test("COR-A-010 SCN-006/AC-display-filter (SR-019): a provenance-less entry whos
     now: new Date("2026-07-22T12:00:00.000Z"),
   });
 
-  const filtered = recent({ project: "novel" }).entries;
+  const filtered = increments(recent({ project: "novel" }));
   assert.equal(filtered.length, 1, "exactly the one provenance-carrying entry returns");
   assert.equal(filtered[0]!.summary, "Drafted chapter four.");
   assert.ok(filtered[0]!.workspace, "and it matched on its recorded provenance");
@@ -137,7 +192,7 @@ test("COR-A-010 SCN-006/AC-display-filter (SR-019): a provenance-less entry whos
     assert.notEqual(e.summary, "Wrote a novel approach to the novel index.", "no summary-text match smuggled in");
     assert.notEqual(e.summary, "Touched a note whose path says novel.", "no ref-path match smuggled in");
   }
-  assert.equal(recent().entries.length, 3, "all three are still readable unfiltered -- exclusion is silent, not destructive");
+  assert.equal(increments(recent()).length, 3, "all three are still readable unfiltered -- exclusion is silent, not destructive");
 });
 
 test("SCN-006/AC-4 (SR-011): display and filtering do not change instrumentation -- one event per invocation", () => {
@@ -157,7 +212,7 @@ test("chavruta finding (SR-019): unicode-normalization-insensitive project match
   seed("2026-07-20", "Journaled at the café.", "café-notes"); // NFC "é"
   // The same name spelled NFD (e + combining acute), as macOS paths and some IMEs produce it.
   const nfd = "café-notes";
-  assert.equal(recent({ project: nfd }).entries.length, 1, "NFD filter matches the NFC-stored project");
-  assert.equal(recent({ project: "CAFÉ-NOTES" }).entries.length, 1, "case folding still composes with normalization");
-  assert.equal(recent({ project: "cafe-notes" }).entries.length, 0, "an accent-stripped name is a DIFFERENT project, not a match");
+  assert.equal(increments(recent({ project: nfd })).length, 1, "NFD filter matches the NFC-stored project");
+  assert.equal(increments(recent({ project: "CAFÉ-NOTES" })).length, 1, "case folding still composes with normalization");
+  assert.equal(increments(recent({ project: "cafe-notes" })).length, 0, "an accent-stripped name is a DIFFERENT project, not a match");
 });

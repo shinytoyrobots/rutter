@@ -93,6 +93,15 @@ Everything about this is best-effort and never blocks a capture:
 Capture is **ambient**: it happens at session end with no action from you inside
 the session. It is wired through a Claude Code **Stop hook**.
 
+**Setup is one step** — register the hook (`npm run install-hook`, or by hand; see
+the README). There is nothing to add to your `CLAUDE.md`. From v3.4.0 the whole
+capture contract lives in `SERVER_INSTRUCTIONS` in `src/server.ts` — the single
+source, quoted rather than restated everywhere else — and reaches every client on
+connect as MCP server instructions. Before v3.4.0 the emission trigger and the
+directive syntax existed *only* in a hand-installed `~/.claude/CLAUDE.md` rule,
+which meant ambient capture worked for exactly one person: whoever had installed
+that rule.
+
 **How the summary is produced (no AI in the server).** The librarian server never
 summarizes anything — that would be inference, which it does not do. Instead your
 client (Claude) writes the one-line summary *during* the session as a directive,
@@ -107,6 +116,9 @@ whenever a session is worth remembering:
 - `refs` — optional vault-relative paths of notes the session touched.
 - The **last** directive in the session wins. If you emit none (or an empty
   summary), nothing is captured and no empty file is created.
+- A summary still wrapped in `<angle brackets>` is treated as an **unfilled
+  template** and captured as nothing — so pasting the syntax without filling it in
+  is safe, rather than storing `<one plain-English line>` in your record.
 
 ### The style contract — how the summary should be written
 
