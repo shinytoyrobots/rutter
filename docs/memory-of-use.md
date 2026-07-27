@@ -108,6 +108,44 @@ whenever a session is worth remembering:
 - The **last** directive in the session wins. If you emit none (or an empty
   summary), nothing is captured and no empty file is created.
 
+### The style contract — how the summary should be written
+
+A summary is authored by a session that is deep in its own context and read weeks
+later by someone who has none of it. Left alone, that produces build-log lines
+full of codenames and version tags that were obvious at the time and are opaque
+now. So the summary carries a **style contract**:
+
+> Write the line for **a smart reader in a hurry who was not in this session**:
+> lead with **what was decided or produced**, use **common words** rather than
+> session shorthand, and **expand or avoid** codenames, version tags and
+> abbreviations the session invented (terms your vault itself uses are fine).
+> One line, not a build log.
+
+Compare:
+
+```
+✗  Landed HK-7/ambient-splice v0.9.3-rc2 behind FLG_SPLICE_V2; idx@4 -> idx@5,
+   backfill gated on FKS_DUAL_READ, ZQ-1197 still open, cutover ETA W31.
+✓  Shipped the ambient capture path behind a feature flag, and started the
+   session-index upgrade — the data backfill is still switched off.
+```
+
+**Where the contract lives — two places, both of them guidance to your client:**
+
+1. **The capture directive rule** in your global `~/.claude/CLAUDE.md` (the
+   copy-paste text is in the README's "Enable ambient capture" step 2). This is
+   what reaches the client that actually writes the directive.
+2. **The server's MCP instructions**, which every connected client receives on
+   connect — so a client that never saw your `CLAUDE.md` still gets the contract.
+
+**What the server does about style: nothing at all.** It stores the summary
+**byte-verbatim** — it never rewrites, shortens, "clarifies", or rejects a line
+for being dense, and there is no style warning written into your record. That is
+not an oversight, it is the invariant: judging or rewriting prose is inference,
+and the server runs no model (INV-6). A dense summary is a *readability* problem
+handled by guidance and by read-time rendering, never a *data* problem solved by
+editing your memory.
+
 **Install the hook.** Build first (`npm run build`), then add the Stop hook to
 your Claude Code settings (`~/.claude/settings.json` or a project
 `.claude/settings.json`):
@@ -169,6 +207,21 @@ date, its project, and the versioned provenance of the notes it references:
 Filters only ever *remove* entries: the order you get is the same order you would
 have got unfiltered.
 
+### Old, dense entries still read clearly
+
+Records written before the style contract existed are exactly as dense as the day
+they were captured, and they are **never migrated, edited, or re-summarized** —
+memory-of-use is append-only (INV-3), and rewriting your own past record to look
+tidier would be a worse bug than the density.
+
+Instead the server's instructions ask your **client** to *report* recalled
+summaries in plain language for whoever is asking — and that applies to every
+record, not just new ones. So when you ask "what was I working on?", Claude may
+answer in cleaner words than the stored line uses. That is the intended behavior:
+what is on disk is the record, what you are told is the answer. If you want the
+exact stored text, open the day file in Obsidian, or run `npm run recent`, which
+prints the raw stored line.
+
 From the terminal:
 
 ```bash
@@ -188,7 +241,13 @@ receives on connect:
 
 > Recency questions → `librarian-recent`. Prior-engagement and content questions →
 > `librarian-search`. Consult them before reading files directly. Then
-> `librarian-get-note` to read a note in full.
+> `librarian-get-note` to read a note in full. Write `librarian-session` summaries
+> to the style contract above. Report recalled summaries — including old, dense
+> ones — in plain language for whoever asked.
+
+So the instructions cover both directions of the memory: how a summary should be
+**written**, and how a recalled summary should be **read back**. Neither is
+enforced by the server; both travel to every client that connects.
 
 This matters because guidance in a project's `CLAUDE.md` only helps in that
 project. Instructions that ship *with the server* travel to every client and every
@@ -263,8 +322,11 @@ stateful-use per ISO week (gate target: >=3):
   text, never fetched.
 - **Store immutability (INV-2):** the librarian only writes under `_librarian/`
   and `data/`; it never creates, modifies, or deletes vault notes.
-- **No hard-delete (INV-3):** memory-of-use records are only appended.
+- **No hard-delete (INV-3):** memory-of-use records are only appended. Old records
+  are never re-summarized or tidied up to match a newer convention.
 - **Rebuildable (INV-4):** `data/librarian.db` is a disposable cache; delete it
   and `npm run reindex` reconstructs everything from the vault + `_librarian/`.
 - **No AI in the server (INV-6):** summaries are your client's; the server stores
-  and serves them verbatim.
+  and serves them **verbatim** — including summaries that ignore the style
+  contract entirely. Judging or improving prose would be inference, so the
+  server does neither, at capture or at read time.

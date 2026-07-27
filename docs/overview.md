@@ -33,7 +33,7 @@ A small always-running process holds that database open and offers three abiliti
 
 The assistant talks to this server using MCP (Model Context Protocol), the standard way AI tools connect to external data. On your Mac, that conversation is plain messages passed between the two programs.
 
-The server also hands the assistant a short note about **when to use these abilities** — reach for `librarian-recent` when the question is about recent work, and `librarian-search` when it's "have I seen this before?" — before it goes rummaging through files itself. That note lives in the server, so it applies in every project you connect from, with nothing to set up per project.
+The server also hands the assistant a short note about **when to use these abilities** — reach for `librarian-recent` when the question is about recent work, and `librarian-search` when it's "have I seen this before?" — before it goes rummaging through files itself. The same note asks the assistant to write session summaries in plain language, and to *report* remembered summaries back in plain language too, even the older ones that were written densely. That note lives in the server, so it applies in every project you connect from, with nothing to set up per project.
 
 ### Part 3: the memory (written as you work)
 
@@ -55,6 +55,8 @@ For answering questions the Librarian is **reactive**. It does nothing until the
 You can also ask directly: "search my vault for X" or "what was I working on this week?" The Librarian never speaks to you on its own — it answers the assistant, and the assistant answers you.
 
 **Remembering, by contrast, is ambient.** You do nothing. During a session, Claude drops a small hidden marker into the conversation — one line summarizing what the session decided, plus the notes it touched. When the session ends, a hook fires automatically, lifts that marker out of the transcript, and files it into your vault. No summary marker, nothing worth remembering — no entry, no empty file. The server never writes the summary itself (that would require it to think; it doesn't) — Claude authors the line, the Librarian just stores it faithfully.
+
+**And the line has to be readable later.** A session writing about itself is fluent in its own shorthand; you, reading it in November, are not. So Claude is asked — both by the rule in your `CLAUDE.md` and by the server's own note — to write each summary for *a smart reader in a hurry who wasn't in that session*: lead with what was decided, use ordinary words, and spell out (or skip) the codenames and version numbers the session made up. The Librarian does not police this. It stores exactly what it is handed, dense or clear, and never edits your record to improve it — which is why summaries written before this convention existed are still on disk in their original form, and why Claude is asked to translate them for you when it reads them back.
 
 ## What model it uses
 
@@ -114,7 +116,7 @@ You can also ask directly: "search my vault for X" or "what was I working on thi
    }
    ```
 
-   Second, add a standing rule to your global `~/.claude/CLAUDE.md` telling Claude to leave the one-line summary marker at the end of any session worth remembering — the hook only *collects* the marker; without the rule, nothing gets captured. The exact marker convention (and the rule text to copy) is in [`memory-of-use.md`](./memory-of-use.md) §2 and the README. Then start a fresh Claude Code session — hooks and CLAUDE.md are both read at session start.
+   Second, add a standing rule to your global `~/.claude/CLAUDE.md` telling Claude to leave the one-line summary marker at the end of any session worth remembering — the hook only *collects* the marker; without the rule, nothing gets captured. The exact marker convention, the plain-language style contract for the summary, and the rule text to copy are in [`memory-of-use.md`](./memory-of-use.md) §2 and the README. If you set this rule up before the style contract existed, copy the current version over it. Then start a fresh Claude Code session — hooks and CLAUDE.md are both read at session start.
 
 ## Use it
 
@@ -164,6 +166,7 @@ Which of those comes next is decided by *your behavior*, not a plan: during the 
 - The index must be rebuilt by hand after vault changes.
 - It runs locally for Claude Code only. ChatGPT support is intentionally deferred.
 - **Remembering depends on Claude leaving the marker.** If a session ends without one (or the hook isn't installed), that session simply isn't recorded. One line per session is deliberate — it keeps the memory curated rather than a transcript dump — but it also means the memory is only as good as the summaries.
+- **Summary quality is guidance, not a guarantee.** The plain-language style contract is something the assistant is *asked* to follow; nothing checks it, because checking prose would mean putting a model inside the Librarian. A session that writes a dense line gets a dense line stored, permanently and unedited. The mitigation is at the other end: the assistant is asked to translate dense entries when it reports them back to you.
 - Session days use UTC, so a late-night session can file under the next day's date.
 - Memory is per-session summaries only. Belief-tracking, conflict marks, and semantic search are designed but not built — and only get built if the two-week test says the memory is worth reaching for.
 
