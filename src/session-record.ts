@@ -98,19 +98,30 @@ export function readAllRecords(): SessionRecord[] {
 
 /**
  * Normalized dedupe key for one entry (SR-013). Built ONLY from already-inert,
- * server-derived fields -- the toInertLine'd summary and the resolved refs
- * (path + content-hash computed by the server, never trusted from the client) --
- * so the comparison is on normalized content, never on raw input. Refs are
- * sorted so ordering cannot defeat the match. The session id is part of the key,
- * so the same directive in two different sessions is (correctly) not a duplicate.
+ * server-derived fields -- the toInertLine'd summary and the resolved ref PATHS
+ * (normalized by the server, never trusted from the client) -- so the comparison
+ * is on normalized content, never on raw input. Paths are sorted so ordering
+ * cannot defeat the match. The session id is part of the key, so the same
+ * directive in two different sessions is (correctly) not a duplicate.
  *
- * Workspace provenance is deliberately NOT part of this key (SR-018): identity is
- * the *directive*, so a Stop firing whose cwd drifted (a rename, a subdirectory,
- * or no cwd at all) is still the same directive and still a byte-identical no-op
- * (COR-R-022). Keying on provenance would turn one session into many entries.
+ * TWO fields are deliberately NOT part of this key, for the same reason: identity
+ * is the *directive*, not the world around it.
+ *   - Workspace provenance (SR-018): a Stop firing whose cwd drifted (a rename, a
+ *     subdirectory, or no cwd at all) is still the same directive (COR-R-022).
+ *   - A ref's CONTENT HASH (SR-024, added v3.3.0): a Stop firing after Robin edited
+ *     a referenced note *again* is still the same directive. Keying on the hash was
+ *     the second of two leaks behind the replicative-entries finding -- it produced
+ *     pairs of entries with byte-identical summaries whose only difference was a
+ *     hash that moved (observed 2026-07-27 at 07:20/07:26 and 07:32/07:35), which
+ *     carries no recall meaning. Hashes are still RECORDED on the entry; they are
+ *     just inert for identity. Note this narrowing is strictly safe: it can only
+ *     ever merge entries whose summaries are already identical, so no distinct
+ *     recalled meaning can be lost. It does mean the retained hash is the
+ *     FIRST-read one -- correct, since a versioned ref records what Robin saw when
+ *     the directive was written, and the no-op writes nothing by definition.
  */
 function contentKey(sessionId: string, summary: string, refs: VersionedRef[]): string {
-  const refKey = refs.map((r) => `${r.path}@${r.hash}`).sort();
+  const refKey = refs.map((r) => r.path).sort();
   // JSON-encode the tuple so field boundaries are unambiguous: no crafted
   // session id or summary can smuggle a separator to collide two distinct
   // directives into one key (or split one into two) -- fail-closed on identity.

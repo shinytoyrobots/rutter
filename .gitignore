@@ -16,3 +16,6 @@ efforts/*/generations/
 # (SR-102 / prohibition 6). Ignored defensively in case a vault or stray overlay
 # is ever created inside the repo tree.
 _librarian/
+
+# Agent working state (worktrees, per-agent memory) — never part of the repo
+.claude/

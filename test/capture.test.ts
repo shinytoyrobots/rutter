@@ -89,6 +89,53 @@ test("COR-R-017 SCN-001/AC-idempotence (SR-013): re-firing the same directive 5x
   assert.equal(readRecord(DAY)!.sessions.length, 1, "exactly one entry for session S; no duplicates");
 });
 
+test("COR-R-028 SCN-001/AC-idempotence (SR-024): a referenced note edited BETWEEN firings stays a byte-identical no-op", () => {
+  // Reproduces the real leak observed in _librarian/sessions/2026-07-27.md at
+  // 07:20:26 / 07:26:30 (and again at 07:32:54 / 07:35:10): two entries whose
+  // summaries were BYTE-IDENTICAL, differing only in a referenced file's content
+  // hash because Robin kept editing that file between Stop firings. Pre-v3.3.0 the
+  // hash was part of the dedupe key, so the second firing appended a twin.
+  writeNote("Fiction/scouting.md", "# Scout\ntranche 12, first pass");
+  const directive = {
+    summary: "Ran tranche-12 agent scout: two recommended now, three staged for August.",
+    refs: ["Fiction/scouting.md"],
+    sessionId: "S-cor-r-023",
+  };
+  const first = captureSession({ ...directive, now: new Date("2026-07-24T07:20:26.000Z") });
+  assert.equal(first.captured, true, "first firing captures");
+  const hashAsRead = first.entry!.refs[0]!.hash;
+  const afterFirst = readSession(DAY);
+
+  // Robin edits the SAME note again, then the next turn's Stop re-presents the
+  // SAME directive. Only the world changed, not the directive.
+  writeNote("Fiction/scouting.md", "# Scout\ntranche 12, revised after verification sweep");
+  const second = captureSession({ ...directive, now: new Date("2026-07-24T07:26:30.000Z") });
+  assert.equal(second.captured, false, "re-firing after the note changed appends nothing");
+  assert.equal(second.deduped, true, "it is an idempotent no-op, not a revision");
+
+  assert.equal(readSession(DAY), afterFirst, "day record is byte-identical to after the first firing");
+  const sessions = readRecord(DAY)!.sessions;
+  assert.equal(sessions.length, 1, "exactly one entry; no summary-identical twin");
+  assert.equal(sessions[0]!.refs[0]!.hash, hashAsRead, "the FIRST-read hash is retained (versioned identity = what Robin saw)");
+});
+
+test("COR-R-029 SCN-001/AC-idempotence (SR-024): narrowing identity does NOT merge entries whose summaries differ", () => {
+  // The safety property that makes SR-024 a strict improvement: dropping the hash
+  // from identity can only ever merge already-summary-identical entries, so a
+  // genuinely distinct directive is still recorded even when it names the same
+  // note at the same content. Guards against over-collapsing the WEAVER case
+  // (three separate queries sent in one session, all touching tracker.md).
+  writeNote("Fiction/tracker.md", "# Tracker\nrow");
+  const base = { refs: ["Fiction/tracker.md"], sessionId: "S-cor-r-024" };
+  const a = captureSession({ ...base, summary: "Sent Yeoh as query #70.", now: new Date("2026-07-24T07:08:00.000Z") });
+  const b = captureSession({ ...base, summary: "Sent Chanchani as query #71.", now: new Date("2026-07-24T07:30:00.000Z") });
+  assert.equal(a.captured, true);
+  assert.equal(b.captured, true, "a different summary on the same unchanged note is still a distinct directive");
+  const sessions = readRecord(DAY)!.sessions;
+  assert.equal(sessions.length, 2, "both milestones retained");
+  assert.deepEqual(sessions.map((s) => s.summary), ["Sent Yeoh as query #70.", "Sent Chanchani as query #71."]);
+});
+
 test("COR-R-018 SCN-001/AC-revision (SR-014): a changed directive appends [D1, D2] with D1's bytes unmodified", () => {
   const D1 = captureSession({ summary: "D1: decided to store refs by content-hash.", sessionId: "S-cor-r-018", now: new Date("2026-07-24T09:00:00.000Z") });
   assert.equal(D1.captured, true);
