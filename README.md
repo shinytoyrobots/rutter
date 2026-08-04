@@ -54,7 +54,7 @@ time.
 ## What it does today
 
 - Indexes the notes directory into a local SQLite FTS5 full-text index — a disposable, regenerable cache. Your files stay the source of truth.
-- **Ambient capture.** At session end a Claude Code Stop hook appends one curated line per session to `<notes>/_librarian/sessions/<date>.md`, referencing touched notes by content hash. Durable, git-committable, written by your client.
+- **Ambient capture.** As a session decides or produces something, your client leaves a line about it, and a Claude Code Stop hook appends that line to `<notes>/_librarian/sessions/<date>.md`, referencing touched notes by content hash. One line per separable outcome rather than one per session — a working session usually leaves three or four — grouped back into a single account of that session when you read it. Durable, git-committable, written by your client.
 - **A style contract on that line.** Write for a smart reader in a hurry who wasn't in the session: outcome first, common words over session shorthand, no invented codenames or version tags, about 40 words. The contract is guidance carried in the server's MCP instructions. The server stores whatever it is given, **verbatim** — over-budget summaries are reported on the capture path and then stored as written.
 - **Workspace provenance.** Each entry carries the session's working directory, a project name derived from it, and the git remote URL when there is one, so a day spanning three efforts reads cleanly. Nothing to configure; resolution is pure local file reads — it never runs `git` and never contacts a remote.
 - Three read-only MCP tools:
@@ -166,15 +166,15 @@ AI to write one — so the server *asks* for it. The contract block here is quot
 the contract; a test (COR-R-030) fails if this copy drifts from it.
 
 <!-- BEGIN capture-contract -->
-> At the end of any session that decided or produced something, leave a session summary so the next session can recall it -- emit exactly one directive line, in this form:
+> When a session decides or produces something worth recalling later, leave a session summary -- emit one directive line, in this form:
 >
 > `<!-- librarian-session {"summary":"<one plain-English line>","refs":["<paths touched, relative to the knowledge base>"]} -->`
 >
-> Omit it entirely for trivial sessions. A capture hook lifts the last such line out of the session; nothing else is needed, and no tool call records it.
+> Emit a line for each separable thing as you finish it, rather than saving everything for one line at the end; omit trivial work entirely. A capture hook lifts the newest such line after each turn; nothing else is needed, and no tool call records it.
 >
 > If you emit another directive later in the same session, describe ONLY what is new since your previous one -- do not restate or re-summarize earlier lines. A session's lines are stored as its successive steps and shown to the reader together, so restating produces near-identical duplicates.
 >
-> Write each line for a smart reader in a hurry who was not in this session: lead with what was decided or produced, prefer common words to this session's shorthand, and expand or avoid codenames, version tags and abbreviations this session invented (terms the vault itself uses are fine). Aim for about 40 words and stop by 60 -- one line, not a build log; it is stored verbatim, so nothing downstream will clarify it later. If this session did several separable things, emit a line for each as you finish it rather than one long line at the end.
+> Write each line for a smart reader in a hurry who was not in this session: lead with what was decided or produced, prefer common words to this session's shorthand, and expand or avoid codenames, version tags and abbreviations this session invented (terms the vault itself uses are fine). Aim for about 40 words and stop by 60 -- one line, not a build log; it is stored verbatim, so nothing downstream will clarify it later.
 <!-- END capture-contract -->
 
 The last paragraph is the **style contract** (see

@@ -1,9 +1,39 @@
 ---
-version: "3.6.0"
+version: "3.7.0"
 status: active
 effort: s1-5-ambient-capture
 last-amended: 2026-08-04
 mapping-pending: false
+# v3.7.0 (minor): the emission trigger contradicted itself. HITL-approved 2026-08-04
+# (constitution escalation trigger 1 — capture semantics). Found while checking a
+# README claim ("one curated line per session") against the records: real capture
+# averages 3.2 entries per session and has never been 1.0 on any day, and SCN-001 is
+# explicitly titled "exactly once per distinct directive" with an AC reading "not one
+# entry per Stop firing". The README was wrong — but so were the instructions, in a
+# way that matters more.
+#   SR-025 required the instructions say "at the end of a session … exactly one
+#   directive". SR-033 (v3.5.0) requires them explain what to do when "you emit
+#   another directive later in the same session". SR-021 (v3.6.0) requires them say
+#   "emit a line for each as you finish it". So the shipped contract told a client
+#   both to send one line at the end AND several as it went.
+#   This is very likely a CAUSE of the v3.6.0 length creep, not merely adjacent to
+#   it: a client that believes it gets one line at the end of the session will pack
+#   everything into that line, which is exactly what the 141-192 word entries are.
+#   The word budget fought the trigger instead of replacing it, so v3.6.0 treated a
+#   symptom.
+#   Chosen: make the trigger per-outcome. SR-025 amended (one line per separable
+#   thing, as it lands, trivial work omitted); the cadence guidance moves OUT of the
+#   style paragraph, where v3.6.0 had put it, INTO the trigger paragraph where it
+#   belongs; +SR-035 forbids the instructions ever again claiming one-per-session or
+#   end-of-session timing, so the two halves cannot drift back apart.
+#   Rejected: amending SR-033/SR-021 to match SR-025 instead. That would have made
+#   the contract consistent in the wrong direction — one entry per session contradicts
+#   SCN-001, the record schema, and every record on disk.
+# SCN-001 needs no change: it already specifies per-distinct-directive capture. This
+# was only ever an instruction-wording defect, so there is no storage, schema, read-
+# path, or idempotence change, and no retrofit. The README's quoted block moves in
+# lockstep (SR-027, COR-R-030) -- the first amendment so far to touch it.
+# Desirability-gate clock NOT restarted (verdict stays ~2026-08-09).
 # v3.6.0 (minor): summary length creep. HITL-approved 2026-08-04 (constitution
 # escalation trigger 1 — capture semantics). Observed in real records: step COUNT
 # stayed flat (7–40/day, no trend) while mean summary length tripled — 37–61
@@ -345,6 +375,10 @@ cross-project recall is usable once provenance exists.
   emitted and when, the literal directive syntax, and how to write it. A user who
   registers the Stop hook and connects the server gets working capture without adding
   any rule to `CLAUDE.md` or equivalent.
+- *(v3.7.0)* **The trigger is per outcome, and says so once.** The instructions ask for
+  a line per separable thing as it lands, and nowhere state or imply one-per-session
+  count or end-of-session timing — the two framings cannot both appear, because a
+  client told to send one line at the end will pack a session into it.
 - *(v3.4.0)* **The contract has one in-repo source.** `SERVER_INSTRUCTIONS` is
   authoritative; README and `docs/memory-of-use.md` quote it verbatim rather than
   restating it, and a divergence between them is a test failure.
@@ -497,9 +531,14 @@ SRs (SR-100+) have no parent.
   rewrite, truncate, or reject a directive on style grounds. *(unwanted-behavior)*
   `# ← SCN-007; added v3.2.0; refines INV-6`
 - **SR-025** — The server-level instructions shall state that a session summary
-  directive is to be emitted, and when: at the end of a session that decided or
-  produced something, exactly one directive, omitted entirely for trivial sessions.
-  *(event-driven)* `# ← SCN-006; added v3.4.0`
+  directive is to be emitted, and when: one line for each separable thing a session
+  decides or produces, emitted as that thing lands rather than accumulated for the end
+  of the session, and omitted entirely for trivial work.
+  *(event-driven)* `# ← SCN-006; added v3.4.0; amended v3.7.0 (per-outcome trigger)`
+- **SR-035** — The server-level instructions shall not state or imply that a session
+  emits a single directive, nor that directives are emitted at session end: no
+  one-per-session count and no end-of-session timing. *(unwanted-behaviour)*
+  `# ← SCN-006; added v3.7.0; guards SR-025 against SR-033/SR-021`
 - **SR-026** — The server-level instructions shall include the literal directive
   syntax the capture path parses, so a client that has never read the repository docs
   can emit a well-formed directive. *(ubiquitous)* `# ← SCN-006; added v3.4.0`
@@ -573,7 +612,7 @@ SRs (SR-100+) have no parent.
 | SCN-003 | annotate, quiet, no re-rank | SR-008, SR-009, SR-010 | — | correctness-real-v1 | correctness |
 | SCN-004 | log events, weekly count | SR-011, SR-012 | INV-4 | correctness-real-v1 | correctness |
 | SCN-005 | auto provenance, local-reads-only, never-blocks, additive-optional, dedupe-unchanged, inert | SR-015, SR-016, SR-017, SR-018 | INV-1, INV-2 | correctness-real-v1, security-adv-v1 | correctness, security |
-| SCN-006 | server instructions, project display, project filter, no-behavior-drift, no-user-authored-contract, single-source | SR-019, SR-020, SR-025, SR-026, SR-027, SR-028 | — | correctness-real-v1 | correctness |
+| SCN-006 | server instructions, project display, project filter, no-behavior-drift, no-user-authored-contract, single-source, per-outcome-trigger | SR-019, SR-020, SR-025, SR-026, SR-027, SR-028, SR-035 | — | correctness-real-v1 | correctness |
 | SCN-007 | authoring contract in instructions, read-time render guidance, directive-rule deployment, verbatim storage, no retrofit, no-behavior-drift, length-budget | SR-021, SR-022, SR-023, SR-034 | INV-3, INV-6 | correctness-real-v1, correctness-adv-v1 | correctness |
 | — | mdbase-compatible frontmatter | SR-100 | — | schema-real-v1 | schema-conformance |
 | — | untrusted-input handling | SR-101 | INV-2 | adversarial-input-v1 | safety |
