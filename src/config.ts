@@ -27,6 +27,14 @@ const dbPath = expandHome(
 // `_librarian/` is already excluded from the S1 FTS index (see `ignoreDirs`).
 const librarianDir = path.join(vaultPath, "_librarian");
 
+// How the server refers to whose work this is, in the instructions and tool
+// descriptions every client receives on connect. Default is generic, so a fresh
+// install describes "the user's work" rather than the author's; set a name and the
+// instructions say "Robin's work", which reads more naturally to a model that then
+// knows whose collection it is looking at. Used possessively (`<label>'s work`), so
+// the value is a bare name or noun phrase, never already-possessive.
+const userLabel = process.env.LIBRARIAN_USER_LABEL?.trim() || "the user";
+
 export const config = {
   /** Absolute path to the Obsidian vault (the source of truth). */
   vaultPath,
@@ -34,6 +42,12 @@ export const config = {
   dbPath,
   /** Root of the memory-of-use overlay; every server write lands under here or `data/`. */
   librarianDir,
+  /**
+   * Whose work the server says this is, in client-facing instructions and tool
+   * descriptions. Defaults to `the user`; set `LIBRARIAN_USER_LABEL` to a name for a
+   * personal install. Used possessively as `<userLabel>'s work`.
+   */
+  userLabel,
   /** Where per-day session records live: `_librarian/sessions/<YYYY-MM-DD>.md`. */
   sessionsDir: path.join(librarianDir, "sessions"),
   /** Append-only stateful-use instrumentation log (JSONL); durable, never in the DB. */
