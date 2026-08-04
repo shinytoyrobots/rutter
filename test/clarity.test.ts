@@ -6,7 +6,7 @@ import path from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { config } from "../src/config.js";
-import { captureSession } from "../src/capture.js";
+import { captureSession, overSummaryWordCeiling, summaryWordCount } from "../src/capture.js";
 import { readRecord } from "../src/session-record.js";
 import { runRecent } from "../src/app.js";
 import { createServer, SERVER_INSTRUCTIONS, formatRecentEntry } from "../src/server.js";
@@ -88,6 +88,58 @@ test("COR-R-025 SCN-007/AC-authoring-contract (SR-021): the instructions carry a
   }
   // The carve-out matters: vault vocabulary is shared context, not session jargon.
   assert.match(contract, /the vault itself uses are fine/, "(d) exempts terms the vault itself uses");
+});
+
+test("SCN-007/AC-length-budget (SR-021/SR-034): the contract states an explicit word budget, and it is the number the code warns at", () => {
+  const contract = authoringSection();
+
+  // The v3.6.0 finding: the contract said "one line, not a build log" -- true, but
+  // unnumbered, and a model will happily write a 192-word "line". Observed drift:
+  // 37-61 words/step in the first fortnight, 141-192 by 2026-08-04. A number is the fix.
+  assert.match(contract, /Aim for about \d+ words and stop by \d+/, "the budget is stated as numbers");
+  assert.ok(
+    contract.includes(`about ${config.summaryWordTarget} words`),
+    `the stated target matches config.summaryWordTarget (${config.summaryWordTarget})`
+  );
+  assert.ok(
+    contract.includes(`stop by ${config.summaryWordCeiling}`),
+    `the stated ceiling matches config.summaryWordCeiling (${config.summaryWordCeiling})`
+  );
+
+  // Overflow needs somewhere to go or the budget just gets ignored. SR-033 already
+  // supports several directives per session, so the contract points at that rather
+  // than leaving "write it all in one long line" as the only option.
+  assert.match(contract, /emit a line for each as you finish it/, "over-budget work is channelled into per-thing lines");
+
+  // Guidance, not a bound: the advisory ceiling must stay well inside the SR-101
+  // hard char limit so the two are never confused for one another.
+  assert.ok(
+    config.summaryWordCeiling * 12 < config.maxSummaryChars,
+    "the advisory word ceiling is comfortably inside the SR-101 char bound"
+  );
+});
+
+test("COR-R-027 SCN-007/AC-length-budget (SR-023/SR-034): an over-budget summary is counted, stored verbatim, and never annotated", () => {
+  // The predicate the capture path reports from -- pure, so it is testable without
+  // running the hook. It is deliberately NOT wired into captureSession: SR-023 makes
+  // storage unconditional, and over-budget is a diagnostic, not a state of the record.
+  assert.equal(overSummaryWordCeiling(DENSE_SUMMARY), true, "300+ words is over the ceiling");
+  assert.ok(summaryWordCount(DENSE_SUMMARY) >= 300, "and the count is reported accurately");
+
+  const compliant = "Gave the style contract an explicit word budget so summary length stops creeping.";
+  assert.equal(overSummaryWordCeiling(compliant), false, "a contract-compliant line is not flagged");
+  assert.equal(summaryWordCount(""), 0, "an empty summary counts as zero words, not one");
+  assert.equal(summaryWordCount("  spaced   out  words "), 3, "whitespace runs are not counted as words");
+
+  // The load-bearing half: being over budget changes nothing about what is stored.
+  const now = new Date("2026-08-04T11:00:00.000Z");
+  const result = captureSession({ summary: DENSE_SUMMARY, sessionId: "S-over-budget", now });
+  assert.equal(result.captured, true, "length is never grounds for rejection");
+  const stored = readRecord("2026-08-04")!.sessions[0]!.summary;
+  assert.equal(stored, DENSE_SUMMARY, "stored byte-identical despite being 5x over budget");
+  const raw = fs.readFileSync(path.join(sessionsDir, "2026-08-04.md"), "utf8");
+  assert.ok(raw.includes(`- 11:00:00 - ${DENSE_SUMMARY}\n`), "and the body line carries no word-count annotation");
+  assert.equal(/\d+ words/.test(raw), false, "no length warning leaked into the record");
 });
 
 test("COR-R-026 SCN-007/AC-render-guidance (SR-022): read-time guidance covers EVERY recalled summary, not only new records", () => {

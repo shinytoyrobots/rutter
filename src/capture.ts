@@ -1,3 +1,4 @@
+import { config } from "./config.js";
 import { toInertLine } from "./sanitize.js";
 import { buildRef, type VersionedRef } from "./refs.js";
 import { appendSession, isDuplicateEntry, type SessionEntry } from "./session-record.js";
@@ -107,6 +108,25 @@ export function captureSession(payload: CapturePayload): CaptureResult {
 
   appendSession(isoDay(now), entry);
   return { captured: true, day: isoDay(now), entry, rejectedRefs };
+}
+
+/** Words in a summary, counted the way a reader would: whitespace-separated tokens. */
+export function summaryWordCount(summary: string): number {
+  const trimmed = summary.trim();
+  return trimmed === "" ? 0 : trimmed.split(/\s+/).length;
+}
+
+/**
+ * Whether a summary overruns the style contract's length ceiling (SR-034).
+ *
+ * Deliberately NOT wired into `captureSession`: an over-length summary is stored
+ * byte-verbatim like any other (SR-023), and the record body carries no editorial
+ * annotation (COR-R-027 asserts the body line is time + summary and nothing else).
+ * This is a reporting predicate for the capture path's diagnostics, so drift is
+ * visible to the operator without the server ever editing the record.
+ */
+export function overSummaryWordCeiling(summary: string): boolean {
+  return summaryWordCount(summary) > config.summaryWordCeiling;
 }
 
 /** Split client-named paths into resolved versioned refs and rejected paths. */

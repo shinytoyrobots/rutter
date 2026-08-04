@@ -43,4 +43,17 @@ export const config = {
   defaultSearchLimit: 8,
   /** Hard upper bound on a stored summary (SR-101 oversized-input guard). */
   maxSummaryChars: 2000,
+  /**
+   * Style-contract length budget for a session summary, in words (SR-021/SR-034).
+   * Advisory, NOT a bound: over-ceiling summaries produce a visible warning and are
+   * still stored byte-verbatim, because style is never grounds for rewriting,
+   * truncating, or rejecting (SR-023/INV-6). The hard bound is `maxSummaryChars`,
+   * which exists for an unrelated reason (oversized input, SR-101).
+   *
+   * Calibrated from observed capture: the first fortnight of real records averaged
+   * 37-61 words per step; the drift to 141-192 words per step (2026-08-02..04) is
+   * what these numbers exist to make visible.
+   */
+  summaryWordTarget: 40,
+  summaryWordCeiling: 60,
 };
