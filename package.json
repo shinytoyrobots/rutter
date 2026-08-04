@@ -15,6 +15,7 @@
     "search": "tsx src/search-cli.ts",
     "recent": "tsx src/recent-cli.ts",
     "gate": "tsx src/gate-cli.ts",
+    "identity-confirm": "tsx src/identity-confirm-cli.ts",
     "capture": "tsx src/capture-cli.ts",
     "install-hook": "node hooks/install-hook.mjs",
     "start": "tsx src/stdio.ts",
