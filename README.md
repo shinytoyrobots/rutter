@@ -98,6 +98,7 @@ Config via environment variables:
 |-----|---------|---------|
 | `LIBRARIAN_VAULT_PATH` | `~/Documents/knowledge-vault` | Notes directory to index (read-only). Set this. |
 | `LIBRARIAN_DB_PATH` | `<repo>/data/librarian.db` | Where the derived index lives. Resolved from the installed module's own location, not your working directory. |
+| `LIBRARIAN_USER_LABEL` | `the user` | How the server describes whose work this is, in the instructions and tool descriptions your client receives. Set it to your name and the client is told it is looking at *your* work, which reads more naturally than "the user's". |
 
 Memory-of-use (session records, the use log) lives under `<notes>/_librarian/` — inside your notes
 directory, never in this code repo. See [`docs/memory-of-use.md`](./docs/memory-of-use.md).
