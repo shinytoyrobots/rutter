@@ -58,3 +58,7 @@ commoditized
 gitignored
 hardcoded
 stderr
+dotfile
+tsc
+Kage
+twiceshy
