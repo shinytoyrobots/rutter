@@ -51,3 +51,10 @@ nomic
 Graph-RAG
 codenames
 greppable
+subprocess
+stdin
+README
+commoditized
+gitignored
+hardcoded
+stderr

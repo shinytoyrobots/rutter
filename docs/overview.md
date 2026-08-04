@@ -1,17 +1,33 @@
 # The Librarian: how it works and how to use it
 
-A plain-English overview of the Librarian — what it is, how it works, how to set it up, and where it is heading. It reflects what exists **today**: search over your vault, plus the first slice of real memory — the Librarian now quietly remembers what each session decided, can tell you what you were working on lately, and recognizes notes you've engaged before. The larger vision (tracking how your *beliefs* change over time) is designed but not yet built, and is marked clearly as such.
+Search was never the problem. A capable agent reading an organized notes directory already finds
+things.
+
+What it cannot do is remember. Every session starts blank, re-derives what you settled last month,
+and leaves no trace of how it got there.
+
+This document covers what exists **today**: full-text search over your notes, plus the first real
+slice of memory — the Librarian records what each session decided, tells you what you were working
+on lately, and recognizes notes you have engaged before. The larger design, tracking how your
+*beliefs* change over time, is specified but not built, and is marked as such throughout.
 
 ## What the Librarian is
 
-The Librarian is a small program that gives an AI assistant (Claude today, ChatGPT later) fast, reliable access to your Obsidian vault — and a memory of how you've used it. The long-term goal is a research companion that *remembers across time and thinks alongside you* — the "Librarian" from Neal Stephenson's *Snow Crash*.
+The Librarian is a small program that gives an AI assistant (Claude today, ChatGPT later) fast, reliable access to your markdown notes — and a memory of how you have used them. Obsidian is what it was built against, but nothing requires it. The long-term goal is a research companion that *remembers across time and thinks alongside you* — the "Librarian" from Neal Stephenson's *Snow Crash*.
 
 Today it does two things:
 
 1. **It searches your notes** and hands back the right ones, each tagged with where and when you wrote it.
 2. **It remembers your sessions.** At the end of each Claude Code session, one curated line — "what did this session decide or produce?" — is saved into your vault, with links to the notes it touched. From that memory it can answer *"what was I working on lately?"* and quietly flag search results you've engaged before.
 
-An important expectation to set early: for plain searching, you already had a good tool — Claude Code reading your organized vault. The memory is the point. The next two weeks are the test of whether you actually reach for it (the "desirability gate"): if the stateful behaviors don't pull you back at least a few times a week, the project stops here, cheaply, by design.
+One expectation to set early. For plain searching, you already had a good tool: an agent reading
+your organized notes.
+
+The memory is the point.
+
+And it is on trial. A usage gate measures whether the stateful behavior actually gets reached for —
+at least a few times a week, over a fortnight. If it doesn't, the project stops here, cheaply, by
+design. That is a real condition, not a formality.
 
 ## How it works
 

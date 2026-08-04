@@ -1,63 +1,72 @@
 # my-librarian
 
-**A record of what your AI coding sessions decided — with references that can tell you they've gone stale.**
+**A record of what your AI coding sessions decided — and the receipts behind it.**
 
 An MCP server over a folder of markdown notes. At the end of each session your client leaves one
-line about what it decided; the server stores that line, byte-verbatim, alongside content-hashed
-references to the notes involved. Weeks later you can ask what you concluded and see whether the
-files it was based on have changed since.
+line about what it decided. The server stores that line byte-verbatim, alongside content-hashed
+references to the notes it was based on.
 
-There is no AI model inside it. It is code plus storage, so the reasoning stays in your client.
+Weeks later you can ask what you concluded. You can also ask whether the files it rested on have
+moved since.
 
-> **This is a personal tool, published as a reference implementation — not a supported product.**
-> It is built for one person's workflow and shared because the mechanism might be useful or
-> interesting. No roadmap promises, no support commitment, no guarantee the next commit won't
-> change something you depend on. Fork it, copy the ideas, file an issue if you like — but
-> please don't build anything load-bearing on it.
+There is no model inside it. It is code plus storage, so the reasoning stays in your client.
+
+> **A personal tool, published as a reference implementation — not a supported product.** Built for
+> one person's workflow and shared because the mechanism might be useful. No roadmap promises, no
+> support commitment, no guarantee the next commit won't move something you depend on. Fork it, take
+> the ideas, file an issue if you like. Please don't put anything load-bearing on top of it.
 
 ## How this differs from memory you already have
 
-Worth being direct, because several tools now occupy this space and one of them ships with your
-editor:
+Your harness almost certainly does this already, after a fashion. Claude Code writes session
+recaps and infers preferences into a memory folder, then consolidates them over time — merging
+duplicates, dropping what looks stale.
 
-- **Your harness probably already summarizes sessions.** Claude Code writes session recaps and
-  infers preferences into a memory folder, consolidating them over time. Consolidation is the
-  difference: merging duplicates and dropping what looks stale is a reasonable default, and it is
-  the opposite of what this does. Nothing here ever rewrites a stored line — records are
-  append-only, grouped by session at read time, and what you get back is the bytes that went in.
-- **Few tools record what a decision was based on.** Architecture decision records usually capture
-  the *what* and *why* without pinning the version they applied to. Event-sourced logs timestamp
-  events but rarely carry file-level provenance. Supply-chain provenance formats do hash content,
-  but are aimed at audit rather than at your next working session. Here every reference carries the
-  content hash of the note as it was read, so a decision can be checked against a file that has
-  since moved on.
-- **The store is yours, in your own files.** Records live in your notes directory as markdown, not
-  in a vendor's account or a tool's private directory. Portable, greppable, git-committable, and
-  readable if this project disappears.
-- **The client writes the summary; the server only stores it.** Capture costs no inference and no
-  network call. The trade is that quality depends on your client honoring the style contract, set
-  out in *What the server tells the client*.
+Consolidation is a reasonable default. It is also the opposite of what this does.
 
-What this is explicitly *not* competing on is retrieval. A capable agent reading a
-well-organized notes directory already retrieves well. The reason this exists is the part an
-ephemeral session cannot be: memory across time.
+Nothing here ever rewrites a stored line. Records are append-only, grouped by session when you
+read them, and what comes back out is the bytes that went in.
+
+The second difference is the one that matters more. A summary on its own is not a record — it is
+an assertion. A summary plus the versioned state of what it was based on is a record, because it
+can be checked.
+
+Almost nothing does that second part. Architecture decision records capture the *what* and the
+*why* without pinning the version they applied to. Event-sourced logs timestamp events but rarely
+carry file-level provenance. Supply-chain provenance formats hash content properly, but they are
+built for auditors rather than for your next working session. So decisions drift quietly away from
+the code that produced them, and nothing announces it.
+
+Here, every reference carries the content hash of the note as it was read. Drift becomes visible
+instead of silent.
+
+Two smaller things follow from the design. The store is yours — markdown in your own notes
+directory, not a vendor's account or a tool's private folder, so it stays portable, greppable,
+git-committable, and readable if this project disappears. And because your client writes the
+summary while its context is still loaded, capture costs no inference and no network call. The
+trade is that quality depends on your client honoring the style contract, set out in *What the
+server tells the client*.
+
+None of this competes on retrieval. A capable agent reading a well-organized notes directory
+already retrieves well. This exists for the part an ephemeral session cannot be: memory across
+time.
 
 ## What it does today
 
-- Indexes the notes directory into a local SQLite FTS5 full-text index (a disposable, regenerable cache — your files stay the source of truth).
-- **Captures memory-of-use ambiently:** at session end a Claude Code Stop hook appends **one curated line** per session to `<notes>/_librarian/sessions/<date>.md` — durable, git-committable, referencing touched notes by content-hash. No AI runs in the server; your client writes the line, the server only stores it.
-- **Keeps that line readable months later:** summaries carry a **plain-language style contract** — write for a smart reader in a hurry who wasn't in the session: lead with what was decided or produced, common words over session shorthand, no session-invented codenames or version tags, and a stated word budget. The contract is guidance to your *client*, carried in the server's MCP instructions; the server itself stores whatever it is given **verbatim** and never rewrites, truncates, or rejects a summary on style. Over-budget summaries are reported on the capture path and then stored as written.
-- **Records which workspace each session came from:** every captured entry also carries the session's working directory, a **project name derived from it automatically**, and the git remote URL when there is one — so a day that spans three efforts reads cleanly. Nothing to name or configure; resolution is pure local file reads (it never runs `git` and never contacts a remote).
-- Exposes read-only MCP tools:
-  - `librarian-search` — ranked full-text search; every result carries its path, `type`/`status`/`created` provenance, and a matching snippet. Multi-word queries are AND-matched (so "blue man group" finds notes with all three, not any). A result you engaged in a past session also carries a quiet prior-engagement note (additive only — never re-ranks).
-  - `librarian-get-note` — return one note's full content by path.
-  - `librarian-recent` — *"what was I working on lately?"* — recent session summaries grouped by session, most-recent-first, with dates, **project**, and provenance; optional `project` filter, `window` (days) or `count`.
-- **Tells your client when to use it — and how to read it back:** the server ships its own MCP *instructions*, so any connected client is told to reach for `librarian-recent` on recency questions and `librarian-search` on "have I seen this before?" questions before reading files directly. The same instructions carry the summary style contract and ask the client to **report recalled summaries in plain language** — including entries written before the contract existed, which is the only way old, dense records ever read clearly (they are never rewritten on disk). No per-project client configuration required.
-- **Instruments its own use:** a local per-ISO-week count of how often the stateful behavior gets reached for.
+- Indexes the notes directory into a local SQLite FTS5 full-text index — a disposable, regenerable cache. Your files stay the source of truth.
+- **Ambient capture.** At session end a Claude Code Stop hook appends one curated line per session to `<notes>/_librarian/sessions/<date>.md`, referencing touched notes by content hash. Durable, git-committable, written by your client.
+- **A style contract on that line.** Write for a smart reader in a hurry who wasn't in the session: outcome first, common words over session shorthand, no invented codenames or version tags, about 40 words. The contract is guidance carried in the server's MCP instructions. The server stores whatever it is given, **verbatim** — over-budget summaries are reported on the capture path and then stored as written.
+- **Workspace provenance.** Each entry carries the session's working directory, a project name derived from it, and the git remote URL when there is one, so a day spanning three efforts reads cleanly. Nothing to configure; resolution is pure local file reads — it never runs `git` and never contacts a remote.
+- Three read-only MCP tools:
+  - `librarian-search` — ranked full-text search. Every result carries its path, `type`/`status`/`created` provenance, and a matching snippet. Multi-word queries are AND-matched, so "blue man group" finds notes with all three rather than any. A result you engaged before also carries a quiet prior-engagement note, additive only, never re-ranking.
+  - `librarian-get-note` — one note's full content, by path.
+  - `librarian-recent` — *"what was I working on lately?"* Sessions newest-first, with dates, project, and provenance; optional `project` filter, `window` in days, or `count`.
+- **Instructions that travel with the server.** Any connected client is told to reach for `librarian-recent` on recency questions and `librarian-search` on "have I seen this?" questions before reading files directly, and to report recalled summaries in plain language — including entries written before the contract existed, which is the only way dense old records ever read clearly. No per-project client configuration.
+- **Instruments its own use.** A local per-ISO-week count of how often the stateful behavior gets reached for.
 
 ## Known limitations
 
-Stated plainly rather than discovered later:
+Stated here rather than discovered later:
 
 - **Older records are dense.** The style contract and its word budget arrived after the first
   fortnight of capture, and existing records are never retrofitted. Early entries read like build
@@ -226,11 +235,17 @@ test/                node:test suite (temp fixture directories; never touches yo
 
 ## How this is built
 
-Behavior is specified before it is written. [`spec/spec.md`](./spec/spec.md) holds
-Given-When-Then scenarios and the requirements derived from them, each mapped to the tests that
-grade it, and every amendment records what was rejected and why. If you want to understand a
-design decision, that file is the honest account — not this README.
+Behavior is specified before it is written. [`spec/spec.md`](./spec/spec.md) holds Given-When-Then
+scenarios and the requirements derived from them, each mapped to the tests that grade it, and every
+amendment records what was rejected and why.
+
+If you want to understand a decision here, that file is the honest account. This README is the
+summary; the spec is the receipts.
 
 ## License
 
 MIT. See [`LICENSE`](./LICENSE).
+
+---
+
+The index is a cache. The notes are yours. The record is the point.
