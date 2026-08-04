@@ -344,6 +344,55 @@ stateful-use per ISO week (gate target: >=3):
 
 ---
 
+## 6. Note identity — surviving a vault rename
+
+A reference records two things about a note at the moment it was touched: its vault-relative
+path, and a content hash. Rename the note later and the path stops resolving — but the hash is
+still there, so the librarian can tell *what* the reference meant even after *where* it lives has
+moved.
+
+Every `npm run reindex` runs an identity pass over every recorded reference whose path no longer
+resolves:
+
+- **Exactly one current note's content hash matches what was recorded** — the note was renamed,
+  content untouched. The librarian binds the old path to the new one, deterministically, and
+  appends the binding to a ledger (`_librarian/note-identity.md`). No heuristics, no similarity
+  score, no model — a hash either matches or it doesn't.
+- **Zero matches, or more than one** — the librarian does not guess. Zero means the note was
+  renamed *and* edited (so no current note's hash matches); more than one means duplicate content
+  exists and picking one would be inventing an answer the vault doesn't actually give. Either way
+  the reference renders explicitly as **unresolved**, with every candidate it found — never
+  silently dropped, never silently bound to a guess.
+
+`librarian-recent` and search enrichment resolve bound references through the ledger at read
+time: the session record you see still says what you wrote, but the ref line shows the note's
+current path, or `[UNRESOLVED -- candidates: ...]` when the librarian genuinely doesn't know.
+Nothing on this path ever rewrites the stored session entry — resolution happens only when it is
+displayed.
+
+If a reference stays unresolved, resolve it by hand:
+
+```bash
+npm run identity-confirm -- Notes/old-name.md Notes/new-name.md
+```
+
+This is a **local terminal command only** — it is never exposed as an MCP tool, so a connected
+client can never rewrite what a dead reference means on its own. It checks that the target you
+name actually exists in the vault right now (existence, not a hash match — the whole point is
+resolving the case where the hash no longer matches), then appends a `detected: confirmed` entry
+to the same ledger. Confirmed bindings are sticky: once you've resolved an ambiguity, a later
+reindex won't second-guess it back to unresolved just because the vault is still ambiguous by hash
+alone.
+
+The ledger is append-only, same as everything else here (INV-3): a note renamed more than once
+gets a fresh binding each time, computed directly against what was originally recorded — never by
+chaining through an earlier binding — with the newest entry winning at read time. Earlier entries
+are never rewritten, reordered, or removed. The identity projection tables in the SQLite cache are,
+like the rest of the index, fully disposable: delete `data/librarian.db` and reindex, and they
+rebuild from the vault and the ledger alone (INV-4).
+
+---
+
 ## Guarantees
 
 - **Local-first (INV-1):** no network calls, ever. Repository identity is resolved
