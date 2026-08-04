@@ -43,7 +43,7 @@ beforeEach(resetLibrarian);
  */
 function authoringSection(): string {
   const all = paragraphs();
-  const start = all.findIndex((p) => /At the end of any session/.test(p));
+  const start = all.findIndex((p) => /When a session decides or produces/.test(p));
   const end = all.findIndex((p) => /report recalled summaries back/.test(p));
   assert.ok(start >= 0, "the instructions open the authoring section with the emission trigger");
   assert.ok(end > start, "and close it before the read-time paragraph");
@@ -109,7 +109,7 @@ test("SCN-007/AC-length-budget (SR-021/SR-034): the contract states an explicit 
   // Overflow needs somewhere to go or the budget just gets ignored. SR-033 already
   // supports several directives per session, so the contract points at that rather
   // than leaving "write it all in one long line" as the only option.
-  assert.match(contract, /emit a line for each as you finish it/, "over-budget work is channelled into per-thing lines");
+  assert.match(contract, /a line for each separable thing as you finish it/, "over-budget work is channelled into per-outcome lines");
 
   // Guidance, not a bound: the advisory ceiling must stay well inside the SR-101
   // hard char limit so the two are never confused for one another.

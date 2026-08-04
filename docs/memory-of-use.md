@@ -21,9 +21,12 @@ markdown:
 <vault>/_librarian/sessions/2026-07-24.md
 ```
 
-- **One file per day.** Each Claude Code session that produced something worth
-  remembering adds **one curated line** to that day's file — not the raw
-  transcript.
+- **One file per day, one line per outcome.** Each separable thing a session decides
+  or produces adds **one curated line** to that day's file — not the raw transcript,
+  and not one line per session. A working session usually leaves three or four; the
+  measured average over the first fortnight of real capture was 3.2. Those lines are
+  its **steps**, and `librarian-recent` groups them back into a single account of that
+  session when you read it.
 - **Typed frontmatter.** Each record carries a small typed header (the day, each
   session's identity and time, the curated summary, and the notes it touched by
   versioned identity). The shape is deliberately mdbase-compatible so a future
@@ -131,9 +134,15 @@ now. So the summary carries a **style contract**:
 > lead with **what was decided or produced**, use **common words** rather than
 > session shorthand, and **expand or avoid** codenames, version tags and
 > abbreviations the session invented (terms your vault itself uses are fine).
-> **Aim for about 40 words and stop by 60** — one line, not a build log. If the
-> session did several separable things, emit a line for each as you finish it
-> rather than one long line at the end.
+> **Aim for about 40 words and stop by 60** — one line, not a build log.
+
+The word budget only works because the *trigger* agrees with it. Before v3.7.0 the
+contract asked for a line per separable thing **and** told the client it got one
+directive at the end of the session. Faced with both, a client waits and packs the
+session into one line — which is what the 141-to-192-word entries of early August
+were. The budget was fighting the trigger. Now the trigger asks for a line as each
+thing lands, and the budget is a constraint on a line that was already meant to be
+small.
 
 The word budget is advisory, and deliberately so. An over-long summary is stored
 byte-verbatim like any other — the capture path prints its word count so the drift
