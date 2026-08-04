@@ -131,7 +131,15 @@ now. So the summary carries a **style contract**:
 > lead with **what was decided or produced**, use **common words** rather than
 > session shorthand, and **expand or avoid** codenames, version tags and
 > abbreviations the session invented (terms your vault itself uses are fine).
-> One line, not a build log.
+> **Aim for about 40 words and stop by 60** — one line, not a build log. If the
+> session did several separable things, emit a line for each as you finish it
+> rather than one long line at the end.
+
+The word budget is advisory, and deliberately so. An over-long summary is stored
+byte-verbatim like any other — the capture path prints its word count so the drift
+is visible when it happens, and then stores exactly what it was given. Nothing in
+the server edits a summary to fit (SR-023/SR-034); the alternative, silently
+truncating, would lose the one copy of what the session meant.
 
 Compare:
 

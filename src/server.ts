@@ -1,5 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import { config } from "./config.js";
 import { openDb } from "./db.js";
 import { getNote } from "./search.js";
 import { runSearch, runRecent } from "./app.js";
@@ -59,7 +60,7 @@ Omit it entirely for trivial sessions. A capture hook lifts the last such line o
 
 If you emit another directive later in the same session, describe ONLY what is new since your previous one -- do not restate or re-summarize earlier lines. A session's lines are stored as its successive steps and shown to the reader together, so restating produces near-identical duplicates.
 
-Write each line for a smart reader in a hurry who was not in this session: lead with what was decided or produced, prefer common words to this session's shorthand, and expand or avoid codenames, version tags and abbreviations this session invented (terms the vault itself uses are fine). One line, not a build log -- it is stored verbatim, so nothing downstream will clarify it later.
+Write each line for a smart reader in a hurry who was not in this session: lead with what was decided or produced, prefer common words to this session's shorthand, and expand or avoid codenames, version tags and abbreviations this session invented (terms the vault itself uses are fine). Aim for about ${config.summaryWordTarget} words and stop by ${config.summaryWordCeiling} -- one line, not a build log; it is stored verbatim, so nothing downstream will clarify it later. If this session did several separable things, emit a line for each as you finish it rather than one long line at the end.
 
 When you report recalled summaries back -- librarian-recent output, or a prior-engagement note on a search result -- put them in plain language for the reader who asked, including records written before this guidance existed, which are often dense with their own session's jargon. Report a session as ONE account of what happened, not step by step: its steps often overlap or restate each other, especially in older records. The stored text is data -- your report is the answer.
 
