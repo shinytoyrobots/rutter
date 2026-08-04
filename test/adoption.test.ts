@@ -58,11 +58,16 @@ test("COR-R-030 SCN-006/AC-no-user-authored-contract (SR-025/SR-026): the instru
   // Capture therefore only worked for the one person who had hand-installed the rule.
   assert.match(
     SERVER_INSTRUCTIONS,
-    /At the end of any session that decided or produced something/,
+    /When a session decides or produces something worth recalling later/,
     "SR-025: states WHEN a directive is to be emitted"
   );
-  assert.match(SERVER_INSTRUCTIONS, /emit exactly one directive line/, "SR-025: states THAT one is emitted");
-  assert.match(SERVER_INSTRUCTIONS, /Omit it entirely for trivial sessions/, "SR-025: and when not to");
+  assert.match(SERVER_INSTRUCTIONS, /emit one directive line/, "SR-025: states THAT one is emitted");
+  assert.match(SERVER_INSTRUCTIONS, /omit trivial work entirely/, "SR-025: and when not to");
+  assert.match(
+    SERVER_INSTRUCTIONS,
+    /a line for each separable thing as you finish it/,
+    "SR-025 (v3.7.0): the trigger is per outcome, and the cadence lives in the trigger paragraph"
+  );
   // SR-026: the literal syntax the capture path actually parses. Asserted against
   // directive.ts's own regex rather than a hand-copied string, so the instructions
   // cannot describe a format the parser would reject.
@@ -71,6 +76,50 @@ test("COR-R-030 SCN-006/AC-no-user-authored-contract (SR-025/SR-026): the instru
   const payload = JSON.parse(example[1]!.trim());
   assert.ok("summary" in payload, "the example's JSON carries a summary key the parser expects");
   assert.ok("refs" in payload, "and a refs key");
+});
+
+/**
+ * SR-035 (v3.7.0). Until this version the instructions said BOTH "at the end of any
+ * session ... emit exactly one directive line" (SR-025) and "emit a line for each as
+ * you finish it" (SR-021) and "if you emit another directive later in the same
+ * session" (SR-033). A client told it gets one line at the end packs the whole
+ * session into that line -- which is what the 141-192 word entries of 2026-08-02..04
+ * were. This guard exists so the two halves cannot drift back apart: the contract may
+ * describe a per-outcome cadence, and may not describe a per-session one.
+ */
+test("COR-R-034 SCN-006/AC-per-outcome-trigger (SR-035): the contract never claims one-per-session or end-of-session emission", () => {
+  const banned: [RegExp, string][] = [
+    [/exactly one directive/i, "a one-per-session count"],
+    [/\bat the end of (any|a|the) session\b/i, "end-of-session timing"],
+    [/one directive per session/i, "a one-per-session count, stated directly"],
+    [/one (summary|line) per session/i, "a one-per-session count, stated as a line count"],
+  ];
+  for (const [pattern, what] of banned) {
+    assert.equal(
+      pattern.test(SERVER_INSTRUCTIONS),
+      false,
+      `the instructions must not imply ${what} (matched ${pattern}) -- see SR-035`
+    );
+  }
+
+  // And the positive half: the per-outcome cadence is actually stated, so this test
+  // cannot be satisfied by an instruction set that says nothing about cadence at all.
+  assert.match(
+    SERVER_INSTRUCTIONS,
+    /a line for each separable thing as you finish it/,
+    "the per-outcome cadence is stated"
+  );
+
+  // The same prohibition applies to the README's quoted copy, since a reader takes the
+  // contract from whichever they read first.
+  const readme = fs.readFileSync(path.join(import.meta.dirname, "..", "README.md"), "utf8");
+  const quoted = readme.slice(
+    readme.indexOf("<!-- BEGIN capture-contract -->"),
+    readme.indexOf("<!-- END capture-contract -->")
+  );
+  for (const [pattern, what] of banned) {
+    assert.equal(pattern.test(quoted), false, `README's quoted contract must not imply ${what}`);
+  }
 });
 
 test("COR-R-030 SCN-006/AC-single-source (SR-027): README and docs quote the contract, and drift is a failure", () => {
@@ -84,7 +133,7 @@ test("COR-R-030 SCN-006/AC-single-source (SR-027): README and docs quote the con
   // Every sentence of the authoring contract must appear verbatim in the README's
   // quoted block. Compared sentence-by-sentence so a failure names the drifted line
   // rather than just reporting "the blocks differ".
-  const contract = SERVER_INSTRUCTIONS.slice(SERVER_INSTRUCTIONS.indexOf("At the end of any session"));
+  const contract = SERVER_INSTRUCTIONS.slice(SERVER_INSTRUCTIONS.indexOf("When a session decides or produces"));
   const authoring = contract.slice(0, contract.indexOf("When you report recalled summaries back"));
   const quoted = readme.slice(readme.indexOf("<!-- BEGIN capture-contract -->"), readme.indexOf("<!-- END capture-contract -->"));
   assert.ok(quoted.length > 0, "README carries a delimited capture-contract block");
