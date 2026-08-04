@@ -1,9 +1,31 @@
 ---
-version: "3.5.0"
+version: "3.6.0"
 status: active
 effort: s1-5-ambient-capture
-last-amended: 2026-07-27
+last-amended: 2026-08-04
 mapping-pending: false
+# v3.6.0 (minor): summary length creep. HITL-approved 2026-08-04 (constitution
+# escalation trigger 1 — capture semantics). Observed in real records: step COUNT
+# stayed flat (7–40/day, no trend) while mean summary length tripled — 37–61
+# words/step over 2026-07-26..08-01, then 141 (08-02), 142 (08-03), 192 (08-04).
+# Diagnosis: SR-021 said "one line, not a build log" — true but UNNUMBERED, so it
+# was unfalsifiable guidance and a client could write a 192-word "line" while
+# believing it complied. Same failure class as wish-log finding #5 (behaviourally,
+# not architecturally, guaranteed), recurring on a different requirement.
+#   Rejected on the way: truncating to the budget and rejecting over-budget
+#   directives — both are forbidden by SR-023/INV-6, and both destroy the only copy
+#   of what the session meant. Also rejected: annotating the record body with the
+#   word count (COR-R-027 requires the body line to be time + summary and nothing
+#   else; an annotation is the server editorialising the record).
+#   Chosen: state a NUMBER in the contract (the authoring-time lever that actually
+#   changes client behaviour), channel overflow into per-thing directives which
+#   SR-033 already supports, and REPORT overage on the capture path's stderr so
+#   drift is visible when written rather than as a large day-file weeks later.
+#   SR-021 amended (+ explicit word budget); +SR-034 (report, never enforce).
+#   SCN-007 amended: +AC-length-budget.
+# No record schema change (session-record@1 untouched), no storage change, no
+# read-path change, no retrofit of existing records, no idempotence change.
+# Desirability-gate clock NOT restarted (verdict stays ~2026-08-09).
 # v3.5.0 (minor): wish-log finding #4 (2026-07-27), revision half. HITL-approved
 # 2026-07-27 (constitution escalation trigger 1 — capture semantics). Fix (a) at
 # v3.3.0 closed the hash-churn leak; this closes the remaining one, where a session
@@ -346,9 +368,21 @@ The style contract (normative content, wording may vary): *write the summary for
 smart reader in a hurry who was not in this session* — lead with what was decided or
 produced; use common words over session shorthand; expand or avoid codenames,
 version tags, and abbreviations the session invented (terms the vault itself uses
-are fine); one line, no build-log density.
+are fine); aim for about 40 words and stop by 60 — one line, no build-log density;
+and where a session did several separable things, a line for each as it finishes
+rather than one long line at the end.
 
 **Acceptance criteria:**
+- *(v3.6.0)* **The length budget is a number.** The style contract states an explicit
+  word target and ceiling, and the numbers it states are the same ones the capture
+  path reports against — a contract whose budget and code disagree is drift, and the
+  tests fail on it.
+- *(v3.6.0)* **Reported, never enforced.** An over-budget summary is stored
+  byte-verbatim, the record body carries no word-count annotation, and the capture
+  path reports the overage as a diagnostic. Length is never grounds for rewriting,
+  truncating, or rejecting (this is SR-023 applied to length specifically). The only
+  hard bound on a summary remains the SR-101 oversized-input guard, which exists for
+  an unrelated reason and the advisory ceiling stays well inside it.
 - The server-level `instructions` include the authoring style contract for
   `librarian-session` summary directives (all four elements: later-reader framing,
   lead-with-outcome, common-words-over-shorthand, expand-session-jargon).
@@ -450,8 +484,11 @@ SRs (SR-100+) have no parent.
 - **SR-021** — The server-level instructions shall include a plain-language
   authoring style contract for `librarian-session` summary directives: write for a
   later reader without this session's context, lead with what was decided or
-  produced, prefer common words over session shorthand, and expand or avoid
-  session-local codenames and abbreviations. *(ubiquitous)* `# ← SCN-007; added v3.2.0`
+  produced, prefer common words over session shorthand, expand or avoid
+  session-local codenames and abbreviations, and keep to a stated word budget —
+  an explicit target and ceiling — directing a session that did several separable
+  things to emit a line for each rather than one long line.
+  *(ubiquitous)* `# ← SCN-007; added v3.2.0; amended v3.6.0 (word budget)`
 - **SR-022** — The server-level instructions shall direct clients to report
   recalled session summaries in plain language for the asking reader, including
   records authored before v3.2.0. *(ubiquitous)* `# ← SCN-007; added v3.2.0`
@@ -492,6 +529,13 @@ SRs (SR-100+) have no parent.
 - **SR-033** — The capture contract shall instruct that a directive emitted later in a
   session describes only what is new since that session's previous directive, and does
   not restate it. *(ubiquitous)* `# ← SCN-001; added v3.5.0; refines SR-021`
+- **SR-034** — If a captured summary exceeds the style contract's stated word ceiling,
+  then the capture path shall report its word count and the contract's budget as a
+  diagnostic, and shall store the summary byte-verbatim with no annotation on the
+  record. The word budget shall be advisory only: the system shall never rewrite,
+  truncate, or reject a directive on length grounds, and the stated ceiling shall
+  remain inside the SR-101 bound. *(unwanted-behaviour)*
+  `# ← SCN-007; added v3.6.0; refines SR-023`
 - **SR-024** — A referenced note's content hash shall not participate in idempotence
   identity: a repeat capture for the same session whose summary and referenced note
   paths are unchanged shall remain a byte-identical no-op even if a referenced note's
@@ -530,7 +574,7 @@ SRs (SR-100+) have no parent.
 | SCN-004 | log events, weekly count | SR-011, SR-012 | INV-4 | correctness-real-v1 | correctness |
 | SCN-005 | auto provenance, local-reads-only, never-blocks, additive-optional, dedupe-unchanged, inert | SR-015, SR-016, SR-017, SR-018 | INV-1, INV-2 | correctness-real-v1, security-adv-v1 | correctness, security |
 | SCN-006 | server instructions, project display, project filter, no-behavior-drift, no-user-authored-contract, single-source | SR-019, SR-020, SR-025, SR-026, SR-027, SR-028 | — | correctness-real-v1 | correctness |
-| SCN-007 | authoring contract in instructions, read-time render guidance, directive-rule deployment, verbatim storage, no retrofit, no-behavior-drift | SR-021, SR-022, SR-023 | INV-3, INV-6 | correctness-real-v1, correctness-adv-v1 | correctness |
+| SCN-007 | authoring contract in instructions, read-time render guidance, directive-rule deployment, verbatim storage, no retrofit, no-behavior-drift, length-budget | SR-021, SR-022, SR-023, SR-034 | INV-3, INV-6 | correctness-real-v1, correctness-adv-v1 | correctness |
 | — | mdbase-compatible frontmatter | SR-100 | — | schema-real-v1 | schema-conformance |
 | — | untrusted-input handling | SR-101 | INV-2 | adversarial-input-v1 | safety |
 | — | repo hygiene | SR-102 | — | repo-hygiene-v1 | safety |
