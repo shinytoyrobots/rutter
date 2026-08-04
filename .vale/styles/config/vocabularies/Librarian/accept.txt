@@ -49,3 +49,5 @@ ks-kb
 CEL
 nomic
 Graph-RAG
+codenames
+greppable
