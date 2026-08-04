@@ -1,5 +1,6 @@
 import fs from "node:fs";
-import { captureSession } from "./capture.js";
+import { config } from "./config.js";
+import { captureSession, overSummaryWordCeiling, summaryWordCount } from "./capture.js";
 import { parseSessionDirective, type SessionDirective } from "./directive.js";
 
 /**
@@ -53,6 +54,18 @@ async function main(): Promise<void> {
     console.error(`[librarian-capture] captured 1 entry${project} into ${result.day} session record.`);
     if (result.rejectedRefs.length) {
       console.error(`[librarian-capture] rejected unresolvable refs: ${result.rejectedRefs.join(", ")}`);
+    }
+    // SR-034: length drift is reported, never corrected. The entry is already stored
+    // byte-verbatim at this point (SR-023) -- this line exists so an over-long summary
+    // is visible at the moment it is written, rather than only as a large day-file
+    // weeks later. Stderr, like every other diagnostic here (INV-5).
+    if (overSummaryWordCeiling(directive.summary)) {
+      console.error(
+        `[librarian-capture] summary is ${summaryWordCount(directive.summary)} words; ` +
+          `the style contract asks for about ${config.summaryWordTarget} and no more than ` +
+          `${config.summaryWordCeiling}. Stored verbatim as written -- if a session did ` +
+          `several separable things, emit a line per thing as you finish it.`
+      );
     }
   } else if (result.deduped) {
     // SR-013: the Stop event fires every turn; an unchanged directive already
