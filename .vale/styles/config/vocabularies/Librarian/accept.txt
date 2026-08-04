@@ -49,3 +49,5 @@ reference-kb
 CEL
 nomic
 Graph-RAG
+codenames
+greppable
