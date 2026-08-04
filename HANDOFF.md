@@ -1,7 +1,9 @@
 # HANDOFF — my-librarian
 
-**Last updated:** 2026-07-27
+**Last updated:** 2026-08-04
 **Purpose:** Single resume-point after a context clear or model switch. Self-contained: everything needed to continue the build without re-reading the whole history. Written for a fresh model/context.
+
+> **Read §2.1 first.** The 2026-08-04 session shipped five PRs and changed the project's *purpose*: it is now heading for publication as an open-source artifact, not only a personal tool. Everything below §2.1 predates that and is still accurate as history.
 
 ---
 
@@ -14,6 +16,35 @@ A **personal, persistent memory-of-use layer** for LLM conversation, built as an
 - **The server holds state; the client is the brain.** The MCP server contains *no LLM*. It is code + storage. All reasoning/"discursiveness" is the connected client (Claude, later ChatGPT). This split is what keeps it portable across clients — keep it.
 - **Stance: "weighs openly, attributably, reversibly — never silently."** When beliefs conflict/change, show both with provenance + a reversible mark; never auto-pick. (Refined from "never adjudicates" via the Library-of-Alexandria collision — the obelus/asteriskos marginal-marks idea.)
 - **Memory-of-use vs. store (this session's key advance).** The *knowledge store* (content) can be shared; the *memory-of-use* (how **I** engaged it — what I read, concluded, how my beliefs evolved) is inherently personal. The product is the memory-of-use. This means: never build "shared memory"; build **per-person memory-of-use that overlays a store (shared or not).** Multi-user = one shared store + N personal overlays. The personal single-user build is the *architecturally correct unit*, not just the MVP.
+
+## 2.1 Session of 2026-08-04 — five ships, and a change of purpose
+
+**Spec v3.7.0. `main` @ PR #15 merged, clean tree, `dist` rebuilt, 94 tests + tsc + Vale all clean. No CI exists — the local suite is the only gate, so run `npm test` before merging anything.**
+
+**The decision that reframes the project:** publish this repo as a **dated open-source artifact — a reference implementation, explicitly not a supported product.** Reasoning came from a `/inv-opportunity-scan` (vault: `Notes/Reference/Invention-Skills/opportunity-scan/2026-08/03-agent-session-decision-memory/`): the *problem* is real (~18 independent hand-rolled fixes, no winner), but the *space is crowded* — Recall, Kage, Memoir, twiceshy, mcp-memory-service all ship adjacent things, and Claude Code itself now does session recaps, auto-memory and consolidation. What is **not** claimed anywhere is the combination this has: content-hashed refs that make drift visible, append-only-never-rewritten with read-time grouping, and author-curated capture with no model in the server. Lead with that, never with "a memory MCP server". A separate strategic finding: the venture-shaped version of this is org-scale decision provenance, which is the same thesis as Robin's Knapsack work — treat any commercial move as gated on that conflict, not as a technical question.
+
+**Shipped today, in order:**
+1. **PR #11 — spec v3.6.0, summary word budget.** Step counts were flat (7–40/day) while mean summary length tripled: 37–61 words/step in the first fortnight → 141/142/192 on 08-02/03/04. SR-021 said "one line, not a build log" — true but *unnumbered*, so unfalsifiable. Now states 40 target / 60 ceiling from `config.summaryWordTarget`/`summaryWordCeiling`; `+SR-034` makes `capture-cli` report overage on stderr and store verbatim anyway. **Truncating, rejecting, and annotating the record are all forbidden** (SR-023, INV-6, COR-R-027) — do not "fix" length by mutating a record.
+2. **PR #12 — README for publication + MIT `LICENSE`.** Also fixed a real first-run trap: Setup told a reader to reindex before ever mentioning `LIBRARIAN_VAULT_PATH`, and `walkMarkdown` swallows an unreadable directory, so a stranger got a silent zero-note "success".
+3. **PR #13 — `LIBRARIAN_USER_LABEL`, default `the user`.** The instructions and tool descriptions said "Robin's work" to every connected client. Now interpolated. Two guards: a handshake test (default install names nobody) and a source test (`server.ts` holds no literal name) — the handshake test alone only sees the surfaces it asks for.
+4. **PR #14 — voice guide applied** (`~/Documents/knowledge-vault/Non-Fiction/Professional voice and tone guide.md`). Docs were already clean of the guide's AI-tell vocabulary; the gaps were structural — bullets carrying the argument, `drift`/`receipts` unused in a tool about exactly those, no compressed closer. **Reference sections stay terse on purpose** — the guide's register map prescribes that; don't prose-ify the config table or install steps.
+5. **PR #15 — spec v3.7.0, per-outcome emission trigger.** *The important one.* The contract contradicted itself: SR-025 said "at the end of a session … exactly one directive" while SR-033 and SR-021 assumed several as you go. Real capture averages **3.2 entries per session, never 1.0 on any day**, and SCN-001 was always titled "exactly once per distinct directive". This is very likely the **cause** of the length creep #11 treated — a client told it gets one line at the end packs the session into it. SR-025 amended to per-outcome; `+SR-035` forbids the instructions ever implying one-per-session or end-of-session again; `COR-R-034` guards it over both the instructions and the README's quoted copy (mutation-checked, not just green).
+
+**Two mechanics a fresh session must not rediscover:**
+- **The README's quoted capture-contract block is byte-compared to `SERVER_INSTRUCTIONS`** (`SR-027`, `COR-R-030`). PR #15 was the first change to touch it — it is **regenerated programmatically** from source, never hand-edited. The compared slice runs from the trigger sentence to just before "When you report recalled summaries back", so anything outside that range is README-only.
+- **Three tests anchor on literal instruction phrases** (`adoption.test.ts` ×2, `clarity.test.ts` `authoringSection()`). Rewording the instructions breaks them by design; move the anchors deliberately.
+
+**Open, in priority order:**
+1. **The desirability gate verdict, ~2026-08-09 — the only date-driven item, mandatory HITL.** *It is currently unfalsifiable and must be fixed first:* 10 of 11 logged calls are `librarian-recent`, and since SR-020 the server instructions tell every client to prefer these tools — so `stateful-use.jsonl` cannot distinguish Robin reaching for it from a model calling it because it was told to. **Add a model-initiated vs human-initiated field to SCN-004 instrumentation before writing the verdict**, or the number means nothing. Judge the verdict against **memory-of-use** — what the tool actually became, and what `HANDOFF.md` §1 already calls the thesis — not against H2 belief-lifecycle. The wish log stopped 07-27 with six entries and **not one asks for belief-lifecycle**; all six were capture/recall plumbing. Do not start H2 on inference alone.
+2. **Read-value signal.** Nothing records whether a recall was *used*, only that it happened — so "the record has gone write-only", the exact disease this tool exists to cure, is currently undetectable.
+3. **Watch the v3.7.0 prediction.** Entries-per-session should rise above 3.2 and mean length fall toward 40 words. `_librarian/sessions/` answers this with no new instrumentation; if it doesn't move, the trigger fix didn't take.
+4. **Publish checklist remainder:** drop `"private": true` from `package.json`; flip repo visibility to public; **fresh-clone test as a stranger** (new directory, throwaway notes dir, real sessions, records land with no dotfile edit — the one thing that would embarrass publicly); tag `v0.1.0`. `LICENSE` and README framing are done. Publish **before** anything derived from the 2026-07-28 `decision-record-capture` morph ships at Knapsack — that morph is `mode: work`, studied this codebase, and publishing first makes the prior art shown-by-timeline rather than argued.
+5. `docs/roadmap.md` holds the phased plan (Phase 0 close the gate → Phase 1 discipline + read-value → Phase 2 publish → Phase 3 next pillar from observed use → Phase 4 org scale as watch item only). It is a **proposal**; `spec/spec.md` remains the executable source of truth.
+
+**Loose ends at 2026-08-04 close:**
+- **Robin is re-registering the MCP server himself** to pick up `LIBRARIAN_USER_LABEL=Robin` and the v3.7.0 instructions. Until he does, his own client reads "the user's work" and the old per-session trigger. Do not run `claude mcp` commands for him.
+- **Vault has uncommitted `_librarian/` working-tree edits** — session records plus wish-log SHIPPED annotations added today for the two entries closed at v3.4.0/v3.5.0 (never annotated at the time) and completed today. **Do not commit the vault** (see §9).
+- `§3` below still lists the S1-only file layout; the current layout is in `README.md`. `§6`/`§8` predate S1.5 shipping and read as history now.
 
 ## 2. Current status
 
