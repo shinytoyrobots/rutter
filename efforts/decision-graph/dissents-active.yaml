@@ -1,0 +1,91 @@
+# Dissent registry — effort: decision-graph
+# Append-only. Schema: flow-dissent-protocol.md §Dissent object schema.
+# Empty at flow-init (2026-08-04). Cross-effort tracking NOT enabled (constitution default);
+# s1-5-ambient-capture's registry lives in efforts/s1-5-ambient-capture/dissents-active.yaml
+# and its dissents 0001/0002/0004 remain that effort's — but note dissent-0004's gate-design
+# sentinel and dissent-0001's gate-verdict reactivation condition both reference the same
+# ~2026-08-09 verdict this effort's Phases A-C are gated on.
+dissents:
+  - id: "dissent-2026-08-05-0001"
+    raised-at: "2026-08-05T03:20:00Z"
+    raised-by: "flow-chavruta-pair / stability-bias"
+    generation: 2
+    context: "gen-2 convergence checkpoint — metastable ship proposal for var-3-reversibility @ 71f41ff"
+    full-record: "generations/gen-2/dissents/dissent-2026-08-05-0001.md"
+    position: |
+      SR-043's enrichment-surface closure is class-partial, not query-partial: under
+      D-2's chosen reading, a ZERO-candidate unresolved ref (SR-037 rename+edit) has an
+      empty candidate set, is never keyed into the enrichment index, and is therefore
+      structurally unrenderable on that surface for any query. At the SR-104 corpus mix
+      that is 8 of 14 unresolved refs. COR-A-020 constructs only the complementary
+      (candidate-in-results) case, so the suite cannot see this. librarian-recent
+      renders all classes; the two read surfaces are NOT at parity.
+    counterposition: |
+      The alternative rendering requires violating SR-009/SR-010 (inventing a result or
+      a response-level side channel) or a nag channel against constitution preference 3;
+      librarian-recent is a complete discovery surface for all unresolved classes.
+    provisional-resolution: |
+      Ship var-3. Stability loses the design question, wins the documentation question:
+      ship record + docs must state the reading explicitly (M2). COR-A-020's pass is
+      evidence var-3 beats var-1, not evidence the silence is ratified.
+    reactivation-conditions:
+      - type: code-change
+        trigger: "A zero-candidate unresolved ref actually exists in the live projection"
+        match: "sqlite3 data/librarian.db \"select count(*) from identity_unresolved where candidates in ('','[]')\" >= 1"
+      - type: code-change
+        trigger: "A third read surface lands (Phase B librarian-positions)"
+        match: "grep -c 'librarian-positions' src/server.ts >= 1"
+      - type: eval-change
+        trigger: "A zero-candidate ENRICHMENT task lands in the suite"
+        match: "correctness-adv-v1.jsonl gains a task constructing zero-candidate unresolved on the enrichment surface; FAIL => mitigate, PASS => resolve"
+      - type: spec-change
+        trigger: "SR-043 or the read-surface definition is amended"
+        match: "grep -nE 'SR-043|read surface' spec/spec.md output changes vs v3.10.1"
+    status: active
+    last-checked: "2026-08-05T03:20:00Z"
+  - id: "dissent-2026-08-05-0002"
+    raised-at: "2026-08-05T03:20:00Z"
+    raised-by: "flow-chavruta-pair / stability-bias"
+    generation: 2
+    context: "gen-2 convergence checkpoint — metastable ship proposal for var-3-reversibility @ 71f41ff; cites s1-5 dissent-2026-07-25-0002 (not amended)"
+    full-record: "generations/gen-2/dissents/dissent-2026-08-05-0002.md"
+    position: |
+      normalizeFieldOrder is a hand-enumerated 6-field literal at the ledger's sole
+      durable write choke point. tsc guards required fields, but NOTHING guards an
+      additive-OPTIONAL schema field (this project's own precedented evolution move,
+      cf. workspace on session-record@1) — serializeLedger re-serializes the full
+      array, so the next append after such an addition would rewrite every prior
+      entry's bytes to drop the new field: D-3's own failure class, via D-3's fix.
+      Bindings are NOT re-derivable in general (SR-045 keys on the recorded hash —
+      re-derivability ends at first edit-after-bind; confirmed entries never were),
+      and this ship starts ledger accretion from zero.
+    counterposition: |
+      The risk interval is currently empty: zero optional fields in identity.ts today,
+      SR-039 enumerates the fields so any addition is a visible spec diff, and
+      escalation trigger 5 forecloses Phase B schema work until the ~2026-08-09 gate
+      verdict. Arming conditions would suffice.
+    provisional-resolution: |
+      Ship var-3 WITH M1 applied pre-ship (couple normalizeFieldOrder to
+      IdentityBindingSchema by assertion + one test that an unexpected key does not
+      silently vanish through serializeLedger; re-verify suite + tsc). Resolved toward
+      stability on TIMING only, per the operator's recorded micro-harden-over-arm
+      preference (s1-5 precedent). If M1 is not clean in one edit, arm these
+      conditions instead; do not hold the ship.
+    reactivation-conditions:
+      - type: code-change
+        trigger: "An optional field enters the identity schema"
+        match: "grep -c 'optional()' src/identity.ts >= 1"
+      - type: spec-change
+        trigger: "SR-039's field enumeration changes, IDENTITY_SCHEMA_ID moves past note-identity@1, or mdbase schema adoption enters scope"
+        match: "diff of SR-039 text vs v3.10.1, or grep IDENTITY_SCHEMA_ID != note-identity@1"
+      - type: code-change
+        trigger: "Ledger accretion begins (arms the probes below)"
+        match: "ledger binding count >= 1"
+      - type: probe
+        trigger: "Re-derivability probe shows ledger is primary data"
+        match: "copy vault, drop ledger, reindex, diff bindings -> non-empty means a dropped field is unrecoverable under INV-3"
+      - type: code-change
+        trigger: "First confirmed binding lands (never re-derivable)"
+        match: "grep -c 'detected: confirmed' <ledger> >= 1"
+    status: active
+    last-checked: "2026-08-05T03:20:00Z"

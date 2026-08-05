@@ -1,19 +1,27 @@
 import { openDb, resetSchema, type DB } from "./db.js";
 import { walkMarkdown, readNote } from "./vault.js";
 import { config } from "./config.js";
+import { runIdentityPass, type IdentityPassStats } from "./identity.js";
+import { readAllRecords } from "./session-record.js";
 
 export interface IndexStats {
   notes: number;
   skipped: number;
   ms: number;
+  /** SR-036..045, SR-104: dead-ref detection, exact-hash matching, projection rebuild. */
+  identity: IdentityPassStats;
 }
 
 /**
  * Full rebuild of the derived index from the vault. The vault is the source of
  * truth; this cache is disposable and regenerable (QA3). At ~2k notes a full
  * rebuild is well under the 60s budget, so incremental indexing is deferred.
+ *
+ * `now` is injectable so tests can drive the identity pass deterministically;
+ * it does not affect the note-indexing phase, which carries no clock of its
+ * own.
  */
-export function reindex(db?: DB): IndexStats {
+export function reindex(db?: DB, now: Date = new Date()): IndexStats {
   const database = db ?? openDb();
   const start = Date.now();
   resetSchema(database);
@@ -57,5 +65,10 @@ export function reindex(db?: DB): IndexStats {
     throw err;
   }
 
-  return { notes, skipped, ms: Date.now() - start };
+  // Identity pass runs AFTER the note index commits, in its own transaction,
+  // so a problem here can never unwind an otherwise-successful reindex
+  // (reversibility: the two phases are independently rollback-safe).
+  const identity = runIdentityPass(database, readAllRecords(), now);
+
+  return { notes, skipped, ms: Date.now() - start, identity };
 }

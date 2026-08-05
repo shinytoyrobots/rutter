@@ -1,11 +1,15 @@
 ---
-version: "2.0.0"
+version: "4.0.0"
 status: active
-effort: s1-5-ambient-capture
-last-amended: 2026-07-25
+effort:
+  - s1-5-ambient-capture   # converged
+  - decision-graph         # active (v3.0.0 —)
+last-amended: 2026-08-04
 amendment-policy: every edit is a MAJOR version increment and requires HITL
 amendments:
   - "2.0.0 (2026-07-25, HITL-approved at flow-init): eval-dimension override — accessibility replaced by documentation"
+  - "3.0.0 (2026-08-04, HITL-approved at flow-init decision-graph): effort-scoped weight class + budgets; prohibitions 8-9; escalation triggers 4-5"
+  - "4.0.0 (2026-08-04, HITL-approved at gen-2 dispatch, escalation trigger 3): decision-graph light-class budgets recalibrated 150k/500k -> 200k/700k from gen-1 actuals (variants ran ~190-218k vs 150k; generation ran ~1.28M vs 500k incl. panel+cull). 700k covers a 2-variant refinement honestly; it does NOT cover a light N=3 full-envelope generation — revisit the generation figure at the next full-envelope dispatch with two generations of actuals"
 ---
 
 # Constitution: my-librarian
@@ -33,6 +37,14 @@ direction.
    version) updates the user-facing "how-to" documentation (`README.md` / `docs/`) to
    cover its new or changed behaviors before the stage is considered shipped.
    *(→ SR-103; added at HITL approval, 2026-07-25)*
+8. **Never auto-bind an ambiguous note-identity match.** Exact-hash, single-candidate
+   matches only; everything else is surfaced with candidates and bound only by human
+   confirmation. *(→ SR-036, SR-037, SR-043; SCN-008/SCN-009; added v3.0.0,
+   effort decision-graph)*
+9. **Decision-graph reads never count toward the desirability gate.** Reads from
+   tools or read-paths introduced by the decision-graph effort are never counted
+   toward the SCN-004 desirability-gate metric (`stateful-use.jsonl`) unless the gate
+   design itself is amended by HITL. *(added v3.0.0, effort decision-graph)*
 
 ## Preferences (defaults — deviate only with recorded rationale)
 
@@ -55,6 +67,19 @@ direction.
    shipped stage) a scored home. *(HITL-approved 2026-07-25; revisit if any UI surface
    is ever added — that re-adds `accessibility` and is itself a constitution amendment.)*
 
+## Weight class & budgets — effort: decision-graph
+
+*(added v3.0.0; s1-5-ambient-capture predates weight classes and is converged — no
+class is assigned to it retroactively)*
+
+- **weight-class: light.** Rationale: small additive gen-1 scope (~6 SRs), no
+  security-bearing surface, append-only reversibility, personal tool.
+- **token-budget-per-variant: 200000**
+- **token-budget-per-generation: 700000**
+- *(v4.0.0 recalibration from gen-1 actuals — see amendments list. The per-variant
+  figure is a ceiling; dispatch may set a tighter in-prompt working budget for
+  refinement runs.)*
+
 ## Escalation triggers (HITL required)
 
 1. **Any spec change touching capture or appraisal semantics** → route to
@@ -63,3 +88,9 @@ direction.
 2. **Desirability-gate verdict at the 2-week mark** → HITL decision: proceed to H2/H3
    per the wish log, or stop the product here. This verdict is not automatable.
 3. **Any edit to this constitution** → HITL, major version increment (see header).
+4. **Any decision-graph SR entering scope that touches the capture contract or server
+   instructions** (Phases A–C territory) → HITL class-promotion review
+   (light → standard) BEFORE dispatch; never silent. *(added v3.0.0)*
+5. **Phases A–C of `docs/decision-graph-plan.md` may not enter spec scope** before the
+   desirability-gate verdict (escalation trigger 2) is written AND the operator's
+   wish-log entry recording demand exists. *(added v3.0.0)*
