@@ -25,6 +25,7 @@
     "identity-confirm": "tsx src/identity-confirm-cli.ts",
     "capture": "tsx src/capture-cli.ts",
     "install-hook": "node hooks/install-hook.mjs",
+    "site-drift": "node scripts/site-drift.mjs",
     "start": "tsx src/stdio.ts",
     "start:built": "node dist/stdio.js"
   },
