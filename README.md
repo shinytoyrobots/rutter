@@ -11,6 +11,9 @@ moved since.
 
 There is no model inside it. It is code plus storage, so the reasoning stays in your client.
 
+The name is from the age of sail: a rutter was the logbook of the routes actually sailed, as
+against the map. The map records what is known. The rutter records what you did about it.
+
 > **A personal tool, published as a reference implementation — not a supported product.** Built for
 > one person's workflow and shared because the mechanism might be useful. No roadmap promises, no
 > support commitment, no guarantee the next commit won't move something you depend on. Fork it, take

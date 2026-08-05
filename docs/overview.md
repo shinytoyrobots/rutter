@@ -17,9 +17,11 @@ store is objective and shareable. The memory of using it is neither.
 Worth being exact about the scope, because the shape of the code invites a wrong guess: this is not
 about coding sessions. A session might be research, drafting, planning, or just reading around a
 problem. The directory underneath is a knowledge vault, not a codebase — Obsidian is what it was
-built against, though nothing requires it. The name comes from the Librarian in Neal Stephenson's
-*Snow Crash*: a companion that remembers across time and thinks alongside you. That is the one
-thing a stateless assistant cannot be.
+built against, though nothing requires it. The inspiration is the Librarian in Neal Stephenson's
+*Snow Crash*: a companion that remembers across time and thinks alongside you — the one thing a
+stateless assistant cannot be. The name is from the age of sail: a rutter was the logbook of the
+routes actually sailed, as against the map. The map tells you what is known. The rutter is what
+you did about it.
 
 This document is about *why* it is built this way. If you want to run it, start with
 [`getting-started.md`](./getting-started.md). If you want the mechanics of capture, recall and
