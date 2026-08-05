@@ -55,6 +55,30 @@ export function readConfined(baseAbs: string, candidate: string): Buffer | null 
   }
 }
 
+/**
+ * Confined existence check, no read (gen-2/var-3-reversibility, spec v3.10.2):
+ * does `candidate` resolve to a FILE that actually exists inside `baseAbs`,
+ * without following a symlink out of it? Same confinement contract as
+ * `readConfined` (reuses `resolveWithin` + the realpath-on-both-sides check,
+ * never a raw path join) but never reads bytes -- the identity pass and
+ * read-time ref resolution only need "does something exist here", and a
+ * confined non-note artifact (an exported `.html`, an image, a `.yaml`) can
+ * be large enough that reading it just to answer that question would be
+ * wasteful at vault scale.
+ */
+export function existsConfined(baseAbs: string, candidate: string): boolean {
+  const abs = resolveWithin(baseAbs, candidate);
+  if (abs === null) return false;
+  try {
+    const realBase = fs.realpathSync(baseAbs);
+    const real = fs.realpathSync(abs);
+    if (!isWithin(realBase, real)) return false; // symlink pointing out of the base
+    return fs.statSync(real).isFile();
+  } catch {
+    return false; // missing / unreadable — treated as "does not resolve"
+  }
+}
+
 /** Reject any write target that escapes the allowed roots — belt for INV-2. */
 function assertWritable(abs: string): void {
   if (!WRITE_ROOTS.some((root) => isWithin(root, abs))) {
