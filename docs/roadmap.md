@@ -1,6 +1,8 @@
 # Roadmap — my-librarian
 
 **Written:** 2026-08-03
+**Amended:** 2026-08-05 — gate axis reframed from call origin to intent (Phase 0, kill
+conditions); discursive-librarian direction added (Phase 5).
 **Status:** proposal, not ratified. `spec/spec.md` remains the executable source of truth;
 nothing here is a requirement until it lands there.
 **Purpose:** high-level sequencing for work after the S1.5 desirability gate. Phases are
@@ -37,8 +39,15 @@ Desirability gate (SCN-004) verdict due ~2026-08-09.
 The verdict is worth more than the deadline. Do not let a technically-passing number
 authorize the next build.
 
-- Separate **model-initiated** from **human-initiated** calls in SCN-004
-  instrumentation. Without this the gate is unfalsifiable.
+- ~~Separate **model-initiated** from **human-initiated** calls in SCN-004
+  instrumentation.~~ **Reframed 2026-08-05: call origin is the wrong axis.** "What have
+  I been working on?" is model-executed but human-intended — the assistant is the
+  delivery mechanism, and memory reached through conversation is still memory reached.
+  Excluding model-initiated calls would exclude the librarian doing its job. Classify
+  each stateful call by **what pulled it** instead: a live human question in the
+  session, or the standing server instructions alone. Intent attribution, not caller
+  identity. Without this the gate is still unfalsifiable; the reframe just makes the
+  instrumentation measure the right thing.
 - Either restart the wish log or accept that it already answered. It stopped 07-27 with
   six entries, **none** of them asking for belief-lifecycle — all six were capture/recall
   plumbing defects.
@@ -146,6 +155,25 @@ it overlaps the author's professional work. That is a gate, not a risk.
 
 ---
 
+## Phase 5 — The discursive librarian (direction, not yet a build)
+
+Added 2026-08-05. Stephenson's Librarian was discursive — you talked to it and it
+talked back, with a manner. The long direction for this tool is the same: a librarian
+you converse with rather than an index you query. More discursive answers first;
+possibly a pseudo-personality later.
+
+The no-model rule survives this. The server already ships `SERVER_INSTRUCTIONS` to
+every client that connects; a voice is just more instruction, performed by the client,
+where the reasoning already lives. The record underneath stays inert, append-only,
+checkable. Constitution principle 3 ("quiet when unprompted, discursive on demand")
+already names the boundary — this extends the discursive-on-demand half without
+touching the quiet half.
+
+**Exit condition to even start:** Phase 0 and the Phase 1 read-value signal show recall
+is real and acted on. A personality on a write-only record is a costume.
+
+---
+
 ## Non-goals
 
 - Retrieval quality as a value thesis — commoditized (ACH: H1 second-worst, above only
@@ -156,7 +184,16 @@ it overlaps the author's professional work. That is a gate, not a risk.
 
 ## Kill conditions
 
-- Phase 0 verdict shows unprompted human use is absent once model-initiated calls are
-  excluded → the tool is agent infrastructure, not a librarian; re-scope or stop.
+*(Reframed 2026-08-05. The first condition previously keyed on call origin — "unprompted
+human use once model-initiated calls are excluded." That axis doesn't survive contact
+with real usage: recall flows through the assistant by design, so excluding
+model-initiated calls excludes the librarian doing its job.)*
+
+- Phase 0 verdict shows no stateful call traces back to a human question — the memory
+  is consulted only under standing instruction, never through conversation → the tool
+  is agent infrastructure, not a librarian; re-scope or stop.
 - Read-value signal (Phase 1) shows recalls are written but never acted on → the record
-  has gone write-only; fix that before building any new pillar.
+  has gone write-only; fix that before building any new pillar. **This is the primary
+  condition.** A recall that changes nothing downstream fails regardless of who
+  initiated it; one that changes what happens next is the tool working, whoever placed
+  the call.
