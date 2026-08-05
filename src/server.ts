@@ -46,7 +46,7 @@ import type { VersionedRef } from "./refs.js";
  *     a server that "clarified" stored text on the way out would be laundering
  *     the record to look compliant (COR-A-012).
  */
-export const SERVER_INSTRUCTIONS = `my-librarian holds two things about ${config.userLabel}'s work: the knowledge vault (markdown notes) and the memory-of-use (what past Claude Code sessions decided, and which notes they touched). It runs no model of its own -- it is code plus storage, so the reasoning stays yours.
+export const SERVER_INSTRUCTIONS = `rutter holds two things about ${config.userLabel}'s work: the knowledge vault (markdown notes) and the memory-of-use (what past Claude Code sessions decided, and which notes they touched). It runs no model of its own -- it is code plus storage, so the reasoning stays yours.
 
 Consult these tools before reading files directly; they see session history and vault structure that direct file reads do not:
 
@@ -74,7 +74,7 @@ export function createServer(): McpServer {
   // the summary authoring style contract and read-time render guidance (spec
   // v3.2.0). No tool, schema, or storage behavior changed at this version.
   const server = new McpServer(
-    { name: "my-librarian", version: "0.5.0" },
+    { name: "rutter", version: "0.5.0" },
     { instructions: SERVER_INSTRUCTIONS }
   );
   const db = openDb();

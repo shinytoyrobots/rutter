@@ -12,7 +12,7 @@ amendments:
   - "4.0.0 (2026-08-04, HITL-approved at gen-2 dispatch, escalation trigger 3): decision-graph light-class budgets recalibrated 150k/500k -> 200k/700k from gen-1 actuals (variants ran ~190-218k vs 150k; generation ran ~1.28M vs 500k incl. panel+cull). 700k covers a 2-variant refinement honestly; it does NOT cover a light N=3 full-envelope generation — revisit the generation figure at the next full-envelope dispatch with two generations of actuals"
 ---
 
-# Constitution: my-librarian
+# Constitution: rutter
 
 The constitution binds all phases (S1.5 → H2 → H3 → generalized), not just the current
 slice. Any edit to this document is **always a major version increment** and **always
