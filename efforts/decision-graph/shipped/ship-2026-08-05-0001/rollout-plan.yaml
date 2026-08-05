@@ -1,0 +1,14 @@
+# Rollout plan — ship-2026-08-05-0001 (decision-graph Phase 0)
+# Single-user local MCP server: the constitution defines no release rings and no
+# feature-flag platform exists. One honest ring, entered by explicit operator action.
+rings:
+  - name: ring-0-dogfood
+    audience: "Robin's live vault (~2,300 notes, ~420 recorded refs)"
+    entered-by: "operator commits the promoted working tree + restarts the MCP server / next reindex"
+    flag-coverage: "n/a — no flag platform; reversibility seam = ledger file + drop-and-rebuild identity_* projection tables"
+    dwell: "until the desirability-gate verdict (~2026-08-09, constitution escalation trigger 2)"
+    eval-tier: "post-ship-eval/config.md — suite re-run on demand + dissent reactivation probes"
+advance-policy: "no further rings exist; Phases A-C are spec-scope-gated (escalation trigger 5), not rollout-gated"
+note: >
+  Prohibition 9 applies from first use: reads via identity-introduced tools/read-paths
+  never count toward the SCN-004 desirability-gate metric.
