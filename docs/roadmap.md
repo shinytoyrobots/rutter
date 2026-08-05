@@ -104,12 +104,10 @@ No content scrubbing needed: `data/` and `_librarian/` are gitignored and memory
 is kept out of the code repo by spec (SR-102 / prohibition 6). Nothing personal is
 tracked.
 
-**Timing note — the real reason not to let this drift.** The `decision-record-capture`
-morph (2026-07-28) was run in work mode, studied this codebase, and lifted five of its
-principles into a Knapsack product design feeding the Contract Stack's ratification
-layer. Publishing under Robin's name *before* Knapsack ships anything derived from that
-morph establishes the mechanism as independently authored prior art, shown by the
-timeline rather than argued after the fact.
+**Timing note — the real reason not to let this drift.** Ideas from this codebase have
+begun informing the author's professional work. Publishing promptly establishes the
+mechanism as independently authored prior art, shown by the timeline rather than argued
+after the fact.
 
 **Exit:** public repo, MIT, README that claims the right thing.
 
@@ -138,7 +136,7 @@ The June concept bake-off already scored the nearest neighbor (H5 "Remembrancer"
 at −7.0, sunk by integration burden and privacy sensitivity.
 
 Any commercial move here also has to clear the employer-conflict question first, since
-it is the same thesis as the Knapsack attestation work. That is a gate, not a risk.
+it overlaps the author's professional work. That is a gate, not a risk.
 
 ---
 

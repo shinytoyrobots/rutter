@@ -37,8 +37,8 @@ tractable, and is exactly what this design is about.
 
 The sharpest distinction in the design, and the one that makes multi-user *not* a hard problem:
 
-- **Knowledge store** — the content. Objective. Can be **shared** (a team vault, a company KB like
-  `ks-kb`, even someone else's).
+- **Knowledge store** — the content. Objective. Can be **shared** (a team vault, a governed company
+  KB, even someone else's).
 - **Memory-of-use** — how **I** engaged the store: what I looked at, what I concluded, how my beliefs
   evolved, which things I connected, what I chose to keep or forget. Subjective, inherently **personal**
   — even over a shared store. *Same book, two readers, two different memories.*
@@ -111,8 +111,8 @@ appraisal.
 
 **The coupling you can't dodge:** ambient capture without an **appraisal step** produces noise, context
 rot, and the collector's fallacy. "Accrues by itself" and "is actually good" are coupled. For the
-personal build appraisal can be light/ambient (single-user, low stakes); `ks-kb` shows that at higher
-stakes it reverts to governed human review (see §9).
+personal build appraisal can be light/ambient (single-user, low stakes); governed company KBs show
+that at higher stakes it reverts to governed human review (see §9).
 
 **Storage:** memory-of-use records in `_librarian/` (per §1 — personal, versioned refs to store items).
 Shape the frontmatter to be **mdbase-compatible** now (§9), so adopting mdbase at H2 is a drop-in.
@@ -273,11 +273,11 @@ Consequence: the remote-server / OAuth workstream is **deferrable indefinitely.*
 
 ## 9. Generalization & reuse (later-stage; personal-first now)
 
-The generalized target shape ≈ **`ks-kb`** (`knapsack-labs/ks-kb`): typed markdown + `mdbase` +
-Claude-maintained + multi-source ingestion + governance/appraisal + operation log. **But `ks-kb` is the
-*store / curation* half; it does NOT have the memory-of-use / belief-lifecycle half — that's this
-project's differentiator.** Generalized Librarian = a `ks-kb`-shaped store **+** the memory-of-use layer,
-on `mdbase`, "Obsidian or otherwise."
+The generalized target shape ≈ a **governed company KB** the author has studied: typed markdown +
+`mdbase` + Claude-maintained + multi-source ingestion + governance/appraisal + operation log. **But that
+shape is the *store / curation* half; it does NOT have the memory-of-use / belief-lifecycle half — that's
+this project's differentiator.** Generalized Librarian = a governed-KB-shaped store **+** the
+memory-of-use layer, on `mdbase`, "Obsidian or otherwise."
 
 **`mdbase` (`callumalpass/mdbase`, MIT, TypeScript) — adopt at the memory layer, not S1.** It gives
 typed/validated collections, CEL queries, and wikilink/backlink extraction. It does **not** do full-text
@@ -303,6 +303,6 @@ quality — not benchmark scores.
 ## 10. Explicitly deferred / out of scope
 - Vector/ANN index (brute-force cosine is enough until ~10× growth).
 - Remote deployment, OAuth wiring, ChatGPT *write-back* (scaffolding only).
-- Multi-user governance (classification, permissions) — the `ks-kb`-scale concern; single-user first.
+- Multi-user governance (classification, permissions) — the company-KB-scale concern; single-user first.
 - Incremental (vs full) reindex — add only when full rebuild exceeds the 60s budget.
 - **Decouple from Obsidian conventions behind an adapter** when generalizing ("Obsidian or otherwise").
