@@ -316,6 +316,12 @@ S1.5 exists behind a kill gate: *does ambient memory-of-use actually pull you
 toward stateful behavior?* The gate target is **reaching for a stateful behavior
 unprompted ≥3×/week for 2 weeks.**
 
+*Unprompted* names intent, not call origin *(spec v3.11.0)*. "What have I been
+working on?" answered via `librarian-recent` is unprompted use even though the
+model executes the call — memory reached through conversation is still memory
+reached. What doesn't count is a call made only because the server instructions
+tell clients to prefer these tools, with no human question behind it.
+
 Every time you invoke `librarian-recent`, or run a search that surfaces at least
 one prior-engagement signal, the librarian appends one timestamped event to a
 local, append-only log (`_librarian/stateful-use.jsonl`). A single search counts
@@ -336,9 +342,10 @@ stateful-use per ISO week (gate target: >=3):
   2026-W30: 4  ✓
 ```
 
-> Classifying an invocation as truly *unprompted* is left to manual wish-log
-> review; the log captures every invocation with a timestamp so that review is
-> possible.
+> Classifying an invocation as *unprompted* — attributing it to a live human
+> question versus standing server instructions alone — is left to manual
+> wish-log review; the log captures every invocation with a timestamp so that
+> review is possible.
 
 ---
 
