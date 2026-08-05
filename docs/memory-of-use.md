@@ -389,7 +389,12 @@ different things to attach it to:
   the two are never conflated: a candidate result is never annotated with `priorEngagement` on the
   strength of a candidacy alone. If none of an unresolved reference's candidates are among a given
   search's results, nothing about that search changes — enrichment only ever annotates results
-  that are already there (SR-009/SR-010 hold exactly as before).
+  that are already there (SR-009/SR-010 hold exactly as before). One consequence worth being
+  explicit about: a reference with **no candidates at all** (the note was renamed *and* edited,
+  so no current note matches its recorded hash) has nothing enrichment could ever attach it to,
+  and is therefore visible on `librarian-recent` only. `librarian-recent` is the complete
+  discovery surface for unresolved references of every kind; search enrichment is a
+  candidate-anchored extra, not a second complete listing.
 
 **Confirmed bindings are sticky, and disagreements are surfaced, not silently settled either
 way.** Suppose you confirm `Notes/old.md` to `Notes/keep.md`, and later the vault changes so that

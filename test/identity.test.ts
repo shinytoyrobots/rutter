@@ -12,7 +12,7 @@ import { reindex } from "../src/indexer.js";
 import { openDb } from "../src/db.js";
 import { search } from "../src/search.js";
 import { enrich, buildReferenceIndex } from "../src/enrichment.js";
-import { readLedger, resolveRef, ledgerPath } from "../src/identity.js";
+import { readLedger, resolveRef, ledgerPath, appendBindings } from "../src/identity.js";
 import { recent } from "../src/recent.js";
 import { formatRecentEntry } from "../src/server.js";
 
@@ -551,4 +551,33 @@ test("SR-043: an unresolved ref whose candidates are NOT among the search result
   assert.equal(results[0]!.path, "Notes/unrelated.md");
   assert.equal(results[0]!.unresolvedReference, undefined, "no candidate of the unresolved ref is in THIS result set");
   assert.equal(results[0]!.priorEngagement, undefined);
+});
+
+test("M1 (dissent-2026-08-05-0002): a binding field the canonical serializer list does not know throws loudly instead of silently vanishing", () => {
+  // Seed one real auto-bound entry so the refusal has existing bytes to protect.
+  writeNote("Notes/m1.md", "# M1\nm1 content");
+  captureSession({ summary: "Touched m1.", refs: ["Notes/m1.md"], now: NOON });
+  renameNote("Notes/m1.md", "Notes/m1-renamed.md");
+  reindex(undefined, new Date("2026-07-24T13:00:00.000Z"));
+  const before = fs.readFileSync(ledgerPath());
+  assert.equal(readLedger().length, 1, "sanity: one auto-bound entry");
+
+  // A future additive-OPTIONAL field arrives at the write choke point without
+  // CANONICAL_BINDING_FIELDS having been updated. The serializer must refuse
+  // loudly -- a silent drop would rewrite every prior entry's bytes without
+  // the field, which INV-3 (append-only, no rewrite) can never restore.
+  const smuggled = {
+    from: "Notes/x.md",
+    to: "Notes/y.md",
+    hash: "sha256:0000",
+    ts: NOON.toISOString(),
+    detected: "confirmed",
+    note: "an optional field the canonical list does not know",
+  } as unknown as Omit<import("../src/identity.js").IdentityBinding, "id">;
+  assert.throws(
+    () => appendBindings([smuggled], NOON),
+    /outside note-identity@1/,
+    "unknown field is a loud refusal, never a silent drop"
+  );
+  assert.deepEqual(fs.readFileSync(ledgerPath()), before, "the refused append leaves the ledger byte-identical");
 });
