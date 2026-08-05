@@ -1,11 +1,27 @@
 ---
-version: "3.10.2"
+version: "3.11.0"
 status: active
 effort:
   - s1-5-ambient-capture   # converged
   - decision-graph         # active (v3.8.0 —)
 last-amended: 2026-08-05
 mapping-pending: false     # one per-entry exception carried on a harness entry: SR-104 (bound pending gen-1 calibration)
+# v3.11.0 (minor — effort s1-5-ambient-capture): the gate's "unprompted" axis is
+# INTENT, not call origin. HITL 2026-08-05 (operator, pre-verdict): "what have I been
+# working on?" is model-executed but human-intended — the assistant is the delivery
+# mechanism, and memory reached through conversation is still memory reached. The
+# previously planned instrumentation split (model-initiated vs human-initiated,
+# HANDOFF item 1) is REJECTED: excluding model-executed calls excludes the librarian
+# doing its job, and a call-origin field would make the gate under-count the exact
+# behavior it exists to detect. What counts toward the gate: an invocation pulled by
+# a live human question or task in the session. What does not: an invocation made
+# under standing server instructions alone (SR-020 ambient reach). Classification
+# remains manual wish-log review — mechanism unchanged, axis now named. SCN-004
+# Given re-glossed, its open AC re-worded, glossary entry added; first amendment to
+# modify SCN-004 scenario text. No SR or INV text changed. Read-value (did the
+# recall change what happened next) is promoted to primary kill condition in
+# docs/roadmap.md — roadmap-tracked; it lands here as an SR only with the roadmap's
+# Phase 1 read-value signal.
 # v3.10.2 (patch, clarification — ring-0 day-one production finding): "path no longer
 # resolves" in SR-036/SR-037 means the file is ABSENT FROM DISK at its vault-relative
 # path (within confinement) — NOT absent from the markdown notes index. Capture
@@ -408,7 +424,8 @@ prior engagement, without changing ranking.
 
 ### SCN-004: Stateful use is instrumented so the desirability gate is measurable
 **Given** the desirability gate is "Robin reaches for stateful behavior unprompted
-≥3×/week for 2 weeks"
+≥3×/week for 2 weeks" — *unprompted* naming intent, not call origin: pulled by a live
+human question or task in the session, whoever places the tool call *(v3.11.0)*
 **When** Robin invokes a stateful behavior (`librarian-recent`, or a search that
 surfaces a prior-engagement signal)
 **Then** the system shall record a local, timestamped stateful-use event and expose a
@@ -420,8 +437,12 @@ per-ISO-week count sufficient to evaluate the gate.
 - Each `librarian-search` call that surfaces at least one prior-engagement signal
   appends one timestamped event.
 - The log yields a per-ISO-week stateful-use count over any date range.
-- (Open) Classifying an invocation as *unprompted* is deferred to manual wish-log
-  review; instrumentation captures all invocations with timestamps to support it.
+- (Open) Classifying an invocation as *unprompted* — attributing it to a live human
+  question versus standing server instructions alone (intent, not call origin: a
+  model-executed call serving a human question counts; an SR-020 ambient reach with
+  no human question behind it does not) — is deferred to manual wish-log review;
+  instrumentation captures all invocations with timestamps to support it.
+  *(axis named v3.11.0)*
 
 **Derived requirements:** SR-011, SR-012
 
@@ -942,6 +963,12 @@ own test suite (94 tests) rather than the eval harness.
   session's outcome at session end via a hook, not by the user routing actions through
   the librarian. (Contrast the rejected tool-call log, which is search-on-demand, not
   memory.)
+- **Unprompted (gate sense)** — an invocation pulled by a live human question or task
+  in the session, whoever places the tool call. Intent attribution, not caller
+  identity: "what have I been working on?" answered via `librarian-recent` is
+  unprompted use even though the model executes the call; the same call made only
+  because the server instructions (SR-020) tell clients to prefer these tools, with
+  no human question behind it, is not. *(v3.11.0)*
 - **Appraisal** — the judgment that keeps captured memory good rather than noise
   (avoiding the collector's fallacy). In S1.5 appraisal is light/ambient: one curated
   line per session, not the raw transcript. Deeper appraisal (grading, forgetting) is
