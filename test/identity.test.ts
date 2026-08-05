@@ -581,3 +581,92 @@ test("M1 (dissent-2026-08-05-0002): a binding field the canonical serializer lis
   );
   assert.deepEqual(fs.readFileSync(ledgerPath()), before, "the refused append leaves the ledger byte-identical");
 });
+
+// -- gen-2-fix1 (spec v3.10.2, post-ship dogfood): path resolution is --
+// -- file-type-agnostic -- a live non-note artifact is never "dead" ---------
+
+test("gen-2-fix1 (spec v3.10.2): a ref to an existing NON-NOTE artifact is never treated as dead, on either read surface", () => {
+  // Three shapes of "confined vault file that is not an indexed markdown
+  // note": a non-.md artifact under Notes/, a dotfile at the vault root, and
+  // a file under _librarian/ itself (excluded from walkMarkdown by
+  // config.ignoreDirs) -- exactly the live-vault dogfood repro shapes
+  // (.gitignore, _librarian/wish-log.md, Notes/Reference/*.html).
+  writeNote("Notes/Reference/export.html", "<html>exported content</html>");
+  writeNote(".gitignore", "node_modules/\n");
+  writeNote("_librarian/wish-log.md", "# Wish log\nsome wishes, never indexed as a note");
+  reindex();
+  captureSession({
+    summary: "Touched three non-note artifacts.",
+    refs: ["Notes/Reference/export.html", ".gitignore", "_librarian/wish-log.md"],
+    now: NOON,
+  });
+
+  const stats = reindex();
+  assert.equal(stats.identity.checked, 0, "none of these are dead refs -- every path still exists on disk");
+  assert.equal(stats.identity.unresolved, 0);
+  assert.equal(stats.identity.bound, 0);
+  assert.deepEqual(readLedger(), [], "nothing to bind -- none of these refs ever looked dead");
+
+  const db = openDb();
+  const entry = increments1(recent());
+  assert.equal(entry.refs.length, 3, "sanity: all three refs were captured");
+  const rendered = formatRecentEntry(entry, db);
+  assert.doesNotMatch(rendered, /UNRESOLVED/, "librarian-recent never renders a live non-note artifact as unresolved");
+
+  for (const ref of entry.refs) {
+    const resolution = resolveRef(db, ref);
+    assert.equal(resolution.status, "current", `${ref.path} still resolves on disk, regardless of file type`);
+  }
+
+  // Search enrichment must stay silent about these too (SR-009/SR-010): a
+  // live non-note ref is neither unresolved nor a fabricated engagement
+  // target unless it is also actually surfaced as a search result -- these
+  // three paths are not notes, so they are never search results at all.
+  const { results } = enrich(search("exported content"), buildReferenceIndex(undefined, db));
+  assert.equal(results.length, 0, "a non-note artifact is never indexed for full-text search in the first place");
+});
+
+test("gen-2-fix1 (spec v3.10.2): a DELETED non-note artifact is still genuinely dead -- unresolved, rendered, exactly like a deleted note", () => {
+  writeNote("Notes/Reference/doomed.html", "<html>doomed export</html>");
+  reindex();
+  captureSession({ summary: "Touched a doomed export.", refs: ["Notes/Reference/doomed.html"], now: NOON });
+  fs.rmSync(path.join(vaultRoot, "Notes/Reference/doomed.html"));
+
+  const stats = reindex();
+  assert.equal(stats.identity.checked, 1, "the deleted non-note ref IS checked as a dead ref");
+  assert.equal(stats.identity.unresolved, 1);
+  assert.equal(stats.identity.bound, 0, "no note shares a deleted non-note artifact's content -- candidates are notes only");
+  assert.deepEqual(readLedger(), [], "no binding -- exactly SR-037's zero-candidate case");
+
+  const db = openDb();
+  const entry = increments1(recent());
+  const rendered = formatRecentEntry(entry, db);
+  assert.match(rendered, /UNRESOLVED/, "a genuinely deleted non-note artifact renders unresolved, same as a deleted note would");
+  const resolution = resolveRef(db, entry.refs[0]!);
+  assert.equal(resolution.status, "unresolved");
+  assert.deepEqual(resolution.candidates, [], "candidate generation stays scoped to notes -- never wrong, untouched by this fix");
+});
+
+test("gen-2-fix1 (spec v3.10.2): existing rename auto-bind for NOTES is unaffected -- exact-hash still fires exactly as before", () => {
+  writeNote("Notes/rename-me.md", "# Rename me\nunchanged content");
+  reindex();
+  captureSession({ summary: "Touched rename-me.", refs: ["Notes/rename-me.md"], now: NOON });
+  renameNote("Notes/rename-me.md", "Notes/renamed.md");
+
+  const stats = reindex(undefined, new Date("2026-07-24T13:00:00.000Z"));
+  assert.equal(stats.identity.checked, 1);
+  assert.equal(stats.identity.bound, 1);
+  assert.equal(stats.identity.unresolved, 0);
+  assert.equal(stats.identity.appended, 1);
+
+  const ledger = readLedger();
+  assert.equal(ledger.length, 1);
+  assert.equal(ledger[0]!.detected, "exact-hash");
+  assert.equal(ledger[0]!.to, "Notes/renamed.md");
+
+  const db = openDb();
+  const resolution = resolveRef(db, { path: "Notes/rename-me.md", hash: ledger[0]!.hash });
+  assert.equal(resolution.status, "bound");
+  assert.equal(resolution.path, "Notes/renamed.md");
+  assert.equal(resolution.detected, "exact-hash");
+});
