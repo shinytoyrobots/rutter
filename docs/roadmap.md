@@ -1,4 +1,4 @@
-# Roadmap — my-librarian
+# Roadmap — rutter
 
 **Written:** 2026-08-03
 **Amended:** 2026-08-05 — gate axis reframed from call origin to intent (Phase 0, kill

@@ -1,18 +1,18 @@
 {
-  "name": "my-librarian",
+  "name": "rutter",
   "version": "0.1.0",
   "type": "module",
   "description": "A record of what your AI sessions decided — and the receipts behind it. MCP server over a folder of markdown notes.",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/shinytoyrobots/my-librarian.git"
+    "url": "git+https://github.com/shinytoyrobots/rutter.git"
   },
   "engines": {
     "node": ">=22"
   },
   "bin": {
-    "my-librarian": "./dist/stdio.js"
+    "rutter": "./dist/stdio.js"
   },
   "scripts": {
     "build": "tsc",

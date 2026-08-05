@@ -46,8 +46,8 @@ const MAX_WALK_DEPTH = 64;
  *
  * The project name is the basename of the enclosing git working tree when there
  * is one, else the basename of the working directory itself. Using the tree root
- * keeps the name stable when a session runs from a subdirectory (`.../my-librarian/src`
- * is still project `my-librarian`), which is the whole point of the field. It is
+ * keeps the name stable when a session runs from a subdirectory (`.../rutter/src`
+ * is still project `rutter`), which is the whole point of the field. It is
  * always *derived*: asking Robin to name the project would make capture
  * non-ambient and break SCN-001's zero-user-action contract.
  */

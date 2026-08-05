@@ -2,7 +2,7 @@
 
 By the end of this lesson your notes will answer *"what was I working on lately?"* The answer comes from records your Claude Code sessions leave behind on their own, unasked.
 
-We will install my-librarian, index your notes, and write one memory by hand so you see a result in the first few minutes. Then we will turn on ambient capture and watch a real working session record itself.
+We will install rutter, index your notes, and write one memory by hand so you see a result in the first few minutes. Then we will turn on ambient capture and watch a real working session record itself.
 
 Eight steps. Each one ends with something you can check.
 
@@ -11,14 +11,14 @@ Eight steps. Each one ends with something you can check.
 - **Node 22 or newer.** Check with `node -v`. npm warns at install time on an older Node — heed it, because the built-in `node:sqlite` this depends on will simply be missing. Verified on Node 26.
 - **npm and git.**
 - **Claude Code.** The three MCP tools work with any MCP client, but the Stop hook that powers ambient capture is Claude Code specific.
-- **A directory of markdown notes.** Obsidian is what my-librarian was built against — it understands wikilinks and frontmatter — but nothing requires Obsidian itself.
+- **A directory of markdown notes.** Obsidian is what rutter was built against — it understands wikilinks and frontmatter — but nothing requires Obsidian itself.
 - **No compiler toolchain.** There are zero native dependencies. The index is Node's built-in SQLite, so there is nothing to build and no database to install.
 
 ## Step 1 — Clone and install
 
 ```bash
-git clone https://github.com/shinytoyrobots/my-librarian.git
-cd my-librarian
+git clone https://github.com/shinytoyrobots/rutter.git
+cd rutter
 npm install
 ```
 
@@ -26,7 +26,7 @@ Every command in this lesson runs from that repository directory.
 
 ## Step 2 — Point it at your notes and build the index
 
-my-librarian reads one directory of markdown notes. Configure the path to yours right away — before the first index, and before anything else depends on it. Set it, then index:
+rutter reads one directory of markdown notes. Configure the path to yours right away — before the first index, and before anything else depends on it. Set it, then index:
 
 ```bash
 export LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes"
@@ -36,10 +36,10 @@ npm run reindex
 You should see your real note count:
 
 ```text
-[my-librarian] reindex complete: 1284 notes indexed, 0 skipped, 912ms
+[rutter] reindex complete: 1284 notes indexed, 0 skipped, 912ms
   vault: /Users/you/Documents/notes
-  index: /Users/you/my-librarian/data/librarian.db
-[my-librarian] identity pass: 0 dead ref(s) checked, 0 bound, 0 unresolved, 0 ledger entries appended, 3ms
+  index: /Users/you/rutter/data/librarian.db
+[rutter] identity pass: 0 dead ref(s) checked, 0 bound, 0 unresolved, 0 ledger entries appended, 3ms
 ```
 
 *Output shape verified against code; your paths, dates, and counts will differ.*
@@ -79,7 +79,7 @@ No recent sessions recorded yet.
 Now write one record:
 
 ```bash
-echo '{"summary":"Set up my-librarian and captured this first memory by hand.","refs":[]}' | npm run capture
+echo '{"summary":"Set up rutter and captured this first memory by hand.","refs":[]}' | npm run capture
 ```
 
 You should see:
@@ -99,7 +99,7 @@ npm run recent
 ```
 
 ```text
-2026-08-05 10:15:00 — Set up my-librarian and captured this first memory by hand.
+2026-08-05 10:15:00 — Set up rutter and captured this first memory by hand.
 ```
 
 *Output shape verified against code; your date and time will differ.*
@@ -113,7 +113,7 @@ Three flags are worth knowing now:
 ```bash
 npm run recent -- 3            # the three most recent sessions
 npm run recent -- --days 7     # just the last week
-npm run recent -- --project my-librarian   # one project, case-insensitive
+npm run recent -- --project rutter   # one project, case-insensitive
 ```
 
 ## Step 5 — Build and register the MCP server
@@ -122,7 +122,7 @@ Compile the TypeScript, then register the server with Claude Code. Run both from
 
 ```bash
 npm run build
-claude mcp add my-librarian --scope user -- node "$PWD/dist/stdio.js"
+claude mcp add rutter --scope user -- node "$PWD/dist/stdio.js"
 ```
 
 Use `--scope user` and an absolute path. Without the flag the server registers project-local to the repository, which leaves it invisible from the directories where you actually work.
@@ -130,7 +130,7 @@ Use `--scope user` and an absolute path. Without the flag the server registers p
 The `env` block from Step 2 already hands the server your vault path. To scope that to this one server instead, pass it at registration:
 
 ```bash
-claude mcp add my-librarian --scope user -e LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes" -- node "$PWD/dist/stdio.js"
+claude mcp add rutter --scope user -e LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes" -- node "$PWD/dist/stdio.js"
 ```
 
 That covers the server alone. The Stop hook in Step 6 still reads the `env` block, so most people want Step 2's route.
@@ -141,7 +141,7 @@ That covers the server alone. The Stop hook in Step 6 still reads the `env` bloc
 /mcp
 ```
 
-You should see `my-librarian` listed with three tools: `librarian-search`, `librarian-get-note`, and `librarian-recent`.
+You should see `rutter` listed with three tools: `librarian-search`, `librarian-get-note`, and `librarian-recent`.
 
 ## Step 6 — Install the Stop hook
 
@@ -228,7 +228,7 @@ day: '2026-08-05'
 sessions:
   - id: 20260805T101500123Z
     time: '2026-08-05T10:15:00.123Z'
-    summary: Set up my-librarian and captured this first memory by hand.
+    summary: Set up rutter and captured this first memory by hand.
     refs: []
   - id: 20260805T142233871Z
     session_id: 0b9f2c41-...
@@ -247,7 +247,7 @@ refs:
 
 # Sessions - 2026-08-05
 
-- 10:15:00 - Set up my-librarian and captured this first memory by hand.
+- 10:15:00 - Set up rutter and captured this first memory by hand.
 - 14:22:33 [notes-cleanup] - Renamed the archive folder and updated the two notes that linked to it. (refs: Notes/Archive.md@3f1a9c2e7b40d8)
 ```
 
