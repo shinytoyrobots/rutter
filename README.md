@@ -63,6 +63,7 @@ time.
   - `librarian-recent` — *"what was I working on lately?"* Sessions newest-first, with dates, project, and provenance; optional `project` filter, `window` in days, or `count`.
 - **Instructions that travel with the server.** Any connected client is told to reach for `librarian-recent` on recency questions and `librarian-search` on "have I seen this?" questions before reading files directly, and to report recalled summaries in plain language — including entries written before the contract existed, which is the only way dense old records ever read clearly. No per-project client configuration.
 - **Instruments its own use.** A local per-ISO-week count of how often the stateful behavior gets reached for.
+- **Note identity survives a rename.** A reference records the note's path *and* its content hash as read. Rename a referenced note without touching its content and the next `npm run reindex` binds the old reference to its new path automatically — no heuristics, no similarity scoring, just an exact content-hash match — and `librarian-recent` / search enrichment quietly resolve through it. If reindex can't tell (the note was also edited, so no current note's hash matches; or more than one current note shares the hash), the reference renders explicitly as unresolved with its candidates on `librarian-recent`, and on search enrichment against any candidate note that happens to be a search result, and stays that way until you confirm it with `npm run identity-confirm`. A reference with no candidates at all (renamed *and* edited) is visible on `librarian-recent` only — that listing is the complete discovery surface for unresolved references; enrichment is candidate-anchored and cannot mention what has no candidate. On the search surface, a mere candidate is never annotated as if it had been engaged with; the unresolved state and its candidates render as a separate, explicit note instead. A confirmed binding is sticky: if the vault later changes such that automatic exact-hash matching would point somewhere else, the confirmed binding still wins, and the disagreement is surfaced ("confirmed X; the hash now matches Y") rather than silently overridden — only re-running `npm run identity-confirm` moves it. The stored session record is never rewritten either way.
 
 ## Known limitations
 
@@ -129,6 +130,15 @@ npm run gate                                       # per-ISO-week use count
 
 Entries captured before workspace provenance existed simply show no project — there is no
 placeholder, and a `--project` filter skips them rather than guessing.
+
+If `npm run recent` shows a ref as `[UNRESOLVED -- candidates: ...]` after a rename that also
+changed the note's content (or landed on duplicate content), confirm the right target by hand —
+this is a local-only command, never an MCP tool, so an agent can't rewrite what a dead reference
+means on its own:
+
+```bash
+npm run identity-confirm -- Notes/old-name.md Notes/new-name.md
+```
 
 ## Enable ambient capture (two steps, one-time)
 
@@ -225,8 +235,9 @@ src/
   recent.ts          librarian-recent (grouping / project / window / count / empty-state)
   enrichment.ts      additive prior-engagement annotation on search results
   instrumentation.ts append-only use log + per-ISO-week counts
+  identity.ts        note identity: exact-hash rename binding + the rebuildable projection
   app.ts             application seam (domain + instrumentation), used by server + tests
-  reindex.ts / search-cli.ts / recent-cli.ts / gate-cli.ts / capture-cli.ts   CLIs
+  reindex.ts / search-cli.ts / recent-cli.ts / gate-cli.ts / capture-cli.ts / identity-confirm-cli.ts   CLIs
 hooks/
   librarian-stop.sh  Claude Code Stop hook -> capture-cli
 spec/                the executable spec — scenarios, requirements, conformance mapping

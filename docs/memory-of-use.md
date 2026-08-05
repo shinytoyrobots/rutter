@@ -310,6 +310,11 @@ concluded and when*. For example:
   set of results and their ranking are byte-identical to the plain S1 search. A
   prior engagement never promotes, demotes, adds, or drops a result.
 
+See [§6](#6-note-identity--surviving-a-vault-rename) for two more things this
+surface renders, additively, when note identity is involved: a candidate note
+for a reference the identity pass couldn't resolve on its own, and a conflict
+between a confirmed binding and a fresher automatic detection.
+
 ---
 
 ## 5. Measuring the desirability gate
@@ -341,6 +346,90 @@ stateful-use per ISO week (gate target: >=3):
 > Classifying an invocation as truly *unprompted* is left to manual wish-log
 > review; the log captures every invocation with a timestamp so that review is
 > possible.
+
+---
+
+## 6. Note identity — surviving a vault rename
+
+A reference records two things about a note at the moment it was touched: its vault-relative
+path, and a content hash. Rename the note later and the path stops resolving — but the hash is
+still there, so the librarian can tell *what* the reference meant even after *where* it lives has
+moved.
+
+Every `npm run reindex` runs an identity pass over every recorded reference whose path no longer
+resolves:
+
+- **Exactly one current note's content hash matches what was recorded** — the note was renamed,
+  content untouched. The librarian binds the old path to the new one, deterministically, and
+  appends the binding to a ledger (`_librarian/note-identity.md`). No heuristics, no similarity
+  score, no model — a hash either matches or it doesn't.
+- **Zero matches, or more than one** — the librarian does not guess. Zero means the note was
+  renamed *and* edited (so no current note's hash matches); more than one means duplicate content
+  exists and picking one would be inventing an answer the vault doesn't actually give. Either way
+  the reference renders explicitly as **unresolved**, with every candidate it found — never
+  silently dropped, never silently bound to a guess.
+
+`librarian-recent` and search enrichment resolve bound references through the ledger at read
+time: the session record you see still says what you wrote, but the ref line shows the note's
+current path, or `[UNRESOLVED -- candidates: ...]` when the librarian genuinely doesn't know.
+Nothing on this path ever rewrites the stored session entry — resolution happens only when it is
+displayed.
+
+Both surfaces render the unresolved case, but they render it differently, because they have
+different things to attach it to:
+
+- **`librarian-recent`** shows the dead reference itself, so it renders the ref line the same way
+  either way: `Notes/old.md@sha256:... [UNRESOLVED -- candidates: Notes/dup1.md, Notes/dup2.md]`.
+- **Search enrichment** has no "dead reference" object to annotate — it only ever annotates a
+  search RESULT, which is a live, currently-indexed note. So when one of an unresolved
+  reference's candidates happens to also be a search result, THAT result carries a separate
+  `unresolvedReference` annotation naming the dead ref and every candidate — distinct from the
+  ordinary prior-engagement note, and never rendered as one. A note that is merely a *candidate*
+  for an old reference is not the same claim as a note that a session record actually engaged, and
+  the two are never conflated: a candidate result is never annotated with `priorEngagement` on the
+  strength of a candidacy alone. If none of an unresolved reference's candidates are among a given
+  search's results, nothing about that search changes — enrichment only ever annotates results
+  that are already there (SR-009/SR-010 hold exactly as before). One consequence worth being
+  explicit about: a reference with **no candidates at all** (the note was renamed *and* edited,
+  so no current note matches its recorded hash) has nothing enrichment could ever attach it to,
+  and is therefore visible on `librarian-recent` only. `librarian-recent` is the complete
+  discovery surface for unresolved references of every kind; search enrichment is a
+  candidate-anchored extra, not a second complete listing.
+
+**Confirmed bindings are sticky, and disagreements are surfaced, not silently settled either
+way.** Suppose you confirm `Notes/old.md` to `Notes/keep.md`, and later the vault changes so that
+exact-hash matching would, on its own, now point `Notes/old.md` at a *different* note (say a
+stray file lands with the exact bytes that were last recorded for `old.md`). The confirmed
+binding still wins — a later piece of automation never outvotes a human decision — and reindex
+appends nothing new for that reference. But the disagreement itself is not hidden: both read
+surfaces render it explicitly, alongside the confirmed target: `confirmed Notes/keep.md; the hash
+now matches Notes/stray.md`. The only thing that ever moves a confirmed binding is a fresh
+`npm run identity-confirm` run.
+
+If a reference stays unresolved, resolve it by hand:
+
+```bash
+npm run identity-confirm -- Notes/old-name.md Notes/new-name.md
+```
+
+This is a **local terminal command only** — it is never exposed as an MCP tool, so a connected
+client can never rewrite what a dead reference means on its own. It checks that the target you
+name actually exists in the vault right now (existence, not a hash match — the whole point is
+resolving the case where the hash no longer matches), then appends a `detected: confirmed` entry
+to the same ledger. Confirmed bindings are sticky in general, not just against a still-ambiguous
+vault: once you've resolved a reference, no LATER automatic detection — ambiguous or a clean
+single-candidate match pointing somewhere else — ever moves it back or overrides it; see above for
+how that disagreement is surfaced instead of silently settled. The only thing that supersedes a
+confirmed binding is running `npm run identity-confirm` again.
+
+The ledger is append-only, same as everything else here (INV-3): a note renamed more than once
+gets a fresh binding each time, computed directly against what was originally recorded — never by
+chaining through an earlier binding — with the newest *automatic* entry winning at read time.
+Confirmed entries are the one exception to "newest wins": once a pair is confirmed, only a later
+confirmation moves it, never a later automatic detection (see above). Earlier entries are never
+rewritten, reordered, or removed. The identity projection tables in the SQLite cache are, like the
+rest of the index, fully disposable: delete `data/librarian.db` and reindex, and they rebuild from
+the vault and the ledger alone (INV-4).
 
 ---
 

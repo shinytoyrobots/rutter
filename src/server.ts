@@ -1,11 +1,13 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { config } from "./config.js";
-import { openDb } from "./db.js";
+import { openDb, type DB } from "./db.js";
 import { getNote } from "./search.js";
 import { runSearch, runRecent } from "./app.js";
 import type { EnrichedResult } from "./enrichment.js";
 import type { RecentEntry, RecentSession } from "./recent.js";
+import { resolveRef } from "./identity.js";
+import type { VersionedRef } from "./refs.js";
 
 /**
  * MCP server-level instructions (SR-020 / SCN-006): the librarian's own guidance
@@ -159,21 +161,40 @@ export function createServer(): McpServer {
       if (sessions.length === 0) {
         return { content: [{ type: "text" as const, text: noMatchMessage(project) }] };
       }
-      return { content: [{ type: "text" as const, text: sessions.map(formatRecentSession).join("\n\n") }] };
+      return {
+        content: [{ type: "text" as const, text: sessions.map((s) => formatRecentSession(s, db)).join("\n\n") }],
+      };
     }
   );
 
   return server;
 }
 
-/** One search hit, with a prior-engagement note appended only when present. */
+/**
+ * One search hit, with additive annotations appended only when present:
+ * a prior-engagement note (SR-008), the SR-046 conflict riding with a
+ * confirmed one, and/or an SR-043 unresolved-candidate note. All are quiet on
+ * results with none of these signals (SR-009) and never change what results
+ * exist or how they are ordered (SR-010).
+ */
 function formatSearchResult(r: EnrichedResult, i: number): string {
   const badges = [r.type, r.status, r.created].filter(Boolean).join(" · ");
   const meta = badges ? ` — ${badges}` : "";
-  const base = `${i + 1}. ${r.title}${meta}\n   ${r.path}\n   …${r.snippet}…`;
-  if (!r.priorEngagement) return base; // quiet on unreferenced results (SR-009)
-  // Presented as clearly-delimited DATA, never as an instruction (SEC-A-010).
-  return `${base}\n   ↩ prior engagement ${r.priorEngagement.date}: "${r.priorEngagement.summary}"`;
+  let out = `${i + 1}. ${r.title}${meta}\n   ${r.path}\n   …${r.snippet}…`;
+  if (r.priorEngagement) {
+    // Presented as clearly-delimited DATA, never as an instruction (SEC-A-010).
+    out += `\n   ↩ prior engagement ${r.priorEngagement.date}: "${r.priorEngagement.summary}"`;
+    if (r.identityConflict) {
+      out += `\n   ⚠ confirmed ${r.path}; the hash now matches ${r.identityConflict.to}`;
+    }
+  }
+  if (r.unresolvedReference) {
+    const list = r.unresolvedReference.candidates.length > 0 ? r.unresolvedReference.candidates.join(", ") : "none";
+    // Explicitly NOT a prior-engagement note (constitution prohibition 8): this
+    // result is only a CANDIDATE for a ref session history never resolved.
+    out += `\n   ? [UNRESOLVED reference ${r.unresolvedReference.from} -- candidates: ${list}]`;
+  }
+  return out;
 }
 
 /**
@@ -183,12 +204,42 @@ function formatSearchResult(r: EnrichedResult, i: number): string {
  * omitted entirely when it does not (SR-019). Pre-v3.1.0 entries therefore read
  * exactly as they did before -- no "unknown project" placeholder, which would be
  * noise about the record rather than information about the work.
+ *
+ * `db`, when supplied, resolves each ref through the identity projection
+ * (SCN-008/SCN-009) so a renamed note's ref reads against its current path and
+ * an ambiguous one renders explicitly as unresolved with its candidates --
+ * never silently dropped, never silently bound (SR-042/SR-043). Omitting `db`
+ * renders exactly as before v3.9.0 (purely additive; existing callers and
+ * tests are unaffected).
  */
-export function formatRecentEntry(e: RecentEntry): string {
-  const provenance = e.refs.map((ref) => `${ref.path}@${ref.hash}`);
+export function formatRecentEntry(e: RecentEntry, db?: DB): string {
+  const provenance = e.refs.map((ref) => formatRefLine(ref, db));
   const project = e.workspace ? ` [${e.workspace.project}]` : "";
   const head = `${e.day} ${e.time.slice(11, 19)}${project} — ${e.summary}`;
   return provenance.length ? `${head}\n   refs: ${provenance.join("\n         ")}` : head;
+}
+
+/**
+ * One ref's rendered line. The recorded (path, hash) is always shown first --
+ * the stored identity never changes -- with a resolution note appended only
+ * when there is one to make (SR-042/SR-043).
+ */
+function formatRefLine(ref: VersionedRef, db?: DB): string {
+  const base = `${ref.path}@${ref.hash}`;
+  if (!db) return base;
+  const resolution = resolveRef(db, ref);
+  if (resolution.status === "current") return base;
+  if (resolution.status === "bound") {
+    // SR-046: a confirmed binding is sticky even when a fresher automatic
+    // exact-hash match disagrees -- render both facts rather than pick one.
+    if (resolution.conflict) {
+      return `${base} (confirmed ${resolution.path}; the hash now matches ${resolution.conflict.to})`;
+    }
+    return `${base} (renamed to ${resolution.path})`;
+  }
+  const candidates = resolution.candidates ?? [];
+  const list = candidates.length > 0 ? candidates.join(", ") : "none";
+  return `${base} [UNRESOLVED -- candidates: ${list}]`;
 }
 
 /**
@@ -200,14 +251,14 @@ export function formatRecentEntry(e: RecentEntry): string {
  *
  * `detail: "brief"` states what it omitted rather than silently truncating.
  */
-export function formatRecentSession(s: RecentSession): string {
-  if (s.incrementCount === 1 && !s.abbreviated) return formatRecentEntry(s.increments[0]!);
+export function formatRecentSession(s: RecentSession, db?: DB): string {
+  if (s.incrementCount === 1 && !s.abbreviated) return formatRecentEntry(s.increments[0]!, db);
   const project = s.project ? ` [${s.project}]` : "";
   const span = s.day === s.lastDay ? s.day : `${s.day} → ${s.lastDay}`;
   const shown = s.abbreviated
     ? `first and last of ${s.incrementCount} steps — middle ${s.incrementCount - 2} omitted (detail: brief)`
     : `${s.incrementCount} steps, in order`;
-  const body = s.increments.map((e) => `  · ${formatRecentEntry(e).replace(/\n/g, "\n  ")}`).join("\n");
+  const body = s.increments.map((e) => `  · ${formatRecentEntry(e, db).replace(/\n/g, "\n  ")}`).join("\n");
   return `${span}${project} — one session, ${shown}:\n${body}`;
 }
 
