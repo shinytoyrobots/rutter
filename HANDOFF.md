@@ -1,9 +1,38 @@
 # HANDOFF — my-librarian
 
-**Last updated:** 2026-08-04
+**Last updated:** 2026-08-05
 **Purpose:** Single resume-point after a context clear or model switch. Self-contained: everything needed to continue the build without re-reading the whole history. Written for a fresh model/context.
 
-> **Read §2.1 first.** The 2026-08-04 session shipped five PRs and changed the project's *purpose*: it is now heading for publication as an open-source artifact, not only a personal tool. Everything below §2.1 predates that and is still accurate as history.
+> **Read §2.0 first.** The 2026-08-05 session ran a full flow effort (decision-graph Phase 0: durable note identity) end-to-end — spec → evals → two generations → cull → converge → chavruta → metastable ship — plus a same-day production defect fix and a docs promotion. Everything sits on **PR #17, OPEN and awaiting Robin's merge**. §2.1 covers 2026-08-04; everything below that is history.
+
+## 2.0 Session of 2026-08-05 — note identity shipped, dogfood bit back same day
+
+**Spec v3.10.2 · suite 0.8.0 · constitution v4.0.0 · PR #17 open at `b873aae` on `ship/decision-graph-phase-0`. 116 tests + tsc clean. Merge with a MERGE COMMIT, never squash — the flow ship SHAs (993a89d, dfa3811) and generation lineage must stay reachable from main.**
+
+**What shipped (effort decision-graph, Phase 0):** recorded refs survive vault renames. Exact-hash auto-binding (SR-036); ambiguity surfaced with candidates, never guessed (SR-037, prohibition 8); confirmation via CLI only, never MCP (SR-044 — a model must not be able to confirm bindings; this applies to assistants too: hand Robin the command, never run it); append-only `note-identity@1` ledger at `_librarian/note-identity.md` (SR-039); strict (path,hash) keying, newest-wins for automatic only (SR-045); **confirmed bindings are sticky, conflicts render as "confirmed X; the hash now matches Y" (SR-046** — born from a gen-1 population fork, HITL-resolved). Projections stay disposable (drop `data/librarian.db`, reindex).
+
+**The flow trail (audit register: `efforts/decision-graph/flow-state.yaml` phase-log):** gen-1 3×sonnet (interpretation panel first → spec v3.9.0), cull found SR-046 fork + var-2's byte-append defect; gen-2 refined both survivors (suite 0.7.0 holdouts authored FIRST — flow-generate halted on SR-046's missing mapping, HITL chose eval-first); cull: var-3-reversibility first fully-conformant variant, its byte-test found and fixed a real shared-ancestor serializer defect; converge 0.846 → metastable ship, chavruta 2 NON-BLOCKING dissents, both mitigated pre-ship (M1 schema-drift guard, M2 docs). Constitution v4.0.0 recalibrated light budgets 150k/500k → 200k/700k from actuals (Rule 5 fired at dispatch).
+
+**Day-one production finding (the session's best moment):** first live reindex reported 31 dead refs — **27 were false**: refs to existing non-note files (`.gitignore`, `_librarian/*`, `.html`/`.yaml`), mislabeled because dead-ref detection resolved paths against the md-notes index, not the disk. Every variant, both generations, the panel, the ledgers, AND the eval suite (all-markdown fixtures) shared the blind spot — only production caught it. Fix-now-same-PR (HITL): spec v3.10.2 patch (resolution = confined disk existence, any file type), suite 0.8.0 (+COR-R-038 incident-derived, +COR-A-021 over-correction holdout), fix @ dfa3811, independently re-scored ALL GREEN. Live proof: 31 → 4 records / 2 genuine paths. Lesson recorded in GOODHART.md: fixture diversity (file types, dotfiles, sidecars) is now a standing authoring consideration.
+
+**Docs promoted:** `docs/getting-started.md` (zero-to-first-recall tutorial; tw-generate pipeline: research → draft → 34/34 verification → revision → operator edits; archival copy in vault at `Notes/Reference/Tech-Writer/generate/2026-08/05-zero-to-first-recall/`). Same commit retired the stale pre-v3.4.0 CLAUDE.md guidance from `docs/memory-of-use.md` + `docs/overview.md` and added `--scope user` to README's registration example.
+
+**Open, in priority order:**
+1. **Merge PR #17** (merge commit). Then reconnect the MCP client (`/mcp` → reconnect; stdio server, no daemon).
+2. **Repair the two real unresolved refs** — the kung-fu draft moved+renamed to published state (Robin's identification). Robin runs (never the assistant — SR-044):
+   `npm run identity-confirm -- "Non-Fiction/Drafts/I know kung fu. I might remember how to throw one punch..md" "Non-Fiction/Field Notes/2026-08-02 - I know kung fu. I might remember how to throw one punch..md"` and the same for `"Notes/Reference/Field Notes drafts/2026-07-31-i-know-kung-fu-first-draft.md"`, then `npm run reindex`. NOTE: these are the ledger's FIRST entries — from then on `_librarian/` holds the only copy of confirmed bindings (dissent-0002's armed probe; vault backup covers it). Afterwards: flip `dissent-2026-08-05-0001` from `reactivated` back to `active` in `efforts/decision-graph/dissents-active.yaml` (its firing condition — zero-candidate rows ≥1 — clears).
+3. **Desirability-gate verdict ~2026-08-09** (mandatory HITL, carried from §2.1 incl. the falsifiability fix it demands). New wrinkle: constitution prohibition 9 — identity-introduced reads never count toward the gate metric. Phases A–C of `docs/decision-graph-plan.md` stay spec-locked until the verdict (escalation trigger 5).
+4. **SR-104 calibration patch:** instrument the NAMED span (dead-ref detection + exact-hash + projection rebuild) on the shipped code, then patch the bound. Live data exists: 118ms/147ms at 2,428 notes. Chavruta explicitly rejected pinning to full-reindex (5× headroom = unfalsifiable). Harness entry stays `mapping-pending: calibration`.
+5. **flow-eval backlog: 9 items** (gen-2/summary.md §Suite gaps + fix1 ledger audit D-4 edited-in-place MEDIUM / D-5 renamed-non-note; SR-024..035 backfill; cost-grader formula write-down; confirm-target validation; zero-candidate-enrichment task — which doubles as dissent-0001's resolve trigger).
+6. **Spend calibration for next dispatch:** evaluators run ~245k each at quick+targeted-adversarial (not 180k); in-prompt token budgets are confirmed advisory two generations running (agents cannot see their own spend). Gen-2 total: 852,962 observed vs 700k budget.
+7. **Publish checklist** (carried from §2.1): still gated on the gate verdict; the fresh-clone-as-a-stranger test now has a written path — `docs/getting-started.md` IS the script, run it on a clean machine.
+8. Housekeeping, non-blocking: ~20 stale worktrees under `.claude/worktrees/` (s1-5 + dg generations); prune after PR #17 merges.
+
+**Mechanics a fresh session must not rediscover:**
+- `src/identity.ts` contains ONE deliberate NUL byte (composite-key separator in `distinctRefs`) — `git grep` reports the file as binary; use `grep -a`.
+- `efforts/` split: `dissents-active.yaml` + `shipped/` are committed; `flow-state.yaml` + `generations/` are gitignored working artifacts.
+- The dissent registry has 2 entries with mechanically-testable reactivation probes (`shipped/ship-2026-08-05-0001/post-ship-eval/config.md` lists them). dissent-0001 is in `reactivated` until item 2 above completes.
+- M1 means an additive-optional field on the identity schema now THROWS at the serializer until `CANONICAL_BINDING_FIELDS` is updated with it — that is fail-closed by design, not a bug.
 
 ---
 

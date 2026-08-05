@@ -89,3 +89,22 @@ identity pass visibly slowing daily reindex on the live vault (~2,300 notes).
 
 `comms/changelog.md` — single-audience (changelog + how-to), per operator preference;
 the how-to is the shipped docs themselves (README §note-identity, memory-of-use §6).
+
+---
+
+## Addendum — fix1 (2026-08-05, pre-merge of PR #17)
+
+Ring-0 day one surfaced a defect the whole pipeline missed: dead-ref detection
+resolved paths against the markdown notes index, not the disk — 27 of 31 reported
+dead refs were live non-note files mislabeled UNRESOLVED. Routed fix-now-same-PR
+(HITL): spec v3.10.2 (patch, path resolution = confined disk existence, any file
+type), suite 0.8.0 (COR-R-038 from the incident + COR-A-021 over-correction
+holdout), fix @ dfa3811 (existsConfined fallback; candidates stay notes-only;
+ledger/SR-046 untouched), independently re-scored ALL GREEN — correctness 1.00
+stands, 116/116 tests. Live-vault proof: 31 → 4 dead-ref records (2 genuine
+paths). Ship SHA for this record is superseded by the PR head (merge 4307ea5).
+New suite debt from the fix's ledger audit: D-4 (edited-in-place ref, no task —
+MEDIUM), D-5 (renamed non-note never rediscovered, no task — LOW-MEDIUM).
+dissent-0001 remains reactivated: the live zero-candidate population is now 100%
+genuine (the two kung-fu draft paths) — operator acknowledge/mitigate/resolve
+pending.

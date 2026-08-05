@@ -3,7 +3,7 @@ import path from "node:path";
 import matter from "gray-matter";
 import { z } from "zod";
 import { config } from "./config.js";
-import { atomicWrite } from "./fs-safe.js";
+import { atomicWrite, existsConfined } from "./fs-safe.js";
 import { contentHash, type VersionedRef } from "./refs.js";
 import { walkMarkdown } from "./vault.js";
 import { readAllRecords, type SessionRecord } from "./session-record.js";
@@ -208,6 +208,25 @@ export function buildVaultHashIndex(root: string = config.vaultPath): VaultHashI
   return { paths, byHash };
 }
 
+/**
+ * Path resolution (identity pass), per spec v3.10.2's glossary entry: a
+ * recorded ref's path resolves iff a FILE EXISTS on disk at that vault-relative
+ * path, inside vault confinement -- regardless of file type or whether it is
+ * an indexed markdown note. `hashIndex.paths` (from `buildVaultHashIndex`,
+ * i.e. `walkMarkdown`) covers the common case cheaply, since almost every
+ * live ref is to an indexed note; `existsConfined` is the fallback for a
+ * confined, live, NON-note artifact (`.gitignore`, `_librarian/*`, an
+ * exported `.html`/`.yaml` under `Notes/Reference/`, etc.) -- capture may
+ * legitimately reference any confined vault file (`refs.ts`/`buildRef` hashes
+ * whatever bytes are actually there), so the identity pass must not treat
+ * "not an indexed note" as "dead". Candidate generation for exact-hash
+ * matching stays scoped to NOTES ONLY (`hashIndex.byHash`) -- that was never
+ * wrong, and this function does not touch it.
+ */
+function pathResolvesOnDisk(vaultRoot: string, hashIndex: VaultHashIndex, relPath: string): boolean {
+  return hashIndex.paths.has(relPath) || existsConfined(vaultRoot, relPath);
+}
+
 /** Every distinct (path, hash) pair referenced anywhere across all records. */
 export function distinctRefs(records: SessionRecord[]): VersionedRef[] {
   const seen = new Map<string, VersionedRef>();
@@ -325,7 +344,7 @@ export function runIdentityPass(
   const projections: Array<{ ref: VersionedRef; resolution: PairResolution }> = [];
 
   for (const ref of refs) {
-    if (hashIndex.paths.has(ref.path)) continue; // still resolves -- not a dead ref
+    if (pathResolvesOnDisk(vaultRoot, hashIndex, ref.path)) continue; // still resolves -- not a dead ref
     checked++;
     const { resolution, toAppend: pending } = resolvePair(ref, hashIndex, ledger, now);
     if (pending) toAppend.push(pending);
@@ -394,13 +413,21 @@ function noteExistsInProjection(db: DB, notePath: string): boolean {
 /**
  * Read-time resolution (SR-042/SR-043) for one ref, queried against the
  * rebuildable projection -- never against the ledger file directly (that
- * happens once, at reindex, in `runIdentityPass`). Never throws; a ref this
- * projection has no opinion on yet (e.g. captured after the last reindex)
- * reports "unresolved" with an empty candidate list rather than silently
- * passing the stale path through as if nothing were wrong.
+ * happens once, at reindex, in `runIdentityPass`) -- with ONE narrow exception
+ * for path resolution itself (spec v3.10.2): the `notes` projection only ever
+ * indexes markdown notes, so a ref to a confined NON-note artifact that still
+ * exists on disk (`.gitignore`, `_librarian/*`, a `.html`/`.yaml` export) has
+ * no row there even though it plainly still resolves. `existsConfined` covers
+ * exactly that gap, and only runs as a fallback when the notes projection
+ * didn't already answer "current" -- the common case (an indexed note) never
+ * pays for it. Never throws; a ref this projection has no opinion on yet (e.g.
+ * captured after the last reindex) reports "unresolved" with an empty
+ * candidate list rather than silently passing the stale path through as if
+ * nothing were wrong.
  */
-export function resolveRef(db: DB, ref: VersionedRef): RefResolution {
+export function resolveRef(db: DB, ref: VersionedRef, vaultRoot: string = config.vaultPath): RefResolution {
   if (noteExistsInProjection(db, ref.path)) return { status: "current", path: ref.path };
+  if (existsConfined(vaultRoot, ref.path)) return { status: "current", path: ref.path };
 
   const binding = db
     .prepare(`SELECT to_path, detected FROM identity_bindings WHERE from_path = ? AND hash = ?`)
