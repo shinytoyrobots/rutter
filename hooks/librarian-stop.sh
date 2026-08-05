@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Claude Code Stop hook for my-librarian ambient capture (SCN-001).
+# Claude Code Stop hook for rutter ambient capture (SCN-001).
 #
 # Claude Code pipes the Stop event JSON (incl. `transcript_path` and
 # `session_id`) to this script on stdin at session end. We hand it straight to

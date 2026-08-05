@@ -1,4 +1,4 @@
-# HANDOFF — my-librarian
+# HANDOFF — rutter
 
 **Last updated:** 2026-08-05
 **Purpose:** Single resume-point after a context clear or model switch. Self-contained: everything needed to continue the build without re-reading the whole history. Written for a fresh model/context.
@@ -78,10 +78,10 @@ A **personal, persistent memory-of-use layer** for LLM conversation, built as an
 ## 2. Current status
 
 - **S1 walking skeleton: BUILT, VERIFIED, PUSHED, REGISTERED.**
-  - Repo: `~/Development/personal/my-librarian` → **https://github.com/shinytoyrobots/my-librarian** (PRIVATE), branch `main`, origin via SSH. Committer: `Robin Cannon <robin@shinytoyrobots.com>`.
+  - Repo: `~/Development/personal/my-librarian` (local folder keeps the old name for now — the Stop hook and MCP registration hold absolute paths into it) → **https://github.com/shinytoyrobots/rutter** (PUBLIC, renamed from my-librarian 2026-08-05; old URLs redirect), branch `main`, origin via SSH. Committer: `Robin Cannon <robin@shinytoyrobots.com>`.
   - Does: full-text search over the vault (node:sqlite FTS5) + two read-only MCP tools. No memory yet.
   - Verified against the real vault: **2,298 notes indexed in ~1s**; search returns provenance-tagged, snippet-highlighted results; MCP protocol smoke-tested over stdio (both tools register with `readOnlyHint`).
-  - **Registered into Claude Code** — `librarian-search` and `librarian-get-note` are live as `mcp__my-librarian__*` tools.
+  - **Registered into Claude Code** — `librarian-search` and `librarian-get-note` are live as `mcp__my-librarian__*` tools (registration predates the rename; re-add as `rutter` whenever convenient — tool names themselves are unchanged).
 - **Docs are in sync:** HANDOFF.md and DESIGN.md are committed (`9388700`, PR #1); the memory-of-use framing, ambient-capture S1.5 revision, elevated thesis, and KB/mdbase positioning are all folded into DESIGN.md.
 - **S1.5 spec: AUTHORED, APPROVED, FLOW-INITIALIZED.** Executable spec **v2.0.0** at `spec/spec.md` (4 SCN, 16 SR, 6 INV @ threshold 1.0) + `spec/constitution.md` v2.0.0 (7 prohibitions incl. docs-pass-at-every-stage; eval override: `accessibility` dimension replaced by `documentation` — headless server, no UI). Effort `s1-5-ambient-capture` (`flow.yaml`, `efforts/`), HITL-approved 2026-07-25. `flow-init` completion run done: canonical 6-dimension harness, placeholder grader specs (`evals/graders/`), empty datasets, `.flow-index/` codebase index, temperature 0.5.
 - **Eval suite: BOOTSTRAPPED (suite 0.2.0, spec v2.0.1, `mapping-pending` cleared).** 86 tasks / 19 datasets (one per acceptance criterion; correctness + security + all six invariants adversarially paired — `evals/GOODHART.md` records the accepted real-only gap for perf/maint/docs with close-triggers). Six INV graders `ready` @ threshold 1.0 (hard-cull); the six dimension graders stay `placeholder` because their **runner scripts are built with the gen-1 implementation** (recorded in `harness.yaml` `runners:` block).
@@ -117,7 +117,7 @@ src/
 ```
 
 Run: `npm install && npm run build && npm run reindex`. Then `npm run search -- <query>`.
-Register: `claude mcp add my-librarian --scope user -- node <repo>/dist/stdio.js`.
+Register: `claude mcp add rutter --scope user -- node <repo>/dist/stdio.js`.
 
 ## 4. Hard-won gotchas (do NOT rediscover these)
 

@@ -56,16 +56,16 @@ session happened** — automatically, with nothing for you to name or configure:
   summary: Shipped workspace provenance.
   refs: []
   workspace:
-    cwd: /Users/you/Development/personal/my-librarian
-    project: my-librarian
-    repo: https://github.com/you/my-librarian.git
+    cwd: /Users/you/Development/personal/rutter
+    project: rutter
+    repo: https://github.com/you/rutter.git
 ```
 
 - **`cwd`** — the session's working directory, exactly as Claude Code reported it
   on the Stop event.
 - **`project`** — derived from that directory: the name of the enclosing git
   working tree, or the directory's own name when it isn't in a repo. A session run
-  from `my-librarian/src` is still project `my-librarian`. It is **never something
+  from `rutter/src` is still project `rutter`. It is **never something
   you supply** — being asked to name it would make capture non-ambient.
 - **`repo`** — the `origin` URL, read straight out of `.git/config`. The librarian
   never runs `git` (no subprocess) and never contacts the remote (no network); the
@@ -203,7 +203,7 @@ tool. It returns recent session summaries **most-recent-first**, each with its
 date, its project, and the versioned provenance of the notes it references:
 
 ```
-2026-07-26 10:15:00 [my-librarian] — Shipped workspace provenance.
+2026-07-26 10:15:00 [rutter] — Shipped workspace provenance.
    refs: Notes/foo.md@sha256:…
 2026-07-25 21:40:00 [novel] — Drafted chapter three.
 2026-07-24 09:12:00 — An entry captured before provenance existed.
@@ -250,7 +250,7 @@ From the terminal:
 npm run recent                        # everything, most-recent-first
 npm run recent -- 3                   # the 3 most recent
 npm run recent -- --days 7            # just the last week
-npm run recent -- --project my-librarian   # just one project
+npm run recent -- --project rutter   # just one project
 ```
 
 ---

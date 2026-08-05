@@ -1,6 +1,6 @@
 # Your notes are the store. This is the memory of using them.
 
-*What my-librarian is, why it is built the way it is, and what that costs.*
+*What rutter is, why it is built the way it is, and what that costs.*
 
 ## What this explains
 
@@ -8,7 +8,7 @@ A folder of markdown notes is a store of knowledge. Hand the same folder to two 
 do not come away with the same thing. Which notes each of them opened, what each concluded, which
 question one of them finally stopped reopening — none of that is in the store. It never was.
 
-my-librarian keeps that second thing.
+rutter keeps that second thing.
 
 It gives an AI session the memory of how **you** traversed and used a body of knowledge, rather
 than the specifics of the knowledge itself. Same store, two readers, two different memories. The
@@ -17,9 +17,11 @@ store is objective and shareable. The memory of using it is neither.
 Worth being exact about the scope, because the shape of the code invites a wrong guess: this is not
 about coding sessions. A session might be research, drafting, planning, or just reading around a
 problem. The directory underneath is a knowledge vault, not a codebase — Obsidian is what it was
-built against, though nothing requires it. The name comes from the Librarian in Neal Stephenson's
-*Snow Crash*: a companion that remembers across time and thinks alongside you. That is the one
-thing a stateless assistant cannot be.
+built against, though nothing requires it. The inspiration is the Librarian in Neal Stephenson's
+*Snow Crash*: a companion that remembers across time and thinks alongside you — the one thing a
+stateless assistant cannot be. The name is from the age of sail: a rutter was the logbook of the
+routes actually sailed, as against the map. The map tells you what is known. The rutter is what
+you did about it.
 
 This document is about *why* it is built this way. If you want to run it, start with
 [`getting-started.md`](./getting-started.md). If you want the mechanics of capture, recall and
@@ -202,6 +204,10 @@ plan.
   capture. If that half of the position is the part you want, start there.
 - [Kage](https://github.com/kage-core/Kage) — the nearest neighbor on content-hashed provenance,
   resolved the other way: it withholds stale memories where this shows the drift.
+- ["You're lost, unless you have a rutter."](https://www.robin-cannon.com/p/youre-lost-unless-you-have-a-rutter)
+  — the essay the name comes from: the Dutch East India Company's logbooks of routes actually
+  sailed, and Clavell's warning that a rutter is only as good as the pilot who wrote it — which is
+  why every reference here carries a hash.
 
 ---
 
