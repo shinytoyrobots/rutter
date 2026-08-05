@@ -25,7 +25,7 @@
 4. **SR-104 calibration patch:** instrument the NAMED span (dead-ref detection + exact-hash + projection rebuild) on the shipped code, then patch the bound. Live data exists: 118ms/147ms at 2,428 notes. Chavruta explicitly rejected pinning to full-reindex (5× headroom = unfalsifiable). Harness entry stays `mapping-pending: calibration`.
 5. **flow-eval backlog: 9 items** (gen-2/summary.md §Suite gaps + fix1 ledger audit D-4 edited-in-place MEDIUM / D-5 renamed-non-note; SR-024..035 backfill; cost-grader formula write-down; confirm-target validation; zero-candidate-enrichment task — which doubles as dissent-0001's resolve trigger).
 6. **Spend calibration for next dispatch:** evaluators run ~245k each at quick+targeted-adversarial (not 180k); in-prompt token budgets are confirmed advisory two generations running (agents cannot see their own spend). Gen-2 total: 852,962 observed vs 700k budget.
-7. **Publish checklist** (carried from §2.1): still gated on the gate verdict; the fresh-clone-as-a-stranger test now has a written path — `docs/getting-started.md` IS the script, run it on a clean machine.
+7. **Publish checklist: DONE 2026-08-05 — ahead of its gate.** Repo public, `v0.1.0` tagged (PRs #19 and the visibility flip). This was originally gated on the gate verdict and shipped without it, on an explicit operator call (timing argument: prior art shown by timeline). The verdict (~2026-08-09) is still owed and its falsifiability fix (item 3) is unchanged. Operator runs the fresh-clone stranger test from outside; `docs/getting-started.md` is the script.
 8. Housekeeping, non-blocking: ~20 stale worktrees under `.claude/worktrees/` (s1-5 + dg generations); prune after PR #17 merges.
 
 **Mechanics a fresh session must not rediscover:**
