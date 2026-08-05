@@ -204,6 +204,10 @@ plan.
   capture. If that half of the position is the part you want, start there.
 - [Kage](https://github.com/kage-core/Kage) — the nearest neighbor on content-hashed provenance,
   resolved the other way: it withholds stale memories where this shows the drift.
+- ["You're lost, unless you have a rutter."](https://www.robin-cannon.com/p/youre-lost-unless-you-have-a-rutter)
+  — the essay the name comes from: the Dutch East India Company's logbooks of routes actually
+  sailed, and Clavell's warning that a rutter is only as good as the pilot who wrote it — which is
+  why every reference here carries a hash.
 
 ---
 
