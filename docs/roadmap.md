@@ -111,6 +111,12 @@ after the fact.
 
 **Exit:** public repo, MIT, README that claims the right thing.
 
+**Status (2026-08-05): DONE — and out of order.** Published and tagged `v0.1.0` ahead of
+the Phase 0 gate verdict, on an explicit operator call; the timing argument above won.
+Recorded plainly: publication was originally gated on the verdict and shipped without
+it. The gate work is unchanged, the verdict (~2026-08-09) is still owed, and a public
+repo does not count as evidence the stateful behavior gets reached for.
+
 ---
 
 ## Phase 3 — The next pillar, chosen by evidence (after the verdict)
