@@ -50,6 +50,21 @@ export function initSchema(db: DB): void {
       candidates TEXT NOT NULL,
       PRIMARY KEY (from_path, hash)
     );
+    -- SR-046 (gen-2/var-3-reversibility, additive): a fresh automatic exact-hash
+    -- detection that conflicts with an existing detected:confirmed binding for the
+    -- same (from_path, hash) pair. A NEW table rather than a new column on
+    -- identity_bindings, deliberately: identity_bindings' shape is unchanged, so
+    -- rolling this feature back is "drop this table and this code path", never a
+    -- migration of the existing one. Like the other identity_* tables this is a
+    -- disposable cache (INV-4) recomputed wholesale from the vault + ledger at
+    -- every reindex -- never a source of truth by itself.
+    CREATE TABLE IF NOT EXISTS identity_conflicts (
+      from_path    TEXT NOT NULL,
+      hash         TEXT NOT NULL,
+      confirmed_to TEXT NOT NULL,
+      detected_to  TEXT NOT NULL,
+      PRIMARY KEY (from_path, hash)
+    );
   `);
 }
 
@@ -73,6 +88,7 @@ export function resetIdentitySchema(db: DB): void {
   db.exec(`
     DROP TABLE IF EXISTS identity_bindings;
     DROP TABLE IF EXISTS identity_unresolved;
+    DROP TABLE IF EXISTS identity_conflicts;
   `);
   initSchema(db);
 }

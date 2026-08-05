@@ -16,11 +16,20 @@ import type { VersionedRef } from "./refs.js";
 const db = openDb();
 
 function formatRef(ref: VersionedRef): string {
+  const base = `${ref.path}@${ref.hash}`;
   const resolution = resolveRef(db, ref);
-  if (resolution.status === "current") return `${ref.path}@${ref.hash}`;
-  if (resolution.status === "bound") return `${ref.path}@${ref.hash} (renamed to ${resolution.path})`;
+  if (resolution.status === "current") return base;
+  if (resolution.status === "bound") {
+    // SR-046: mirrors the MCP librarian-recent rendering in server.ts -- a
+    // confirmed binding is sticky even when a fresher automatic exact-hash
+    // match disagrees; render both facts.
+    if (resolution.conflict) {
+      return `${base} (confirmed ${resolution.path}; the hash now matches ${resolution.conflict.to})`;
+    }
+    return `${base} (renamed to ${resolution.path})`;
+  }
   const candidates = resolution.candidates ?? [];
-  return `${ref.path}@${ref.hash} [UNRESOLVED -- candidates: ${candidates.length ? candidates.join(", ") : "none"}]`;
+  return `${base} [UNRESOLVED -- candidates: ${candidates.length ? candidates.join(", ") : "none"}]`;
 }
 
 const args = process.argv.slice(2);

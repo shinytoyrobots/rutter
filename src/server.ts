@@ -170,14 +170,31 @@ export function createServer(): McpServer {
   return server;
 }
 
-/** One search hit, with a prior-engagement note appended only when present. */
+/**
+ * One search hit, with additive annotations appended only when present:
+ * a prior-engagement note (SR-008), the SR-046 conflict riding with a
+ * confirmed one, and/or an SR-043 unresolved-candidate note. All are quiet on
+ * results with none of these signals (SR-009) and never change what results
+ * exist or how they are ordered (SR-010).
+ */
 function formatSearchResult(r: EnrichedResult, i: number): string {
   const badges = [r.type, r.status, r.created].filter(Boolean).join(" · ");
   const meta = badges ? ` — ${badges}` : "";
-  const base = `${i + 1}. ${r.title}${meta}\n   ${r.path}\n   …${r.snippet}…`;
-  if (!r.priorEngagement) return base; // quiet on unreferenced results (SR-009)
-  // Presented as clearly-delimited DATA, never as an instruction (SEC-A-010).
-  return `${base}\n   ↩ prior engagement ${r.priorEngagement.date}: "${r.priorEngagement.summary}"`;
+  let out = `${i + 1}. ${r.title}${meta}\n   ${r.path}\n   …${r.snippet}…`;
+  if (r.priorEngagement) {
+    // Presented as clearly-delimited DATA, never as an instruction (SEC-A-010).
+    out += `\n   ↩ prior engagement ${r.priorEngagement.date}: "${r.priorEngagement.summary}"`;
+    if (r.identityConflict) {
+      out += `\n   ⚠ confirmed ${r.path}; the hash now matches ${r.identityConflict.to}`;
+    }
+  }
+  if (r.unresolvedReference) {
+    const list = r.unresolvedReference.candidates.length > 0 ? r.unresolvedReference.candidates.join(", ") : "none";
+    // Explicitly NOT a prior-engagement note (constitution prohibition 8): this
+    // result is only a CANDIDATE for a ref session history never resolved.
+    out += `\n   ? [UNRESOLVED reference ${r.unresolvedReference.from} -- candidates: ${list}]`;
+  }
+  return out;
 }
 
 /**
@@ -212,7 +229,14 @@ function formatRefLine(ref: VersionedRef, db?: DB): string {
   if (!db) return base;
   const resolution = resolveRef(db, ref);
   if (resolution.status === "current") return base;
-  if (resolution.status === "bound") return `${base} (renamed to ${resolution.path})`;
+  if (resolution.status === "bound") {
+    // SR-046: a confirmed binding is sticky even when a fresher automatic
+    // exact-hash match disagrees -- render both facts rather than pick one.
+    if (resolution.conflict) {
+      return `${base} (confirmed ${resolution.path}; the hash now matches ${resolution.conflict.to})`;
+    }
+    return `${base} (renamed to ${resolution.path})`;
+  }
   const candidates = resolution.candidates ?? [];
   const list = candidates.length > 0 ? candidates.join(", ") : "none";
   return `${base} [UNRESOLVED -- candidates: ${list}]`;
