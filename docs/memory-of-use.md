@@ -357,7 +357,13 @@ still there, so the librarian can tell *what* the reference meant even after *wh
 moved.
 
 Every `npm run reindex` runs an identity pass over every recorded reference whose path no longer
-resolves:
+resolves — and "resolves" means exactly what it sounds like: a file exists on disk at that path,
+inside the vault, of ANY type. A reference can legitimately point at a non-note artifact (a
+`.gitignore`, an exported `.html`, a `.yaml` config, anything under `_librarian/` itself) since
+capture hashes whatever bytes are actually there; such a reference is live for as long as that
+file exists, and the identity pass never treats "not an indexed markdown note" as "dead." Only a
+path that is actually MISSING — deleted or moved with no trace at the old location — enters the
+rest of this section, note or not:
 
 - **Exactly one current note's content hash matches what was recorded** — the note was renamed,
   content untouched. The librarian binds the old path to the new one, deterministically, and
