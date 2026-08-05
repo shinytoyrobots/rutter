@@ -115,7 +115,9 @@ directory, never in this code repo. See [`docs/memory-of-use.md`](./docs/memory-
 
 **New here?** Read [`docs/overview.md`](./docs/overview.md) for what the librarian is and how it
 works, then [`docs/memory-of-use.md`](./docs/memory-of-use.md) for the capture / recall /
-enrichment / gate behaviors in depth. [`docs/roadmap.md`](./docs/roadmap.md) is the current
+enrichment / gate behaviors in depth. The same docs are published readable at
+[shinytoyrobots.github.io/my-librarian](https://shinytoyrobots.github.io/my-librarian/) —
+`npm run site-drift` reports when that site has drifted from these files. [`docs/roadmap.md`](./docs/roadmap.md) is the current
 sequencing, and [`DESIGN.md`](./DESIGN.md) the longer-range storage model.
 
 ## Try it from the CLI
