@@ -1,4 +1,4 @@
-# my-librarian
+# rutter
 
 **A record of what your AI sessions decided — and the receipts behind it.**
 
@@ -116,7 +116,7 @@ directory, never in this code repo. See [`docs/memory-of-use.md`](./docs/memory-
 **New here?** Read [`docs/overview.md`](./docs/overview.md) for what the librarian is and how it
 works, then [`docs/memory-of-use.md`](./docs/memory-of-use.md) for the capture / recall /
 enrichment / gate behaviors in depth. The same docs are published readable at
-[shinytoyrobots.github.io/my-librarian](https://shinytoyrobots.github.io/my-librarian/) —
+[shinytoyrobots.github.io/rutter](https://shinytoyrobots.github.io/rutter/) —
 `npm run site-drift` reports when that site has drifted from these files. [`docs/roadmap.md`](./docs/roadmap.md) is the current
 sequencing, and [`DESIGN.md`](./DESIGN.md) the longer-range storage model.
 
@@ -126,7 +126,7 @@ sequencing, and [`DESIGN.md`](./DESIGN.md) the longer-range storage model.
 npm run search -- bitemporal forgetting memory   # full-text search
 npm run recent                                   # recent session summaries
 npm run recent -- --days 7                        # just the last week
-npm run recent -- --project my-librarian           # just one project (case-insensitive)
+npm run recent -- --project rutter           # just one project (case-insensitive)
 npm run gate                                       # per-ISO-week use count
 ```
 
@@ -211,7 +211,7 @@ clone to first recall in eight verified steps.
 After `npm run build`, from the repository root:
 
 ```bash
-claude mcp add my-librarian --scope user -- node "$PWD/dist/stdio.js"
+claude mcp add rutter --scope user -- node "$PWD/dist/stdio.js"
 ```
 
 `--scope user` registers the server for every Claude Code session, in any directory.

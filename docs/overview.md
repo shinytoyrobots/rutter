@@ -1,6 +1,6 @@
 # Your notes are the store. This is the memory of using them.
 
-*What my-librarian is, why it is built the way it is, and what that costs.*
+*What rutter is, why it is built the way it is, and what that costs.*
 
 ## What this explains
 
@@ -8,7 +8,7 @@ A folder of markdown notes is a store of knowledge. Hand the same folder to two 
 do not come away with the same thing. Which notes each of them opened, what each concluded, which
 question one of them finally stopped reopening — none of that is in the store. It never was.
 
-my-librarian keeps that second thing.
+rutter keeps that second thing.
 
 It gives an AI session the memory of how **you** traversed and used a body of knowledge, rather
 than the specifics of the knowledge itself. Same store, two readers, two different memories. The
