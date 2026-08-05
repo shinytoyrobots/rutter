@@ -8,18 +8,16 @@ Eight steps. Each one ends with something you can check.
 
 ## Before you start
 
-- **Node 22 or newer.** Check with `node -v`. The package declares no `engines` field, so an older Node fails later rather than sooner. The built-in `node:sqlite` it depends on will simply be missing. Verified on Node 26.
+- **Node 22 or newer.** Check with `node -v`. npm warns at install time on an older Node — heed it, because the built-in `node:sqlite` this depends on will simply be missing. Verified on Node 26.
 - **npm and git.**
 - **Claude Code.** The three MCP tools work with any MCP client, but the Stop hook that powers ambient capture is Claude Code specific.
 - **A directory of markdown notes.** Obsidian is what my-librarian was built against — it understands wikilinks and frontmatter — but nothing requires Obsidian itself.
 - **No compiler toolchain.** There are zero native dependencies. The index is Node's built-in SQLite, so there is nothing to build and no database to install.
 
-**Repository access.** The repository is currently private. This lesson assumes you have been granted access.
-
 ## Step 1 — Clone and install
 
 ```bash
-git clone git@github.com:shinytoyrobots/my-librarian.git
+git clone https://github.com/shinytoyrobots/my-librarian.git
 cd my-librarian
 npm install
 ```
