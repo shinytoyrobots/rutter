@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Memory-of-use — my-librarian</title>
+<meta name="description" content="Capture, recall, enrichment, note identity, and the usage gate — the mechanics of my-librarian's memory-of-use layer in full.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<div class="scanlines" aria-hidden="true"></div>
+<div class="dead-channel" aria-hidden="true"></div>
+
+<header class="site">
+  <div class="site-inner">
+    <a class="wordmark" href="index.html">my-librarian_</a>
+    <nav class="site-nav" aria-label="Site">
+      <ul>
+        <li><a href="index.html">overview</a></li>
+        <li><a href="getting-started.html">getting-started</a></li>
+        <li><a href="memory-of-use.html" aria-current="page">memory-of-use</a></li>
+        <li><a href="https://github.com/shinytoyrobots/my-librarian">source on GitHub</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<div class="hero">
+  <h1>Memory-of-use: capture, recall, enrichment, and the gate<span class="cursor" aria-hidden="true">▌</span></h1>
+  <p class="dek">The mechanics in full — where the record lives, how it accrues, and how it comes back.</p>
+</div>
+
+<main id="main">
+
+<p>The librarian quietly records what each session decided or produced, lets you recall recent work, annotates search results you've engaged before, and measures whether you actually reach for any of it.</p>
+
+<p>All of this is local-first: nothing leaves your machine, the server runs no AI model (your client is the brain), and it only ever writes inside your vault's <code>_librarian/</code> overlay and the disposable <code>data/</code> index.</p>
+
+<h2 id="where-it-lives">1. Where the librarian keeps what it remembers</h2>
+
+<p>Session memory lives in your vault, as plain, human-readable, git-committable markdown:</p>
+
+<pre><code>&lt;vault&gt;/_librarian/sessions/2026-07-24.md</code></pre>
+
+<ul>
+  <li><strong>One file per day, one line per outcome.</strong> Each separable thing a session decides or produces adds <strong>one curated line</strong> to that day's file — not the raw transcript, and not one line per session. A working session usually leaves three or four; the measured average over the first fortnight of real capture was 3.2. Those lines are its <strong>steps</strong>, and <code>librarian-recent</code> groups them back into a single account of that session when you read it.</li>
+  <li><strong>Typed frontmatter.</strong> Each record carries a small typed header (the day, each session's identity and time, the curated summary, and the notes it touched by versioned identity).</li>
+  <li><strong>You can read and edit it.</strong> It's your markdown, in your vault. Open it in Obsidian, edit it, commit it.</li>
+  <li><strong>It is never auto-deleted.</strong> Records are only ever appended to. The librarian has no prune or delete path that destroys memory-of-use. The Claude Code Stop hook fires at the end of <em>every</em> assistant turn, so the same session's summary is offered for capture many times — capture is <strong>idempotent per directive</strong>: an unchanged summary is a no-op (the file is left byte-identical, no duplicate entry), and a <em>changed</em> summary is appended as a <strong>revision</strong> after the earlier one. Nothing is ever overwritten or deleted.</li>
+</ul>
+
+<p>A note reference is stored as a <strong>versioned identity</strong> — the vault-relative path plus a content-hash captured as it was read — so the reference still tells you <em>what you saw</em> even after the note changes later.</p>
+
+<h3 id="workspace-provenance">Which workspace an entry came from</h3>
+
+<p>Because a single day can span several efforts, each entry also records <strong>where the session happened</strong> — automatically, with nothing for you to name or configure:</p>
+
+<pre><code>- id: 20260726T101500123Z
+  time: 2026-07-26T10:15:00.123Z
+  summary: Shipped workspace provenance.
+  refs: []
+  workspace:
+    cwd: /Users/you/Development/personal/my-librarian
+    project: my-librarian
+    repo: https://github.com/you/my-librarian.git</code></pre>
+
+<ul>
+  <li><strong><code>cwd</code></strong> — the session's working directory, exactly as Claude Code reported it on the Stop event.</li>
+  <li><strong><code>project</code></strong> — derived from that directory: the name of the enclosing git working tree, or the directory's own name when it isn't in a repo. A session run from <code>my-librarian/src</code> is still project <code>my-librarian</code>. It is <strong>never something you supply</strong> — being asked to name it would make capture non-ambient.</li>
+  <li><strong><code>repo</code></strong> — the <code>origin</code> URL, read straight out of <code>.git/config</code>. The librarian never runs <code>git</code> (no subprocess) and never contacts the remote (no network); the URL is just a string it found in a file.</li>
+</ul>
+
+<p>Everything about this is best-effort and never blocks a capture:</p>
+
+<ul>
+  <li>No working directory in the payload → the whole <code>workspace</code> field is omitted and the entry is captured as usual.</li>
+  <li>Not inside a repository (or no <code>origin</code>) → <code>repo</code> is omitted; <code>cwd</code> and <code>project</code> still land.</li>
+  <li>A <code>.git</code> redirect (linked worktree or submodule) is followed only when its target is itself git metadata; anything else is refused and <code>repo</code> is omitted — the reader can't be steered into arbitrary directories.</li>
+  <li><strong>Entries captured before this existed stay valid, untouched.</strong> <code>workspace</code> is an <em>additive-optional</em> field on the same record schema — there is no migration, no rewrite of old records, and a day file can hold a mix of old and new entries.</li>
+  <li><strong>It never affects duplicate detection.</strong> Identity is the <em>directive</em>, so a Stop firing whose directory changed is still an unchanged directive and still a byte-identical no-op. Moving a project does not fork your history.</li>
+</ul>
+
+<h2 id="ambient-capture">2. Ambient capture — setting it up</h2>
+
+<p>Capture is <strong>ambient</strong>: it happens at session end with no action from you inside the session. It is wired through a Claude Code <strong>Stop hook</strong>.</p>
+
+<p><strong>Setup is one step</strong> — register the hook (<code>npm run install-hook</code>, or by hand; see <a href="getting-started.html#step-6">Step 6 of getting started</a>). There is nothing to add to your <code>CLAUDE.md</code>. The whole capture contract lives in the server's MCP (Model Context Protocol) instructions — a single source, quoted rather than restated everywhere else — and reaches every client on connect.</p>
+
+<p><strong>How the summary is produced (no AI in the server).</strong> The librarian server never summarizes anything — that would be inference, which it does not do. Instead your client writes the one-line summary <em>during</em> the session as a directive, and the hook lifts it out of the transcript verbatim:</p>
+
+<pre><code>&lt;!-- librarian-session {"summary":"Decided to store refs by content-hash; shipped capture.","refs":["Notes/foo.md"]} --&gt;</code></pre>
+
+<ul>
+  <li><code>summary</code> — the one curated line. Required.</li>
+  <li><code>refs</code> — optional vault-relative paths of notes the session touched.</li>
+  <li>The <strong>last</strong> directive in the session wins. If you emit none (or an empty summary), nothing is captured and no empty file is created.</li>
+  <li>A summary still wrapped in <code>&lt;angle brackets&gt;</code> is treated as an <strong>unfilled template</strong> and captured as nothing — so pasting the syntax without filling it in is safe.</li>
+</ul>
+
+<h3 id="the-style-contract">The style contract — how the summary should be written</h3>
+
+<p>A summary is authored by a session that is deep in its own context and read weeks later by someone who has none of it. Left alone, that produces build-log lines full of codenames and version tags that were obvious at the time and are opaque now. So the summary carries a <strong>style contract</strong>:</p>
+
+<blockquote>
+<p>Write the line for <strong>a smart reader in a hurry who was not in this session</strong>: lead with <strong>what was decided or produced</strong>, use <strong>common words</strong> rather than session shorthand, and <strong>expand or avoid</strong> codenames, version tags and abbreviations the session invented (terms your vault itself uses are fine). <strong>Aim for about 40 words and stop by 60</strong> — one line, not a build log.</p>
+</blockquote>
+
+<p>The word budget only works because the <em>trigger</em> agrees with it. The contract asks for a line per separable thing, as each thing lands — a client told it gets one directive at the end of a session packs the whole session into one line, which is exactly the overstuffed entry the budget exists to prevent.</p>
+
+<p>The word budget is advisory, and deliberately so. An over-long summary is stored byte-verbatim like any other — the capture path prints its word count so the drift is visible when it happens, and then stores exactly what it was given. Nothing in the server edits a summary to fit; the alternative, silently truncating, would lose the one copy of what the session meant.</p>
+
+<p>Compare:</p>
+
+<pre><code>✗  Landed HK-7/ambient-splice v0.9.3-rc2 behind FLG_SPLICE_V2; idx@4 -&gt; idx@5,
+   backfill gated on FKS_DUAL_READ, ZQ-1197 still open, cutover ETA W31.
+✓  Shipped the ambient capture path behind a feature flag, and started the
+   session-index upgrade — the data backfill is still switched off.</code></pre>
+
+<p><strong>What the server does about style: nothing at all.</strong> It stores the summary <strong>byte-verbatim</strong> — it never rewrites, shortens, "clarifies", or rejects a line for being dense, and there is no style warning written into your record. That is not an oversight, it is the invariant: judging or rewriting prose is inference, and the server runs no model. A dense summary is a <em>readability</em> problem handled by guidance and by read-time rendering, never a <em>data</em> problem solved by editing your memory.</p>
+
+<h2 id="recall">3. Recall recent work — librarian-recent</h2>
+
+<p>Ask <em>"what was I working on lately?"</em> and your client calls the <strong><code>librarian-recent</code></strong> tool. It returns recent session summaries <strong>most-recent-first</strong>, each with its date, its project, and the versioned provenance of the notes it references:</p>
+
+<pre><code>2026-07-26 10:15:00 [my-librarian] — Shipped workspace provenance.
+   refs: Notes/foo.md@sha256:…
+2026-07-25 21:40:00 [novel] — Drafted chapter three.
+2026-07-24 09:12:00 — An entry captured before provenance existed.</code></pre>
+
+<ul>
+  <li><strong>Project:</strong> shown in brackets when the entry recorded one. An entry without provenance shows nothing there — no "unknown project" placeholder, because that would be noise about the record rather than information about the work.</li>
+  <li><strong>Project filter:</strong> <em>"what have I been doing on the novel?"</em> — matching is on the recorded project name, case-insensitive, whole-name. Entries with no provenance are <strong>excluded</strong> from a filtered answer — the librarian will not match your filter against a summary's wording or a note path to manufacture a result it cannot actually vouch for.</li>
+  <li><strong>Window:</strong> limit to a recent span — <em>"what did I do last week?"</em> is the last 7 days.</li>
+  <li><strong>Count:</strong> cap the number of sessions.</li>
+  <li><strong>Empty state:</strong> with no records yet, it returns a plain <em>"No recent sessions recorded yet."</em> message — never an error. A filter that matches nothing says so specifically.</li>
+</ul>
+
+<p>Filters only ever <em>remove</em> entries: the order you get is the same order you would have got unfiltered.</p>
+
+<h3 id="dense-entries">Old, dense entries still read clearly</h3>
+
+<p>Records written before the style contract existed are exactly as dense as the day they were captured, and they are <strong>never migrated, edited, or re-summarized</strong> — memory-of-use is append-only, and rewriting your own past record to look tidier would be a worse bug than the density.</p>
+
+<p>Instead the server's instructions ask your <strong>client</strong> to <em>report</em> recalled summaries in plain language for whoever is asking — and that applies to every record, not just new ones. What is on disk is the record; what you are told is the answer. If you want the exact stored text, open the day file in Obsidian, or run <code>npm run recent</code>, which prints the raw stored line.</p>
+
+<pre><code>npm run recent                        # everything, most-recent-first
+npm run recent -- 3                   # the 3 most recent
+npm run recent -- --days 7            # just the last week
+npm run recent -- --project my-librarian   # just one project</code></pre>
+
+<h3 id="how-clients-know">How your client knows to ask</h3>
+
+<p>You do not have to tell your client when to use the librarian. The server declares its own MCP instructions, which every client receives on connect: recency questions go to <code>librarian-recent</code>; prior-engagement and content questions go to <code>librarian-search</code>; recalled summaries — including old, dense ones — get reported in plain language.</p>
+
+<p>This matters because guidance in a project's <code>CLAUDE.md</code> only helps in that project. Instructions that ship <em>with the server</em> travel to every client and every directory it's connected from — one install, not one per repo.</p>
+
+<p>The guidance says <em>when the tools are the right answer</em> — it does not tell your client to call them unprompted. Memory stays quiet until it's relevant.</p>
+
+<h2 id="search-enrichment">4. Search enrichment — quiet prior-engagement signals</h2>
+
+<p>When you run <strong><code>librarian-search</code></strong> and a result is a note a past session referenced, that one result carries a quiet <strong>prior-engagement</strong> note: <em>what you concluded and when</em>. For example:</p>
+
+<pre><code>1. Orbital telemetry pipeline — reference · evergreen · 2026-05-02
+   Notes/foo.md
+   …matching snippet…
+   ↩ prior engagement 2026-07-22: "Decided foo is the canonical source."</code></pre>
+
+<ul>
+  <li><strong>Silence is intentional.</strong> Results you've never engaged carry <strong>no</strong> annotation. The librarian is quiet when unprompted; the absence of a note is not a bug and is never "not seen before" noise.</li>
+  <li><strong>It never changes your results.</strong> Enrichment is <em>additive metadata only</em>: the set of results and their ranking are byte-identical to the plain search. A prior engagement never promotes, demotes, adds, or drops a result.</li>
+</ul>
+
+<h2 id="the-gate">5. Measuring the desirability gate</h2>
+
+<p>The memory-of-use layer exists behind a kill gate: <em>does ambient memory-of-use actually pull you toward stateful behavior?</em> The gate target is <strong>reaching for a stateful behavior unprompted at least three times a week, for two weeks.</strong></p>
+
+<p>Every time you invoke <code>librarian-recent</code>, or run a search that surfaces at least one prior-engagement signal, the librarian appends one timestamped event to a local, append-only log (<code>_librarian/stateful-use.jsonl</code>). A single search counts as exactly one event no matter how many signals it surfaced.</p>
+
+<pre><code>npm run gate                       # counts across all history
+npm run gate 2026-07-13 2026-07-26 # counts within a date range</code></pre>
+
+<p>Output is one line per ISO week, marking weeks that met the target:</p>
+
+<pre><code>stateful-use per ISO week (gate target: &gt;=3):
+  2026-W29: 2
+  2026-W30: 4  ✓</code></pre>
+
+<div class="callout">
+  <span class="label">Honesty note</span>
+  <p>Classifying an invocation as truly <em>unprompted</em> is left to manual review; the log captures every invocation with a timestamp so that review is possible. The project is prepared to conclude that the stateful behavior doesn't get reached for.</p>
+</div>
+
+<h2 id="note-identity">6. Note identity — surviving a vault rename</h2>
+
+<p>A reference records two things about a note at the moment it was touched: its vault-relative path, and a content hash. Rename the note later and the path stops resolving — but the hash is still there, so the librarian can tell <em>what</em> the reference meant even after <em>where</em> it lives has moved.</p>
+
+<p>Every <code>npm run reindex</code> runs an identity pass over every recorded reference whose path no longer resolves — and "resolves" means exactly what it sounds like: a file exists on disk at that path, inside the vault, of <em>any</em> type. A reference can legitimately point at a non-note artifact (a <code>.gitignore</code>, an exported <code>.html</code>, anything under <code>_librarian/</code> itself), and such a reference is live for as long as that file exists. Only a path that is actually missing enters the rest of this section:</p>
+
+<ul>
+  <li><strong>Exactly one current note's content hash matches what was recorded</strong> — the note was renamed, content untouched. The librarian binds the old path to the new one, deterministically, and appends the binding to a ledger (<code>_librarian/note-identity.md</code>). No heuristics, no similarity score, no model — a hash either matches or it doesn't.</li>
+  <li><strong>Zero matches, or more than one</strong> — the librarian does not guess. Zero means the note was renamed <em>and</em> edited; more than one means duplicate content exists, and picking one would be inventing an answer the vault doesn't actually give. Either way the reference renders explicitly as <strong>unresolved</strong>, with every candidate it found — never silently dropped, never silently bound to a guess.</li>
+</ul>
+
+<p><code>librarian-recent</code> and search enrichment resolve bound references through the ledger at read time: the session record you see still says what you wrote, but the ref line shows the note's current path, or <code>[UNRESOLVED -- candidates: ...]</code> when the librarian genuinely doesn't know. Nothing on this path ever rewrites the stored session entry — resolution happens only when it is displayed.</p>
+
+<p>A reference with <strong>no candidates at all</strong> (renamed <em>and</em> edited, so no current note matches its recorded hash) is visible on <code>librarian-recent</code> only — that listing is the complete discovery surface for unresolved references; search enrichment is a candidate-anchored extra, not a second complete listing. And a note that is merely a <em>candidate</em> for an old reference is never annotated as if a session had actually engaged it — the two claims are never conflated.</p>
+
+<p><strong>Confirmed bindings are sticky, and disagreements are surfaced, not silently settled.</strong> Suppose you confirm <code>Notes/old.md</code> to <code>Notes/keep.md</code>, and later the vault changes so that exact-hash matching would now point somewhere else. The confirmed binding still wins — a later piece of automation never outvotes a human decision — but the disagreement itself is not hidden: both read surfaces render it explicitly: <code>confirmed Notes/keep.md; the hash now matches Notes/stray.md</code>. The only thing that ever moves a confirmed binding is a fresh <code>npm run identity-confirm</code> run.</p>
+
+<p>If a reference stays unresolved, resolve it by hand:</p>
+
+<pre><code>npm run identity-confirm -- Notes/old-name.md Notes/new-name.md</code></pre>
+
+<p>This is a <strong>local terminal command only</strong> — it is never exposed as an MCP tool, so a connected client can never rewrite what a dead reference means on its own.</p>
+
+<p>The ledger is append-only, same as everything else here: a note renamed more than once gets a fresh binding each time, computed directly against what was originally recorded, with the newest <em>automatic</em> entry winning at read time. Confirmed entries are the one exception to "newest wins": once a pair is confirmed, only a later confirmation moves it. Earlier entries are never rewritten, reordered, or removed. The identity projection tables in the SQLite cache are, like the rest of the index, fully disposable: delete <code>data/librarian.db</code> and reindex, and they rebuild from the vault and the ledger alone.</p>
+
+<h2 id="guarantees">Guarantees</h2>
+
+<ul>
+  <li><strong>Local-first:</strong> no network calls, ever. Repository identity is resolved by reading <code>.git/config</code> — no <code>git</code> subprocess, and a remote URL is recorded as text, never fetched.</li>
+  <li><strong>Store immutability:</strong> the librarian only writes under <code>_librarian/</code> and <code>data/</code>; it never creates, modifies, or deletes vault notes.</li>
+  <li><strong>No hard-delete:</strong> memory-of-use records are only appended. Old records are never re-summarized or tidied up to match a newer convention.</li>
+  <li><strong>Rebuildable:</strong> <code>data/librarian.db</code> is a disposable cache; delete it and <code>npm run reindex</code> reconstructs everything from the vault plus <code>_librarian/</code>.</li>
+  <li><strong>No AI in the server:</strong> summaries are your client's; the server stores and serves them <strong>verbatim</strong> — including summaries that ignore the style contract entirely. Judging or improving prose would be inference, so the server does neither, at capture or at read time.</li>
+</ul>
+
+</main>
+
+<footer class="site">
+  <div class="footer-inner">
+    <p>my-librarian — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/my-librarian">Source and receipts on GitHub</a> · tagged <a href="https://github.com/shinytoyrobots/my-librarian/releases/tag/v0.1.0">v0.1.0</a>.</p>
+  </div>
+</footer>
+</body>
+</html>

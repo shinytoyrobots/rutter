@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Getting started — my-librarian</title>
+<meta name="description" content="From zero to your first recall: install my-librarian, index your notes, and turn on ambient capture. Eight verified steps.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<div class="scanlines" aria-hidden="true"></div>
+<div class="dead-channel" aria-hidden="true"></div>
+
+<header class="site">
+  <div class="site-inner">
+    <a class="wordmark" href="index.html">my-librarian_</a>
+    <nav class="site-nav" aria-label="Site">
+      <ul>
+        <li><a href="index.html">overview</a></li>
+        <li><a href="getting-started.html" aria-current="page">getting-started</a></li>
+        <li><a href="memory-of-use.html">memory-of-use</a></li>
+        <li><a href="https://github.com/shinytoyrobots/my-librarian">source on GitHub</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<div class="hero">
+  <h1>Getting started: from zero to your first recall<span class="cursor" aria-hidden="true">▌</span></h1>
+  <p class="dek">Eight steps. Each one ends with something you can check.</p>
+</div>
+
+<main id="main">
+
+<p>By the end of this lesson your notes will answer <em>"what was I working on lately?"</em> The answer comes from records your Claude Code sessions leave behind on their own, unasked.</p>
+
+<p>We will install my-librarian, index your notes, and write one memory by hand so you see a result in the first few minutes. Then we will turn on ambient capture and watch a real working session record itself.</p>
+
+<h2 id="before-you-start">Before you start</h2>
+
+<ul>
+  <li><strong>Node 22 or newer.</strong> Check with <code>node -v</code>. npm warns at install time on an older Node — heed it, because the built-in <code>node:sqlite</code> this depends on will simply be missing. Verified on Node 26.</li>
+  <li><strong>npm and git.</strong></li>
+  <li><strong>Claude Code.</strong> The three MCP (Model Context Protocol) tools work with any MCP client, but the Stop hook that powers ambient capture is Claude Code specific.</li>
+  <li><strong>A directory of markdown notes.</strong> Obsidian is what my-librarian was built against — it understands wikilinks and frontmatter — but nothing requires Obsidian itself.</li>
+  <li><strong>No compiler toolchain.</strong> There are zero native dependencies. The index is Node's built-in SQLite, so there is nothing to build and no database to install.</li>
+</ul>
+
+<h2 id="step-1">Step 1 — Clone and install</h2>
+
+<pre><code>git clone https://github.com/shinytoyrobots/my-librarian.git
+cd my-librarian
+npm install</code></pre>
+
+<p>Every command in this lesson runs from that repository directory.</p>
+
+<h2 id="step-2">Step 2 — Point it at your notes and build the index</h2>
+
+<p>my-librarian reads one directory of markdown notes. Configure the path to yours right away — before the first index, and before anything else depends on it. Set it, then index:</p>
+
+<pre><code>export LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes"
+npm run reindex</code></pre>
+
+<p>You should see your real note count:</p>
+
+<pre><code>[my-librarian] reindex complete: 1284 notes indexed, 0 skipped, 912ms
+  vault: /Users/you/Documents/notes
+  index: /Users/you/my-librarian/data/librarian.db
+[my-librarian] identity pass: 0 dead ref(s) checked, 0 bound, 0 unresolved, 0 ledger entries appended, 3ms</code></pre>
+
+<p><em>Output shape verified against code; your paths, dates, and counts will differ.</em></p>
+
+<div class="callout">
+  <span class="label">Stop and check</span>
+  <p>If it says <code>0 notes indexed</code>, stop here and fix the path. An unreadable notes directory is not an error — you get a successful-looking reindex over nothing. Everything downstream will install cleanly and then recall nothing at all. Check the <code>vault:</code> line against where your notes actually are, re-export, and reindex again.</p>
+</div>
+
+<h3 id="make-the-path-stick">Make the path stick</h3>
+
+<p>Two things later in this lesson run outside this terminal: the MCP server that Claude Code launches, and the capture hook. Both read <code>LIBRARIAN_VAULT_PATH</code>, and neither sees an <code>export</code> you typed in one shell session.</p>
+
+<p>Set it once for every Claude Code session, in <code>~/.claude/settings.json</code>. Merge this into the file, keeping whatever is already there:</p>
+
+<pre><code>{ "env": { "LIBRARIAN_VAULT_PATH": "/Users/you/path/to/your/notes" } }</code></pre>
+
+<p>The top-level <code>env</code> object sets environment variables for Claude Code sessions. It covers the MCP server and the Stop hook together, however you launch Claude Code — from the GUI, Raycast, an IDE terminal, or tmux. You will meet this same file again in Step 6, where the hook installer writes to it.</p>
+
+<p>A shell-profile <code>export</code> also works, but only when <code>claude</code> launches from a shell that re-sourced the edited profile.</p>
+
+<p>Two other variables are optional. <code>LIBRARIAN_DB_PATH</code> moves the index, which defaults to <code>data/librarian.db</code> inside the repository and is resolved from the module's own location rather than your working directory. <code>LIBRARIAN_USER_LABEL</code> is a bare noun — <code>Robin</code>, not <code>Robin's</code> — used as "&lt;label&gt;'s work" in the descriptions your client receives.</p>
+
+<h2 id="step-3">Step 3 — Capture your first memory by hand</h2>
+
+<p>No hook yet. We will write a record directly, so you can see the whole loop working before adding any moving parts.</p>
+
+<p>First confirm you are starting from nothing:</p>
+
+<pre><code>npm run recent</code></pre>
+
+<pre><code>No recent sessions recorded yet.</code></pre>
+
+<p>Now write one record:</p>
+
+<pre><code>echo '{"summary":"Set up my-librarian and captured this first memory by hand.","refs":[]}' | npm run capture</code></pre>
+
+<p>You should see:</p>
+
+<pre><code>[librarian-capture] captured 1 entry into 2026-08-05 session record.</code></pre>
+
+<p><em>Output shape verified against code; your date will differ.</em></p>
+
+<p>That summary is now stored as you wrote it. Nothing rewrites it, shortens it, or judges it — control characters are stripped and runs of whitespace collapsed, and that is the whole of it.</p>
+
+<h2 id="step-4">Step 4 — Recall it</h2>
+
+<pre><code>npm run recent</code></pre>
+
+<pre><code>2026-08-05 10:15:00 — Set up my-librarian and captured this first memory by hand.</code></pre>
+
+<p><em>Output shape verified against code; your date and time will differ.</em></p>
+
+<p>That is your first recall. The bytes you piped in came back unchanged.</p>
+
+<p>Notice there is no project name in brackets. A payload piped in by hand carries no working directory, so there is no project to name. Ambient captures do carry one, and you will see it in Step 8.</p>
+
+<p>Three flags are worth knowing now:</p>
+
+<pre><code>npm run recent -- 3            # the three most recent sessions
+npm run recent -- --days 7     # just the last week
+npm run recent -- --project my-librarian   # one project, case-insensitive</code></pre>
+
+<h2 id="step-5">Step 5 — Build and register the MCP server</h2>
+
+<p>Compile the TypeScript, then register the server with Claude Code. Run both from the repository root:</p>
+
+<pre><code>npm run build
+claude mcp add my-librarian --scope user -- node "$PWD/dist/stdio.js"</code></pre>
+
+<p>Use <code>--scope user</code> and an absolute path. Without the flag the server registers project-local to the repository, which leaves it invisible from the directories where you actually work.</p>
+
+<p>The <code>env</code> block from Step 2 already hands the server your vault path. To scope that to this one server instead, pass it at registration:</p>
+
+<pre><code>claude mcp add my-librarian --scope user -e LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes" -- node "$PWD/dist/stdio.js"</code></pre>
+
+<p>That covers the server alone. The Stop hook in Step 6 still reads the <code>env</code> block, so most people want Step 2's route.</p>
+
+<p><strong>Verify.</strong> Start a fresh Claude Code session and run <code>/mcp</code>. You should see <code>my-librarian</code> listed with three tools: <code>librarian-search</code>, <code>librarian-get-note</code>, and <code>librarian-recent</code>.</p>
+
+<h2 id="step-6">Step 6 — Install the Stop hook</h2>
+
+<p>The hook is the one piece that cannot ship inside the server: MCP has no way to install a client hook.</p>
+
+<pre><code>npm run install-hook</code></pre>
+
+<p>You should see:</p>
+
+<pre><code>[install-hook] registered the Stop hook in /Users/you/.claude/settings.json.
+[install-hook] restart Claude Code, then check &lt;vault&gt;/_librarian/sessions/ after your next session.</code></pre>
+
+<p>That message is your verification. If you instead see this, the build from Step 5 did not run:</p>
+
+<pre><code>[install-hook] dist/capture-cli.js is missing -- run `npm run build` first.</code></pre>
+
+<p>The installer refuses rather than register a hook that would fail on every event. Run <code>npm run build</code>, then try again.</p>
+
+<p>The installer is deliberately cautious. It merges into <code>~/.claude/settings.json</code> rather than replacing it, and never touches your other Stop hooks. It writes via a temp file and rename, so an interrupted run cannot truncate your client config. Re-running it is safe:</p>
+
+<pre><code>[install-hook] already registered in /Users/you/.claude/settings.json; nothing to do.</code></pre>
+
+<p>The registered script always exits 0, so a failure inside capture can never break one of your sessions.</p>
+
+<div class="callout">
+  <span class="label">Nothing goes in CLAUDE.md</span>
+  <p>The whole capture contract ships inside the server as MCP instructions, and reaches every client on connect. That contract covers when to leave a summary, its exact syntax, and how to write it. Setup is the hook, and that is all.</p>
+</div>
+
+<h2 id="step-7">Step 7 — Restart, and let a real session record itself</h2>
+
+<p>Hooks are read at session start, so quit Claude Code and start it again.</p>
+
+<p>Now open a project directory you actually work in and do something small but real: one decision, or one small change. A "hello" will not do, because there is nothing there worth recalling.</p>
+
+<p>As it finishes, your client leaves a directive line of its own accord:</p>
+
+<pre><code>&lt;!-- librarian-session {"summary":"Renamed the archive folder and updated the two notes that linked to it.","refs":["Notes/Archive.md"]} --&gt;</code></pre>
+
+<p>You never write that line yourself — the server's instructions teach your client the form. It is shown here only so you recognize one when it goes past. The summary aims for about 40 words and stops by 60. An empty summary, or one still wrapped in <code>&lt;angle brackets&gt;</code>, captures nothing.</p>
+
+<p>The Stop event fires at the end of every assistant turn, not at session end. Capture is idempotent per distinct directive, so the same line being re-presented a dozen times appends exactly one record.</p>
+
+<p><strong>Verify.</strong> A file should now exist for today's UTC day:</p>
+
+<pre><code>ls "$LIBRARIAN_VAULT_PATH/_librarian/sessions/"</code></pre>
+
+<pre><code>2026-08-05.md</code></pre>
+
+<p><em>Output shape verified against code; your date will differ.</em></p>
+
+<p>If nothing appeared, check that Step 6 printed its success line and that the <code>env</code> block from Step 2 names the right notes directory. The README documents a <code>CLAUDE.md</code> paste-in as a last-resort fallback if captures still refuse to land.</p>
+
+<h2 id="step-8">Step 8 — Recall again, and read the record</h2>
+
+<p>This time, ask your client rather than the CLI. In Claude Code:</p>
+
+<blockquote><p>What was I working on lately?</p></blockquote>
+
+<p>Your client should call <code>librarian-recent</code> and report back the session you just finished, in plain language. That is the same memory you read in Step 4, now reached through the tool.</p>
+
+<p>Then read the record yourself. It is a markdown file in your own notes directory:</p>
+
+<pre><code>cat "$LIBRARIAN_VAULT_PATH/_librarian/sessions/$(date -u +%F).md"</code></pre>
+
+<pre><code>---
+collection: librarian.sessions
+schema: session-record@1
+day: '2026-08-05'
+sessions:
+  - id: 20260805T101500123Z
+    time: '2026-08-05T10:15:00.123Z'
+    summary: Set up my-librarian and captured this first memory by hand.
+    refs: []
+  - id: 20260805T142233871Z
+    session_id: 0b9f2c41-...
+    time: '2026-08-05T14:22:33.871Z'
+    summary: Renamed the archive folder and updated the two notes that linked to it.
+    refs:
+      - path: Notes/Archive.md
+        hash: 3f1a9c2e7b40d8...
+    workspace:
+      cwd: /Users/you/Development/notes-cleanup
+      project: notes-cleanup
+refs:
+  - path: Notes/Archive.md
+    hash: 3f1a9c2e7b40d8...
+---
+
+# Sessions - 2026-08-05
+
+- 10:15:00 - Set up my-librarian and captured this first memory by hand.
+- 14:22:33 [notes-cleanup] - Renamed the archive folder and updated the two notes
+  that linked to it. (refs: Notes/Archive.md@3f1a9c2e7b40d8)</code></pre>
+
+<p><em>Output shape verified against code; hashes are trimmed here, and your paths, dates, and project names will differ.</em></p>
+
+<p>The frontmatter is the source of truth. The regenerated body of the file is for human eyes, and is rewritten each time the day's record grows. Each reference records the note's path <em>and</em> its content hash as it was read, which is what lets a rename be followed later.</p>
+
+<p>If your notes directory is a git repository, <code>_librarian/</code> will be tracked and committed along with everything else. That is intended: the memory is durable, plain markdown, and travels with your notes.</p>
+
+<h2 id="what-next">What to do next</h2>
+
+<p>You now have ambient capture running end-to-end. Three things are worth reading once the records start accumulating:</p>
+
+<ul>
+  <li><a href="memory-of-use.html#the-style-contract">The style contract</a> — capture and recall in depth, including the contract that decides whether these summaries are readable in six months.</li>
+  <li><a href="memory-of-use.html#search-enrichment">Search enrichment</a> — the quiet prior-engagement note on search results.</li>
+  <li><a href="memory-of-use.html#note-identity">Note identity</a> — what happens to a reference when you rename the note it points at.</li>
+</ul>
+
+<p>The project also measures whether any of this actually gets used. <code>npm run gate</code> shows the per-ISO-week count; <a href="memory-of-use.html#the-gate">the gate section</a> explains what it is for.</p>
+
+<p>One habit to keep: re-run <code>npm run reindex</code> when your notes change materially. The index is a disposable cache — your files stay the source of truth.</p>
+
+</main>
+
+<footer class="site">
+  <div class="footer-inner">
+    <p>my-librarian — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/my-librarian">Source and receipts on GitHub</a> · tagged <a href="https://github.com/shinytoyrobots/my-librarian/releases/tag/v0.1.0">v0.1.0</a>.</p>
+  </div>
+</footer>
+</body>
+</html>
