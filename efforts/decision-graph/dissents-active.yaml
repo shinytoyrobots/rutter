@@ -41,8 +41,12 @@ dissents:
       - type: spec-change
         trigger: "SR-043 or the read-surface definition is amended"
         match: "grep -nE 'SR-043|read surface' spec/spec.md output changes vs v3.10.1"
-    status: active
-    last-checked: "2026-08-05T03:20:00Z"
+    status: reactivated   # 2026-08-05 ring-0 day one: live projection holds 31 zero-candidate rows.
+                          # CONTAMINATED SIGNAL: >=27 are FALSE dead refs (existing non-note files
+                          # mislabeled by the notes-index resolution check — separate defect); the
+                          # genuine zero-candidate class is ~2 distinct paths (kung-fu draft).
+                          # Awaiting operator acknowledge/mitigate/resolve alongside the defect fix.
+    last-checked: "2026-08-05T05:15:00Z"
   - id: "dissent-2026-08-05-0002"
     raised-at: "2026-08-05T03:20:00Z"
     raised-by: "flow-chavruta-pair / stability-bias"
