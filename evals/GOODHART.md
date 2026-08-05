@@ -129,3 +129,20 @@ holdout property working as intended. Two Goodhart-relevant notes:
   and SEC-A-014 held, so `store-immutable-real-v1` / `adversarial-write-v1` remain
   unextended. That contingency stays armed on the same trigger (an identity-path INV
   failure surfacing via the general fixtures).
+
+## Suite 0.8.0 (2026-08-05) — first production-derived tasks
+
+COR-R-038/COR-A-021 come from a live-vault incident, not authored speculation — the
+strongest provenance a task can have (eval protocol: real datasets draw from
+production incidents). Two notes:
+
+- **The blind spot was structural, not effort-specific**: every fixture in 0.5.0-0.7.0
+  built vaults of markdown notes only, so no task COULD see the notes-index-vs-disk
+  resolution misreading — and the population/panel/ledger mechanisms all missed it too
+  (every variant shared the misreading, so there was no disagreement to surface).
+  Fixture diversity (file types, dotfiles, sidecar files) is now a standing authoring
+  consideration, not just task diversity.
+- **COR-A-021 is the over-correction guard**: the obvious cheap fix (exempt non-note
+  refs from the identity pass entirely) would silently drop genuinely deleted
+  non-note files from dead-ref accounting and rendering. The holdout constructs
+  exactly that temptation.
