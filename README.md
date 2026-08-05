@@ -203,11 +203,18 @@ you need it, that is a bug worth reporting, because the server is meant to carry
 
 ## Wire it into Claude Code
 
+New to the project? [`docs/getting-started.md`](./docs/getting-started.md) walks from
+clone to first recall in eight verified steps.
+
 After `npm run build`, from the repository root:
 
 ```bash
-claude mcp add my-librarian -- node "$PWD/dist/stdio.js"
+claude mcp add my-librarian --scope user -- node "$PWD/dist/stdio.js"
 ```
+
+`--scope user` registers the server for every Claude Code session, in any directory.
+Without it the server is project-local to this repository — invisible from the
+directories where you actually work.
 
 Then reindex whenever your notes change materially (`npm run reindex`). Ask things like
 *"search my notes for the thing I did about X"* and the client will call `librarian-search`.
