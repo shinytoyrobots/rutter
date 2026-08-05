@@ -3,11 +3,25 @@
 **Last updated:** 2026-08-05
 **Purpose:** Single resume-point after a context clear or model switch. Self-contained: everything needed to continue the build without re-reading the whole history. Written for a fresh model/context.
 
-> **Read §2.0 first.** The 2026-08-05 session ran a full flow effort (decision-graph Phase 0: durable note identity) end-to-end — spec → evals → two generations → cull → converge → chavruta → metastable ship — plus a same-day production defect fix and a docs promotion. Everything sits on **PR #17, OPEN and awaiting Robin's merge**. §2.1 covers 2026-08-04; everything below that is history.
+> **Read §2.0a first, then §2.0.** The second 2026-08-05 session renamed the project to **rutter**, ratified spec v3.11.0 (the gate's "unprompted" = intent, not call origin), and scheduled the public launch article for **2026-08-11**. §2.0 covers the first 2026-08-05 session (note identity; its PR #17 has since MERGED via #17/#18); §2.1 covers 2026-08-04; everything below that is history.
+
+## 2.0a Session of 2026-08-05 (later) — rutter, the gate axis, and the launch clock
+
+**Spec v3.11.0 · main @ `707f5c6` · 116 tests + tsc clean · PRs #21–#24 all merged.**
+
+**Renamed: my-librarian → rutter (PR #24), brand surfaces only.** The name is Robin's own rutter essay — the logbook of routes actually sailed, vs the map. GitHub repo is `shinytoyrobots/rutter` (old git/web URLs redirect); description, homepage, and topics set. **Deliberately NOT renamed:** `librarian-*` tool names, `_librarian/` sidecar, `librarian-session` directive, `LIBRARIAN_*` env vars, hook filename, `data/librarian.db` — live records, client registrations, and gate continuity depend on them; a mechanism rename is a post-verdict decision. The **local folder stays `~/Development/personal/my-librarian`** (Stop hook + MCP registration hold absolute paths into it — re-point both before ever renaming it). The docs site moved to `shinytoyrobots.github.io/rutter/`; the old `/my-librarian/` Pages URL is a **dead 404, no redirect**. Site got the naming passage, a further-reading link to the rutter essay, and a favicon (plotted-course mark); `site-drift` green (built from `062f651`; blob-identical to main).
+
+**Spec v3.11.0 (PR #22): the gate's "unprompted" axis is INTENT, not call origin.** Triggered by drafting the launch article — Robin: "what have I been working on?" is model-executed but human-intended; memory reached through conversation is still memory reached. The §2.1-item-1 plan to add a model-vs-human-initiated instrumentation field is **REJECTED** (it would under-count the exact behavior the gate detects). Classify each logged call at wish-log review by what pulled it: a live human question (counts) vs standing SR-020 instructions alone (does not). Glossary entry pins the reading. Roadmap amended alongside: **read-value promoted to primary kill condition**, and **Phase 5 added — the discursive librarian** (client-side voice, no model in the server; entry-gated on recall being real and acted on). `docs/memory-of-use.md` (published on the site) carries the gloss (PR #23).
+
+**The launch clock (the new date-driven pair):**
+1. **Gate verdict ~2026-08-09** — unchanged, mandatory HITL, now judged on the v3.11.0 intent axis (see §2.1 item 1).
+2. **Substack article goes live Tue 2026-08-11** — *"A summary isn't a record. So I built a librarian."* (vault: `Non-Fiction/Drafts/`, final; on publish it moves to `Non-Fiction/Field Notes/2026-08-11 - …` with `published:` frontmatter — Robin's vault, working-tree edit only). It links the repo and the docs site: **first outside readers arrive then.** The §2.1 fresh-clone stranger test is best run before that date. Note the verdict lands two days before the article — the article honestly says the gate may fail; no pressure to fudge the verdict.
+
+**Housekeeping done this session:** all merged branches pruned (32), all 12 leftover flow-variant branches + ~24 agent worktrees force-removed (Robin-approved; winners were merged, ledgers live in `efforts/`), remote refs pruned; local `origin` re-pointed at `rutter.git`. §2.0 item 8 is DONE. Optional whenever: re-register the MCP client as `rutter` (tool names unchanged; registration still reads `mcp__my-librarian__*`).
 
 ## 2.0 Session of 2026-08-05 — note identity shipped, dogfood bit back same day
 
-**Spec v3.10.2 · suite 0.8.0 · constitution v4.0.0 · PR #17 open at `b873aae` on `ship/decision-graph-phase-0`. 116 tests + tsc clean. Merge with a MERGE COMMIT, never squash — the flow ship SHAs (993a89d, dfa3811) and generation lineage must stay reachable from main.**
+**Spec v3.10.2 · suite 0.8.0 · constitution v4.0.0 · PR #17 — since MERGED (completed via PR #18, merge commits; flow ship SHAs and generation lineage reachable from main). 116 tests + tsc clean.**
 
 **What shipped (effort decision-graph, Phase 0):** recorded refs survive vault renames. Exact-hash auto-binding (SR-036); ambiguity surfaced with candidates, never guessed (SR-037, prohibition 8); confirmation via CLI only, never MCP (SR-044 — a model must not be able to confirm bindings; this applies to assistants too: hand Robin the command, never run it); append-only `note-identity@1` ledger at `_librarian/note-identity.md` (SR-039); strict (path,hash) keying, newest-wins for automatic only (SR-045); **confirmed bindings are sticky, conflicts render as "confirmed X; the hash now matches Y" (SR-046** — born from a gen-1 population fork, HITL-resolved). Projections stay disposable (drop `data/librarian.db`, reindex).
 
@@ -18,7 +32,7 @@
 **Docs promoted:** `docs/getting-started.md` (zero-to-first-recall tutorial; tw-generate pipeline: research → draft → 34/34 verification → revision → operator edits; archival copy in vault at `Notes/Reference/Tech-Writer/generate/2026-08/05-zero-to-first-recall/`). Same commit retired the stale pre-v3.4.0 CLAUDE.md guidance from `docs/memory-of-use.md` + `docs/overview.md` and added `--scope user` to README's registration example.
 
 **Open, in priority order:**
-1. **Merge PR #17** (merge commit). Then reconnect the MCP client (`/mcp` → reconnect; stdio server, no daemon).
+1. ~~**Merge PR #17** (merge commit).~~ **DONE** (merged via #17/#18). Then reconnect the MCP client (`/mcp` → reconnect; stdio server, no daemon).
 2. **Repair the two real unresolved refs** — the kung-fu draft moved+renamed to published state (Robin's identification). Robin runs (never the assistant — SR-044):
    `npm run identity-confirm -- "Non-Fiction/Drafts/I know kung fu. I might remember how to throw one punch..md" "Non-Fiction/Field Notes/2026-08-02 - I know kung fu. I might remember how to throw one punch..md"` and the same for `"Notes/Reference/Field Notes drafts/2026-07-31-i-know-kung-fu-first-draft.md"`, then `npm run reindex`. NOTE: these are the ledger's FIRST entries — from then on `_librarian/` holds the only copy of confirmed bindings (dissent-0002's armed probe; vault backup covers it). Afterwards: flip `dissent-2026-08-05-0001` from `reactivated` back to `active` in `efforts/decision-graph/dissents-active.yaml` (its firing condition — zero-candidate rows ≥1 — clears).
 3. **Desirability-gate verdict ~2026-08-09** (mandatory HITL, carried from §2.1 incl. the falsifiability fix it demands). New wrinkle: constitution prohibition 9 — identity-introduced reads never count toward the gate metric. Phases A–C of `docs/decision-graph-plan.md` stay spec-locked until the verdict (escalation trigger 5).
@@ -26,7 +40,7 @@
 5. **flow-eval backlog: 9 items** (gen-2/summary.md §Suite gaps + fix1 ledger audit D-4 edited-in-place MEDIUM / D-5 renamed-non-note; SR-024..035 backfill; cost-grader formula write-down; confirm-target validation; zero-candidate-enrichment task — which doubles as dissent-0001's resolve trigger).
 6. **Spend calibration for next dispatch:** evaluators run ~245k each at quick+targeted-adversarial (not 180k); in-prompt token budgets are confirmed advisory two generations running (agents cannot see their own spend). Gen-2 total: 852,962 observed vs 700k budget.
 7. **Publish checklist: DONE 2026-08-05 — ahead of its gate.** Repo public, `v0.1.0` tagged (PRs #19 and the visibility flip). This was originally gated on the gate verdict and shipped without it, on an explicit operator call (timing argument: prior art shown by timeline). The verdict (~2026-08-09) is still owed and its falsifiability fix (item 3) is unchanged. Operator runs the fresh-clone stranger test from outside; `docs/getting-started.md` is the script.
-8. Housekeeping, non-blocking: ~20 stale worktrees under `.claude/worktrees/` (s1-5 + dg generations); prune after PR #17 merges.
+8. ~~Housekeeping, non-blocking: ~20 stale worktrees under `.claude/worktrees/` (s1-5 + dg generations); prune after PR #17 merges.~~ **DONE 2026-08-05** (see §2.0a — worktrees removed, variant branches deleted, merged branches pruned).
 
 **Mechanics a fresh session must not rediscover:**
 - `src/identity.ts` contains ONE deliberate NUL byte (composite-key separator in `distinctRefs`) — `git grep` reports the file as binary; use `grep -a`.
