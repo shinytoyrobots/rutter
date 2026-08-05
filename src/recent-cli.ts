@@ -1,11 +1,36 @@
 import { recent } from "./recent.js";
+import { openDb } from "./db.js";
+import { resolveRef } from "./identity.js";
+import type { VersionedRef } from "./refs.js";
 
 /**
  * `npm run recent [-- <count>] [-- --days <N>] [-- --project <name>]` -- read
  * recent session summaries from the terminal. Uses the pure `recent()` reader (no
  * stateful-use event): the instrumented "reaching for it" surface is the MCP tool,
  * not this inspector.
+ *
+ * Refs are resolved through the identity projection (SCN-008/SCN-009), same as
+ * the MCP `librarian-recent` tool -- run `npm run reindex` first if a rename
+ * doesn't yet show as resolved here.
  */
+const db = openDb();
+
+function formatRef(ref: VersionedRef): string {
+  const base = `${ref.path}@${ref.hash}`;
+  const resolution = resolveRef(db, ref);
+  if (resolution.status === "current") return base;
+  if (resolution.status === "bound") {
+    // SR-046: mirrors the MCP librarian-recent rendering in server.ts -- a
+    // confirmed binding is sticky even when a fresher automatic exact-hash
+    // match disagrees; render both facts.
+    if (resolution.conflict) {
+      return `${base} (confirmed ${resolution.path}; the hash now matches ${resolution.conflict.to})`;
+    }
+    return `${base} (renamed to ${resolution.path})`;
+  }
+  const candidates = resolution.candidates ?? [];
+  return `${base} [UNRESOLVED -- candidates: ${candidates.length ? candidates.join(", ") : "none"}]`;
+}
 
 const args = process.argv.slice(2);
 const daysFlag = args.indexOf("--days");
@@ -40,7 +65,7 @@ if (empty) {
       // Project shown only when the entry carries provenance (SR-019, quiet when absent).
       const label = s.incrementCount > 1 ? "" : e.workspace ? ` [${e.workspace.project}]` : "";
       console.log(`${indent}${e.day} ${e.time.slice(11, 19)}${label} — ${e.summary}`);
-      for (const ref of e.refs) console.log(`   ${indent ? "  " : ""}refs: ${ref.path}@${ref.hash}`);
+      for (const ref of e.refs) console.log(`   ${indent ? "  " : ""}refs: ${formatRef(ref)}`);
     }
   }
 }
