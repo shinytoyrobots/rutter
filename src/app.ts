@@ -1,6 +1,6 @@
-import type { DB } from "./db.js";
+import { openDb, type DB } from "./db.js";
 import { search, type SearchOptions } from "./search.js";
-import { enrich, type EnrichedResult } from "./enrichment.js";
+import { enrich, buildReferenceIndex, type EnrichedResult } from "./enrichment.js";
 import { recent, type RecentOptions, type RecentResult } from "./recent.js";
 import { recordStatefulUse } from "./instrumentation.js";
 
@@ -36,7 +36,10 @@ export function runSearch(
   db?: DB,
   now: Date = new Date()
 ): EnrichedSearch {
-  const { results, signalCount } = enrich(search(query, opts, db));
+  // Resolve once and reuse for both the search itself and the identity-aware
+  // reference index (SCN-008), rather than opening the db twice.
+  const database = db ?? openDb();
+  const { results, signalCount } = enrich(search(query, opts, database), buildReferenceIndex(undefined, database));
   if (signalCount >= 1) recordStatefulUse("search-signal", now);
   return { results, signalCount };
 }

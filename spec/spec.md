@@ -1,9 +1,67 @@
 ---
-version: "3.7.0"
+version: "3.10.1"
 status: active
-effort: s1-5-ambient-capture
+effort:
+  - s1-5-ambient-capture   # converged
+  - decision-graph         # active (v3.8.0 —)
 last-amended: 2026-08-04
-mapping-pending: false
+mapping-pending: false     # one per-entry exception carried on a harness entry: SR-104 (bound pending gen-1 calibration)
+# v3.10.1 (patch): SR-046 mapping-pending cleared — eval suite 0.7.0 (flow-eval,
+# 2026-08-04, eval-first before gen-2 dispatch) authored 3 additive adversarial
+# holdouts: COR-A-018 (confirmed binding preserved + conflict surfaced against a later
+# exact-hash detection), COR-A-019 (only a fresh SR-044 confirmation supersedes;
+# append-only under supersede), COR-A-020 (SR-043 enrichment-surface silence
+# discriminator — gen-1 cull found COR-A-016 under-probed that surface). No scenario,
+# requirement, or invariant text changed.
+# v3.10.0 (minor, additive — effort decision-graph): +SR-046, confirmed bindings are
+# sticky. Gen-1 population fork (var-1 HIGH, var-3 MEDIUM independently): SR-045's
+# "newest binding wins" did not say whether a LATER AUTOMATIC exact-hash detection may
+# supersede a HUMAN-confirmed binding. HITL 2026-08-04: it may not — confirmed is
+# preserved, the conflict is surfaced at read time, only a fresh human confirmation
+# supersedes. SR-045 is thereby scoped to automatic bindings. All three gen-1 variants
+# implement uniform newest-wins and predate this SR — expected nonconformance recorded
+# for cull; gen-2 refinement item. No existing SCN/SR/INV text modified.
+# v3.9.0 (minor, additive — effort decision-graph): the gen-1 interpretation panel
+# (3 independent readers, pre-dispatch) converged on projection-only unresolved state,
+# idempotent ledger appends, refs.ts hashing reuse, and drop-and-rebuild projections —
+# but split on three points, all resolved by HITL 2026-08-04 and encoded here:
+#   +SR-044 (confirmation surface = local CLI, never an MCP tool — a model-driveable
+#   confirmation would launder auto-binds past prohibition 8);
+#   +SR-045 (strict (path, hash) keying; direct rebinding from the originally recorded
+#   pair against the current vault; newest binding wins; no chain composition).
+# No existing SCN/SR/INV text modified.
+# v3.8.1 (patch): mapping-pending cleared — eval suite 0.6.0 (flow-eval DESIGN pass,
+# 2026-08-04) authored 19 additive tasks (COR-R-028..037, COR-A-013..017, SEC-A-014/015,
+# SEC-R-006, PERF-R-006 report-only) and registered every SCN-008/009 + SR-036..043
+# mapping. SR-104 remains mapping-pending: calibration on its harness entry — PERF-R-006
+# produces the gen-1 baseline; the bound lands here by patch amendment. No scenario,
+# requirement, or invariant text changed.
+# v3.8.0 (minor, additive — effort decision-graph, Phase 0): durable note identity.
+# First amendment by the second effort; this spec is now the shared living artifact of
+# both. HITL pre-resolved at flow-init decision-graph (2026-08-04): scope = Phase 0 of
+# docs/decision-graph-plan.md ONLY, weight class light, constitution v3.0.0 alongside
+# (prohibitions 8-9, escalation triggers 4-5, effort-scoped budgets).
+#   The defect: refs key on path + sha256, the hash is a version rather than an
+#   identity, path is the de facto identity, and Obsidian renames freely — 2 of 106
+#   distinct ref paths already dead over a measured 10 days (~2%). Every event written
+#   before the fix carries the weaker identity, so this gets more expensive the longer
+#   it waits, and it is a data-integrity fix exempt from the desirability gate.
+#   +SCN-008 (a recorded ref survives a vault rename: exact-hash, single-candidate
+#   deterministic auto-bind, appended to a new append-only ledger
+#   _librarian/note-identity.md, note-identity@1; read surfaces resolve through it);
+#   +SCN-009 (ambiguous disappearance — rename+edit or duplicate content — is surfaced
+#   with candidates and NEVER auto-bound, constitution prohibition 8; human-confirmed
+#   bindings append as detected: confirmed). +SR-036..043; +SR-104 (identity-pass perf
+#   bound, deliberately uncalibrated — no defensible figure in the docs; TODO
+#   flow-eval: calibrate at gen-1). SQLite identity projections rebuild from vault +
+#   sidecar (INV-4) and are deterministic across repeated reindexes.
+# NO capture-contract, SERVER_INSTRUCTIONS, README-quoted-block, session-record@1, or
+# instruction-anchor change; no existing SCN/SR/INV text modified; no retrofit of
+# stored records (resolution is read-time, ledger-mediated). Phases A-C are OUT of
+# scope pending the gate verdict AND the wish-log entry (constitution escalation
+# trigger 5). Desirability-gate clock NOT restarted (verdict stays ~2026-08-09);
+# decision-graph reads never count toward the gate metric (prohibition 9).
+# All v3.8.0 mappings are mapping-pending: true (evals/ owned by flow-eval).
 # v3.7.0 (minor): the emission trigger contradicted itself. HITL-approved 2026-08-04
 # (constitution escalation trigger 1 — capture semantics). Found while checking a
 # README claim ("one curated line per session") against the records: real capture
@@ -159,6 +217,20 @@ genuine mechanism open (the exact Claude Code Stop-hook wiring; the depth of
 appraisal), this spec constrains the observable behavior and records the openness —
 it does not fabricate mechanism detail.
 
+### Effort: decision-graph (Phase 0) *(v3.8.0)*
+
+From v3.8.0 this spec is the shared living artifact of two efforts:
+**s1-5-ambient-capture** (converged — everything above reads unchanged) and
+**decision-graph** (active). The decision-graph effort contributes **Phase 0 of
+`docs/decision-graph-plan.md` only**: a durable note-identity ledger. Refs key on
+vault-relative path plus content hash; the hash is deliberately a *version*, not an
+identity, so path is the de facto identity — and Obsidian renames freely (~2% of
+recorded ref paths dead over a measured 10 days). Phase 0 makes a recorded ref
+survive a vault rename, deterministically where that is safe and non-silently where
+it is not, and nothing else. **Phases A–C (positions, supersession, drift, threads)
+are OUT of scope** pending the desirability-gate verdict and the operator's wish-log
+entry recording demand (constitution escalation trigger 5).
+
 ## Scope
 
 ### In scope
@@ -200,6 +272,34 @@ it does not fabricate mechanism detail.
 - Remote hosting, HTTP transport, OAuth, ChatGPT write-back (deferred indefinitely).
 - Multi-user, governance, classification, permissions.
 - Adopting mdbase itself (S1.5 only shapes frontmatter to be compatible).
+
+### Effort: decision-graph (Phase 0) — scope *(v3.8.0)*
+
+In scope:
+- **Durable note identity**: an append-only ledger `_librarian/note-identity.md`
+  (schema `note-identity@1`, mdbase-compatible frontmatter) binding a recorded ref
+  whose path no longer resolves to the current note that carries its content.
+  Deterministic auto-bind **only** on an exact content-hash match with exactly one
+  candidate; anything else is surfaced as unresolved with candidates and bound only
+  by human confirmation (SCN-008, SCN-009; constitution prohibition 8).
+- **Identity projection**: SQLite gains identity tables rebuilt at reindex from
+  vault + `_librarian/` sidecar (INV-4), deterministic across repeated reindexes.
+- **Read-surface resolution**: `librarian-recent` and search enrichment resolve
+  recorded refs through the ledger; unresolved refs render non-silently.
+
+Out of scope for decision-graph (boundaries):
+- **Phases A–C of `docs/decision-graph-plan.md`** — position capture, position
+  recall with supersession, drift visibility, threads. These may not enter spec
+  scope before the desirability-gate verdict (constitution escalation trigger 2) is
+  written AND the operator's wish-log entry recording demand exists (constitution
+  escalation trigger 5). Phase 0 changes no capture contract, no server
+  instructions, and no session-record schema.
+- Writing stable ids (or anything else) into vault notes — the ledger approach
+  exists precisely because the librarian never writes to the vault (INV-2,
+  constitution prohibition 5).
+- Content-similarity / fuzzy rename detection — only exact-hash matching is
+  specified; near-matches are unresolved by design.
+- Backfill or retrofit of any stored session record.
 
 ---
 
@@ -439,6 +539,68 @@ rather than one long line at the end.
 
 ---
 
+### SCN-008: A recorded ref survives a vault rename *(v3.8.0, effort decision-graph)*
+**Given** a session record references a store note by versioned identity
+(vault-relative path plus content hash), and that note has since been renamed in the
+vault with its content unchanged
+**When** a reindex encounters the recorded ref — its path no longer resolves on disk,
+and exactly one current vault note's content hash equals the ref's last-recorded hash
+**Then** the system shall bind the disappeared path to that current note
+deterministically, append the binding to the note-identity ledger, and the read
+surfaces (`librarian-recent`, search enrichment) shall resolve the old ref through the
+binding — writing nothing to the vault and rewriting no stored session entry.
+
+**Acceptance criteria:**
+- With exactly one exact-hash candidate, the ref binds automatically and a binding is
+  appended to `_librarian/note-identity.md` (schema `note-identity@1`,
+  mdbase-compatible frontmatter, append-only) carrying an identity id, the from-path,
+  the to-path, the content hash, a timestamp, and `detected: exact-hash`.
+- Binding is deterministic: the same vault + sidecar state always produces the same
+  binding — no heuristics, no similarity scores, no model (INV-6).
+- `librarian-recent` and prior-engagement enrichment resolve the renamed ref through
+  the binding: the prior engagement surfaces against the note's current path, while
+  the stored session entry's bytes are unchanged (no retrofit — INV-3; resolution is
+  read-time and ledger-mediated).
+- SQLite gains identity projection tables rebuilt at reindex from vault +
+  `_librarian/` sidecar alone (INV-4); running reindex twice with no vault or sidecar
+  change yields byte-identical identity projections.
+- The identity pass writes nothing to the vault; its only durable write is the ledger
+  under `_librarian/` (INV-2 / constitution prohibition 5 apply — cited, not
+  restated).
+- The identity pass completes within SR-104's wall-time bound.
+
+**Derived requirements:** SR-036, SR-039, SR-040, SR-041, SR-042
+
+---
+
+### SCN-009: An ambiguous disappearance is surfaced, never guessed *(v3.8.0, effort decision-graph)*
+**Given** a session record references a note whose path no longer resolves, and
+exact-hash matching over current vault notes yields either zero candidates (the note
+was renamed *and* edited) or more than one candidate (duplicate content)
+**When** a reindex encounters the ref, and when a read surface later renders it
+**Then** the system shall record and render the ref as **unresolved** together with
+its candidate set and shall bind nothing — a binding for such a ref enters the ledger
+only by human confirmation, appended and attributed `detected: confirmed`.
+
+**Acceptance criteria:**
+- Zero exact-hash candidates → the ref is recorded as unresolved and no binding is
+  appended (constitution prohibition 8: never auto-bind an ambiguous match).
+- More than one exact-hash candidate → the ref is recorded as unresolved with every
+  candidate listed, and no binding is appended — duplicate content is ambiguity, not
+  a tie to break.
+- Read surfaces (`librarian-recent`, search enrichment) render an unresolved ref
+  explicitly as unresolved with its candidates — never silently dropped, never
+  silently bound.
+- A subsequently human-confirmed binding is appended to the ledger attributed
+  `detected: confirmed`; all earlier ledger entries are preserved (the ledger is
+  append-only — never rewritten, reordered, or compacted).
+- Nothing on this path writes to the vault or mutates a stored session entry
+  (INV-2, INV-3).
+
+**Derived requirements:** SR-037, SR-038, SR-039, SR-043
+
+---
+
 ## Requirements
 
 EARS notation is mandatory. Scenario-derived SRs name their parent. Non-functional
@@ -582,6 +744,64 @@ SRs (SR-100+) have no parent.
   entry, and the FIRST-read hash shall be retained (the no-op writes nothing, so the
   stored identity stays the version captured as-read). *(unwanted-behavior)*
   `# ← SCN-001; added v3.3.0; refines SR-013, mirrors SR-018`
+- **SR-036** — When a reindex encounters a recorded ref whose vault-relative path no
+  longer resolves and exactly one current vault note's content hash equals that ref's
+  last-recorded content hash, the system shall bind the ref to that note
+  deterministically and append the binding to the note-identity ledger attributed
+  `detected: exact-hash`. *(event-driven)*
+  `# ← SCN-008; added v3.8.0 (decision-graph); mapping registered @ suite 0.6.0 (v3.8.1)`
+- **SR-037** — If a recorded ref's path no longer resolves and exact-hash matching
+  yields zero current-note candidates (rename plus edit) or more than one candidate
+  (duplicate content), then the system shall record the ref as unresolved together
+  with its candidate set and shall bind nothing. *(unwanted-behavior)*
+  `# ← SCN-009; added v3.8.0; enforces constitution prohibition 8; mapping registered @ suite 0.6.0 (v3.8.1)`
+- **SR-038** — When a human-confirmed binding is supplied for an unresolved ref, the
+  system shall append it to the note-identity ledger attributed `detected: confirmed`,
+  preserving all earlier ledger entries. *(event-driven)*
+  `# ← SCN-009; added v3.8.0; mapping registered @ suite 0.6.0 (v3.8.1)`
+- **SR-039** — The note-identity ledger shall live at `_librarian/note-identity.md`
+  as an append-only markdown file with mdbase-compatible frontmatter under schema
+  `note-identity@1`, and each binding shall carry an identity id, the from-path, the
+  to-path, the content hash, a timestamp, and a provenance field
+  `detected: exact-hash | confirmed`. *(ubiquitous)*
+  `# ← SCN-008, SCN-009; added v3.8.0; frontmatter per constitution preference 2; writes confined to _librarian/ per INV-2 / constitution prohibition 5 (cited, not restated); mapping registered @ suite 0.6.0 (v3.8.1)`
+- **SR-040** — When a reindex runs, the system shall rebuild the SQLite identity
+  projection tables from the vault plus the `_librarian/` sidecar alone, holding no
+  load-bearing identity state only in the database. *(event-driven)*
+  `# ← SCN-008; added v3.8.0; refines INV-4; mapping registered @ suite 0.6.0 (v3.8.1)`
+- **SR-041** — If a reindex is run twice with no change to the vault or the
+  `_librarian/` sidecar between runs, then the two runs shall yield identical identity
+  projections. *(unwanted-behavior)*
+  `# ← SCN-008; added v3.8.0; mapping registered @ suite 0.6.0 (v3.8.1)`
+- **SR-042** — When `librarian-recent` output or a prior-engagement enrichment
+  surfaces a ref whose recorded path carries a ledger binding, the system shall
+  resolve the ref through that binding to the note's current path while leaving the
+  stored session entry's bytes unchanged. *(event-driven)*
+  `# ← SCN-008; added v3.8.0; read-time only, no retrofit (INV-3); mapping registered @ suite 0.6.0 (v3.8.1)`
+- **SR-043** — If a surfaced ref is unresolved, then the read surface shall render it
+  explicitly as unresolved together with its candidates — never silently dropped and
+  never silently bound. *(unwanted-behavior)*
+  `# ← SCN-009; added v3.8.0; enforces constitution prohibition 8; mapping registered @ suite 0.6.0 (v3.8.1)`
+- **SR-044** — Where a human confirms a binding for an unresolved ref, the
+  confirmation shall be supplied through a local CLI command (an npm script peer of
+  the recent/gate CLIs) that validates the chosen candidate against the current vault
+  and appends the `detected: confirmed` entry; the confirmation surface shall not be
+  exposed as an MCP tool. *(optional-feature)*
+  `# ← SCN-009; added v3.9.0 (interpretation-panel divergence D-confirm, HITL 2026-08-04): an MCP confirmation tool would let a connected model confirm bindings — auto-bind laundering under constitution prohibition 8. Mapped @ suite 0.6.1 to COR-R-036/COR-A-017 (they grade the observable ledger effect through whatever surface exists; this SR fixes the surface).`
+- **SR-045** — When the identity pass matches or resolves, it shall key strictly on
+  the recorded ref's (path, content-hash) pair — a binding applies only to refs whose
+  recorded hash equals the binding's hash — and each pass shall evaluate the
+  originally recorded pair directly against the current vault, so that a
+  multiply-renamed note yields a fresh direct binding (newest binding wins) and
+  ledger entries are never composed into chains. *(event-driven)*
+  `# ← SCN-008/SCN-009; added v3.9.0 (interpretation-panel divergences D-key + D-chain, HITL 2026-08-04): path-level keying lets an old-version ref resolve silently through a newer version's move — the quiet guess SCN-009 exists to prevent; chain composition adds graph-closure logic and a bug class the direct model cannot have. Mapped @ suite 0.6.1 to COR-R-029/COR-R-030/COR-A-013; the strict-keying discriminator (old-hash ref must stay unresolved through a new-hash binding) is recorded suite debt for the cull's decision-ledger audit.`
+- **SR-046** — If an automatic exact-hash detection conflicts with an existing
+  `detected: confirmed` binding for the same recorded (path, content-hash) ref, then
+  the system shall preserve the confirmed binding, append no automatic binding for
+  that ref, and surface the conflict explicitly at read surfaces ("confirmed X; the
+  hash now matches Y"); only a fresh human confirmation (SR-044) supersedes a
+  confirmed binding. *(unwanted-behavior)*
+  `# ← SCN-009; added v3.10.0 (gen-1 population fork: var-1 HIGH ambiguity + var-3 MEDIUM echo — SR-045's newest-wins did not carve out confirmed bindings; HITL 2026-08-04: confirmed is sticky, conflict surfaced, never silently outvoted by automation). Scopes SR-045: newest-wins governs AUTOMATIC bindings only. Mapping registered @ suite 0.7.0 (v3.10.1): COR-A-018 conflict preserve+surface, COR-A-019 fresh-confirmation supersede. NOTE: all three gen-1 variants predate this SR (uniform newest-wins) — nonconformance expected at cull, gen-2 refinement item.`
 
 ### Non-functional (no scenario parent)
 
@@ -600,6 +820,11 @@ SRs (SR-100+) have no parent.
   implemented and released), the project shall update the user-facing "how-to"
   documentation (`README.md` / `docs/`) to cover every new or changed user-visible
   behavior in that stage. *(event-driven)* `# added at HITL approval, 2026-07-25`
+- **SR-104** — When a reindex runs, the note-identity pass (dead-ref detection,
+  exact-hash matching, and identity-projection rebuild) shall complete within a
+  stated wall-time bound at the live vault's scale (~2,300 notes, ~420 recorded
+  refs). *(event-driven)*
+  `# added v3.8.0 (decision-graph); the numeric bound is deliberately uncalibrated — no defensible figure exists in docs/decision-graph*.md; mapping-pending: true — TODO(flow-eval): calibrate the bound at gen-1 from measured baseline, then fix the number here by patch amendment`
 
 ---
 
@@ -624,6 +849,9 @@ SRs (SR-100+) have no parent.
 | — | rebuildability | (INV-4) | INV-4 | rebuild-real-v1 | invariant-rebuildable |
 | — | stdout purity | (INV-5) | INV-5 | adversarial-stdout-v1 | invariant-stdout-pure |
 | — | no LLM in server | (INV-6) | INV-6 | adversarial-inference-v1 | invariant-no-llm |
+| SCN-008 *(v3.8.0)* | exact-hash auto-bind, deterministic, ledger shape/append, projection rebuild, reindex determinism, read-surface resolution, no vault writes | SR-036, SR-039, SR-040, SR-041, SR-042, SR-045 *(v3.9.0)* | INV-2, INV-3, INV-4, INV-6 | correctness-real-v1 (COR-R-028..032, 037) + correctness-adv-v1 (COR-A-013, 015) | correctness |
+| SCN-009 *(v3.8.0)* | zero-candidate unresolved, multi-candidate unresolved, non-silent render, confirmed-binding append, ledger append-only | SR-037, SR-038, SR-039, SR-043, SR-044 *(v3.9.0)*, SR-045 *(v3.9.0)*, SR-046 *(v3.10.0)* | INV-2, INV-3 | correctness-real-v1 (COR-R-033..037) + correctness-adv-v1 (COR-A-014, 016, 017; @0.7.0: 018/019 SR-046 confirmed-sticky, 020 SR-043 enrichment surface); ledger confinement/injection: security-adv-v1 (SEC-A-014/015) + SEC-R-006 control | correctness, security |
+| — | identity-pass reindex performance *(v3.8.0)* | SR-104 | INV-4 | performance-real-v1 (PERF-R-006, report-only — bound calibration pending at gen-1) | performance |
 
 ---
 
@@ -664,6 +892,25 @@ and `evals/harness.yaml` draft). Before `flow-generate` may proceed, `flow-eval`
 
 Until then every mapping carries `mapping-pending: true`. This spec is not to be
 finalized without an explicit `mapping-pending` acknowledgment from the orchestrator.
+
+*(v3.8.0, effort decision-graph)* The v3.8.0 additions — SCN-008, SCN-009,
+SR-036..043, SR-104 — entered entirely `mapping-pending: true` (the eval suite is
+owned by `flow-eval`; this spec does not edit `evals/`). The `mapping-pending`
+acknowledgment for v3.8.0 was given by the operator at flow-init decision-graph
+(2026-08-04).
+
+*(v3.8.1)* Resolved by eval suite 0.6.0 (flow-eval DESIGN pass, same day): every
+SCN-008/SCN-009 acceptance criterion has a deterministic task in
+`correctness-real-v1` (COR-R-028..037), the metric-gaming holdouts live in
+`correctness-adv-v1` (COR-A-013..017), ledger path-confinement and
+candidate-injection probes in `security-adv-v1` (SEC-A-014/015, benign control
+SEC-R-006), and PERF-R-006 (report-only, no threshold) produces the gen-1 baseline
+that will calibrate SR-104's wall-time bound — the one mapping still open, carried as
+`mapping-pending: calibration` on its harness entry and closed by patch amendment
+here after gen-1. Known suite debt, deliberately not widened into this pass:
+SR-024..035 (spec v3.3.0–v3.7.0) were never mapped into the suite — a backfill
+flow-eval pass is recommended; their behaviors are currently guarded by the repo's
+own test suite (94 tests) rather than the eval harness.
 
 ---
 
@@ -706,7 +953,22 @@ finalized without an explicit `mapping-pending` acknowledgment from the orchestr
   the server stores directives verbatim and never enforces style. *(v3.2.0)*
 - **Stateful behavior** — a librarian behavior that depends on accrued memory-of-use:
   `librarian-recent`, and search results carrying prior-engagement signals. The
-  desirability gate measures Robin reaching for these unprompted.
+  desirability gate measures Robin reaching for these unprompted. *(v3.8.0: reads
+  from decision-graph-introduced tools or read-paths are excluded from the gate
+  metric — constitution prohibition 9.)*
+- **Note-identity ledger** — the append-only sidecar `_librarian/note-identity.md`
+  (schema `note-identity@1`, mdbase-compatible frontmatter) recording identity
+  bindings from a recorded ref path that no longer resolves to the current note that
+  carries its content. Never rewritten, reordered, or compacted; the only durable
+  artifact of the identity pass. *(v3.8.0)*
+- **Identity binding** — one ledger entry: identity id, from-path, to-path, content
+  hash, timestamp, and provenance — `detected: exact-hash` for a deterministic
+  single-candidate match, `detected: confirmed` for a human-confirmed one. Those two
+  are the only provenance values; there is no heuristic third kind. *(v3.8.0)*
+- **Unresolved ref** — a recorded ref whose path no longer resolves and whose
+  exact-hash match found zero candidates (rename plus edit) or more than one
+  (duplicate content). Recorded and rendered as unresolved with its candidates;
+  never auto-bound (constitution prohibition 8). *(v3.8.0)*
 
 ---
 
