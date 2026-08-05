@@ -114,25 +114,25 @@ You can also ask directly: "search my vault for X" or "what was I working on thi
 4. Register it with Claude Code so every session can use it:
 
    ```bash
-   claude mcp add my-librarian --scope user -- node /Users/shinytoyrobots/Development/personal/my-librarian/dist/stdio.js
+   claude mcp add my-librarian --scope user -- node "$PWD/dist/stdio.js"   # from the repository root
    ```
 
    The `--scope user` flag makes the Librarian available in every Claude Code session, in any directory.
 
 5. Open a new Claude Code session and confirm the connection with the `/mcp` command. You should see `my-librarian` with three tools.
 
-6. **Turn on remembering** (one-time, two pieces): first, register the Stop hook in `~/.claude/settings.json` so session summaries are captured automatically at session end:
+6. **Turn on remembering** (one-time, one command):
 
-   ```json
-   {
-     "hooks": {
-       "Stop": [ { "hooks": [ { "type": "command",
-         "command": "/Users/shinytoyrobots/Development/personal/my-librarian/hooks/librarian-stop.sh" } ] } ]
-     }
-   }
+   ```bash
+   npm run install-hook
    ```
 
-   Second, add a standing rule to your global `~/.claude/CLAUDE.md` telling Claude to leave the one-line summary marker at the end of any session worth remembering — the hook only *collects* the marker; without the rule, nothing gets captured. The exact marker convention, the plain-language style contract for the summary, and the rule text to copy are in [`memory-of-use.md`](./memory-of-use.md) §2 and the README. If you set this rule up before the style contract existed, copy the current version over it. Then start a fresh Claude Code session — hooks and CLAUDE.md are both read at session start.
+   The installer registers the Stop hook in `~/.claude/settings.json` (merging, never
+   replacing; safe to re-run). There is **nothing to add to your `CLAUDE.md`** — the
+   whole capture contract ships inside the server as MCP instructions and reaches
+   every client on connect. Then start a fresh Claude Code session — hooks are read
+   at session start. Step-by-step version with verification at each stage:
+   [`getting-started.md`](./getting-started.md).
 
 ## Use it
 

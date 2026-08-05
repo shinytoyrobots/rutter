@@ -29,7 +29,16 @@
 # instead, so the converged s1-5-ambient-capture effort is not forced into re-eval.
 
 schema-version: "1.0"
-suite-version: "0.7.0"   # 0.6.1 -> 0.7.0 (minor, additive): 3 adversarial holdouts for the
+suite-version: "0.8.0"   # 0.7.0 -> 0.8.0 (minor, additive): +COR-R-038 real + COR-A-021 holdout
+                         # from the FIRST PRODUCTION-DERIVED finding (ring-0 day one, 2026-08-05):
+                         # the shipped identity pass resolved ref paths against the *.md notes
+                         # index, mislabeling 27 refs to existing non-note files (.html/.yaml/
+                         # dotfiles/_librarian/*) as UNRESOLVED. Spec v3.10.2 pins resolution =
+                         # exists-on-disk-within-vault, any file type. COR-A-021 guards the fix
+                         # against over-correction (blanket non-note exemption, render suppression,
+                         # lost rename detection). No existing task edited; no re-evaluation of
+                         # prior gens — the fix generation is scored against these directly.
+                         # (0.6.1 -> 0.7.0 (minor, additive): 3 adversarial holdouts for the
                          # gen-2 refinement scope (SR-046, SR-043), authored eval-first after
                          # /flow-generate's Step-2 halt (SR-046 had tasks: []). COR-A-018
                          # (confirmed binding preserved + conflict surfaced when a later
@@ -65,7 +74,7 @@ suite-version: "0.7.0"   # 0.6.1 -> 0.7.0 (minor, additive): 3 adversarial holdo
                          # Dataset REFINEMENT: prior variants re-evaluate per protocol.
                          # 0.3.0 -> 0.4.0: spec v3.1.0 SCN-005/006 tasks COR-R-019..024,
                          # COR-A-010/011, SEC-A-013. 0.2.0 -> 0.3.0: SCN-001 v3.0.0 tasks.)
-spec-version: "3.10.1"
+spec-version: "3.10.2"
 status: active
 mapping-pending: false
 
@@ -198,8 +207,8 @@ mappings:
       grader: correctness
       mapping-pending: false
       derived-requirements: [SR-036, SR-039, SR-040, SR-041, SR-042]
-      tasks: [COR-R-028, COR-R-029, COR-R-030, COR-R-031, COR-R-032, COR-R-037]  # 037 = note-identity@1 schema (SR-039), shared with SCN-009
-      adversarial-tasks: [COR-A-013, COR-A-015]  # near-miss hash must not bind; identity state must not be DB-cached to fake determinism
+      tasks: [COR-R-028, COR-R-029, COR-R-030, COR-R-031, COR-R-032, COR-R-037, COR-R-038]  # 037 = note-identity@1 schema (SR-039), shared with SCN-009; 038 @ 0.8.0 = path resolution is disk-existence, not notes-index (production finding, spec v3.10.2)
+      adversarial-tasks: [COR-A-013, COR-A-015, COR-A-021]  # near-miss hash must not bind; identity state must not be DB-cached to fake determinism; 021 @ 0.8.0 = fix must not over-correct (deleted non-note stays dead+rendered, renames still bind)
       # AC "identity pass writes nothing to the vault" is graded by the existing INV-2
       # grader (store-immutable) — cited, not duplicated here. AC "completes within
       # SR-104's bound" is carried by PERF-R-006 under the SR-104 requirement entry

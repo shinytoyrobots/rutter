@@ -1,11 +1,21 @@
 ---
-version: "3.10.1"
+version: "3.10.2"
 status: active
 effort:
   - s1-5-ambient-capture   # converged
   - decision-graph         # active (v3.8.0 —)
-last-amended: 2026-08-04
+last-amended: 2026-08-05
 mapping-pending: false     # one per-entry exception carried on a harness entry: SR-104 (bound pending gen-1 calibration)
+# v3.10.2 (patch, clarification — ring-0 day-one production finding): "path no longer
+# resolves" in SR-036/SR-037 means the file is ABSENT FROM DISK at its vault-relative
+# path (within confinement) — NOT absent from the markdown notes index. Capture
+# legitimately refs any confined vault file (.html, .yaml, dotfiles, _librarian/*);
+# a ref to an existing non-note file is LIVE and never enters the dead-ref pass.
+# The shipped notes-index reading mislabeled 27 of 31 live-vault dead refs. Glossary
+# entry added; no scenario, requirement, or invariant semantics changed — this pins
+# the intended meaning against a demonstrated misreading (all gen-1/gen-2 variants
+# shared it; no decision ledger ever surfaced it — panel+population blind spot).
+# Suite 0.8.0 adds COR-R-038 (real) + COR-A-021 (holdout, incl. over-correction guards).
 # v3.10.1 (patch): SR-046 mapping-pending cleared — eval suite 0.7.0 (flow-eval,
 # 2026-08-04, eval-first before gen-2 dispatch) authored 3 additive adversarial
 # holdouts: COR-A-018 (confirmed binding preserved + conflict surfaced against a later
@@ -969,6 +979,15 @@ own test suite (94 tests) rather than the eval harness.
   exact-hash match found zero candidates (rename plus edit) or more than one
   (duplicate content). Recorded and rendered as unresolved with its candidates;
   never auto-bound (constitution prohibition 8). *(v3.8.0)*
+- **Path resolution (identity pass)** — a recorded ref's path *resolves* iff a file
+  exists on disk at that vault-relative path, inside vault confinement, regardless of
+  file type or whether it is an indexed markdown note. Capture may reference any
+  confined vault file (the ref's hash is computed from actual bytes as-read), so the
+  identity pass treats only genuinely missing paths as dead; a ref to an existing
+  non-note artifact is live and is never rendered unresolved. A deleted file of any
+  type is genuinely dead and follows SR-036/SR-037 exactly as a note would.
+  *(v3.10.2 clarification — production finding: the notes-index reading produced 27
+  false dead refs on ring-0 day one)*
 
 ---
 

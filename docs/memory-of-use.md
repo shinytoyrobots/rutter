@@ -159,13 +159,11 @@ Compare:
    session-index upgrade — the data backfill is still switched off.
 ```
 
-**Where the contract lives — two places, both of them guidance to your client:**
-
-1. **The capture directive rule** in your global `~/.claude/CLAUDE.md` (the
-   copy-paste text is in the README's "Enable ambient capture" step 2). This is
-   what reaches the client that actually writes the directive.
-2. **The server's MCP instructions**, which every connected client receives on
-   connect — so a client that never saw your `CLAUDE.md` still gets the contract.
+**Where the contract lives — one place: the server's MCP instructions**
+(`SERVER_INSTRUCTIONS`), which every connected client receives on connect. That is
+the single source (SR-027): the README quotes it verbatim and a test fails if the
+copy drifts. Nothing goes in your `CLAUDE.md` — a paste-in exists only as the
+README's documented fallback if captures refuse to land.
 
 **What the server does about style: nothing at all.** It stores the summary
 **byte-verbatim** — it never rewrites, shortens, "clarifies", or rejects a line
@@ -175,28 +173,23 @@ and the server runs no model (INV-6). A dense summary is a *readability* problem
 handled by guidance and by read-time rendering, never a *data* problem solved by
 editing your memory.
 
-**Install the hook.** Build first (`npm run build`), then add the Stop hook to
-your Claude Code settings (`~/.claude/settings.json` or a project
-`.claude/settings.json`):
+**Install the hook.** Build first (`npm run build`), then:
 
-```json
-{
-  "hooks": {
-    "Stop": [
-      { "hooks": [ { "type": "command", "command": "/ABSOLUTE/PATH/hooks/librarian-stop.sh" } ] }
-    ]
-  }
-}
+```bash
+npm run install-hook
 ```
 
-The script reads the Stop event on stdin, extracts the directive, and appends one
-entry. It always exits cleanly, so a capture hiccup can never break your session.
+The installer writes the Stop-hook entry into `~/.claude/settings.json` — merging
+rather than replacing, never touching other hooks, and refusing to run against an
+unbuilt repo. The registered script reads the Stop event on stdin, extracts the
+directive, and appends one entry. It always exits cleanly, so a capture hiccup can
+never break your session.
 
-> **Manual-for-now honesty.** The exact hook wiring is an intentional spike. Today
-> capture depends on the client emitting the directive — so make it a standing rule:
-> add the one-liner from the README's "Enable ambient capture" step 2 to your global
-> `~/.claude/CLAUDE.md`, and every session emits it without being asked. You can also
-> capture directly for testing:
+> **How the client knows.** Capture depends on the client emitting the directive,
+> and the server's MCP instructions establish that on every connect — no standing
+> rule in `CLAUDE.md`, no per-project setup (the pre-v3.4.0 `CLAUDE.md` mechanism is
+> retired; the README keeps a paste-in only as a troubleshooting fallback). You can
+> also capture directly for testing:
 > `echo '{"summary":"...","refs":["Notes/x.md"],"cwd":"/path/to/project"}' | npm run capture`
 > (`cwd` is optional; the real Stop event supplies it, and the hook passes it straight
 > through).
@@ -357,7 +350,13 @@ still there, so the librarian can tell *what* the reference meant even after *wh
 moved.
 
 Every `npm run reindex` runs an identity pass over every recorded reference whose path no longer
-resolves:
+resolves — and "resolves" means exactly what it sounds like: a file exists on disk at that path,
+inside the vault, of ANY type. A reference can legitimately point at a non-note artifact (a
+`.gitignore`, an exported `.html`, a `.yaml` config, anything under `_librarian/` itself) since
+capture hashes whatever bytes are actually there; such a reference is live for as long as that
+file exists, and the identity pass never treats "not an indexed markdown note" as "dead." Only a
+path that is actually MISSING — deleted or moved with no trace at the old location — enters the
+rest of this section, note or not:
 
 - **Exactly one current note's content hash matches what was recorded** — the note was renamed,
   content untouched. The librarian binds the old path to the new one, deterministically, and
