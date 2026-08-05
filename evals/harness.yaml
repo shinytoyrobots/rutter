@@ -17,15 +17,55 @@
 #
 # Constitution override (v2.0.0): default dimension `accessibility` replaced by
 # `documentation` (headless stdio MCP server, no UI; SR-103 docs-currency home).
+#
+# Suite 0.6.0 (flow-eval DESIGN pass, 2026-08-04) adds the effort **decision-graph**
+# Phase 0 surface: SCN-008/SCN-009 (durable note-identity ledger) and SR-036..043 are
+# now mapped onto correctness + security, and SR-104 gains a REPORT-ONLY performance
+# task (PERF-R-006) whose sole job is to produce the gen-1 baseline that calibrates
+# SR-104's still-unfixed wall-time bound. Purely ADDITIVE — no existing task was
+# edited or renumbered, so prior variants need no re-evaluation. The INV-* datasets
+# and graders are deliberately UNTOUCHED: the ledger sits inside existing INV-2/3/4
+# scope and the ledger-specific probes ride on the correctness/security dimensions
+# instead, so the converged s1-5-ambient-capture effort is not forced into re-eval.
 
 schema-version: "1.0"
-suite-version: "0.5.0"   # 0.4.0 -> 0.5.0: spec v3.2.0 additive tasks — SCN-007 recall clarity
+suite-version: "0.7.0"   # 0.6.1 -> 0.7.0 (minor, additive): 3 adversarial holdouts for the
+                         # gen-2 refinement scope (SR-046, SR-043), authored eval-first after
+                         # /flow-generate's Step-2 halt (SR-046 had tasks: []). COR-A-018
+                         # (confirmed binding preserved + conflict surfaced when a later
+                         # exact-hash detection points elsewhere), COR-A-019 (only a fresh
+                         # SR-044 confirmation supersedes; append-only under supersede),
+                         # COR-A-020 (SR-043 enrichment-surface silence discriminator — the
+                         # spread gen-1's cull found COR-A-016 under-probed: var-3 rendered
+                         # unresolved in recent but was silent in enrichment). SR-046
+                         # mapping-pending CLEARED. ADDITIVE ONLY — no existing task edited,
+                         # no re-evaluation of prior variants; gen-1 survivors' known SR-046
+                         # nonconformance is already recorded in gen-1/summary.md.
+                         # Backlog NOT addressed here (4 items remain, gen-1/summary.md
+                         # §Suite gaps): re-introduced ambiguity onto an already-bound ref
+                         # (needs a spec reading first, not just a task); confirm-target
+                         # validation; cost-grader normalization formula; SR-024..035 backfill.
+                         # (0.6.0 -> 0.6.1 (patch, mappings-only): spec v3.9.0 panel-resolution
+                         # SRs registered — SR-044 (confirmation surface = CLI, never MCP) ->
+                         # COR-R-036/COR-A-017 (they grade the ledger effect through whatever
+                         # surface exists; the SR fixes the surface); SR-045 (strict (path,hash)
+                         # keying, direct rebinding, no chains) -> COR-R-029/030, COR-A-013.
+                         # SUITE DEBT (cull decision-ledger audit must cover): no dedicated
+                         # strict-keying discriminator task (old-hash ref must stay unresolved
+                         # through a new-hash binding). No dataset change; no re-evaluation.)
+                         # (0.5.0 -> 0.6.0: spec v3.8.0 additive tasks — effort decision-graph
+                         # Phase 0 note-identity ledger (SCN-008: COR-R-028..032; SCN-009:
+                         # COR-R-033..036; SR-039 schema: COR-R-037; holdouts COR-A-013..017;
+                         # SEC-A-014/015 + benign control SEC-R-006; SR-104 PERF-R-006
+                         # report-only, weight 0.0). ADDITIVE ONLY — no dataset refinement,
+                         # so prior variants do NOT re-evaluate.
+                         # (0.4.0 -> 0.5.0: spec v3.2.0 additive tasks — SCN-007 recall clarity
                          # (COR-R-025..027, COR-A-012: authoring contract + render guidance in
                          # server instructions; byte-verbatim storage; anti-laundering probe).
                          # Dataset REFINEMENT: prior variants re-evaluate per protocol.
-                         # (0.3.0 -> 0.4.0: spec v3.1.0 SCN-005/006 tasks COR-R-019..024,
+                         # 0.3.0 -> 0.4.0: spec v3.1.0 SCN-005/006 tasks COR-R-019..024,
                          # COR-A-010/011, SEC-A-013. 0.2.0 -> 0.3.0: SCN-001 v3.0.0 tasks.)
-spec-version: "3.2.0"
+spec-version: "3.10.1"
 status: active
 mapping-pending: false
 
@@ -150,6 +190,34 @@ mappings:
       tasks: [COR-R-025, COR-R-026, COR-R-027]  # added @ spec v3.2.0
       adversarial-tasks: [COR-A-012]  # server must not launder records to fake clarity compliance
 
+    # --- effort decision-graph (Phase 0), added @ spec v3.8.0 / suite 0.6.0 ---
+    - scenario: SCN-008
+      title: A recorded ref survives a vault rename
+      dimension: correctness
+      dataset: correctness-real-v1
+      grader: correctness
+      mapping-pending: false
+      derived-requirements: [SR-036, SR-039, SR-040, SR-041, SR-042]
+      tasks: [COR-R-028, COR-R-029, COR-R-030, COR-R-031, COR-R-032, COR-R-037]  # 037 = note-identity@1 schema (SR-039), shared with SCN-009
+      adversarial-tasks: [COR-A-013, COR-A-015]  # near-miss hash must not bind; identity state must not be DB-cached to fake determinism
+      # AC "identity pass writes nothing to the vault" is graded by the existing INV-2
+      # grader (store-immutable) — cited, not duplicated here. AC "completes within
+      # SR-104's bound" is carried by PERF-R-006 under the SR-104 requirement entry
+      # below (report-only until the bound is calibrated).
+      # Ledger path-confinement + candidate-render inertness: SEC-A-014/015 (security dim).
+
+    - scenario: SCN-009
+      title: An ambiguous disappearance is surfaced, never guessed
+      dimension: correctness
+      dataset: correctness-real-v1
+      grader: correctness
+      mapping-pending: false
+      derived-requirements: [SR-037, SR-038, SR-039, SR-043]
+      tasks: [COR-R-033, COR-R-034, COR-R-035, COR-R-036, COR-R-037]  # 037 = note-identity@1 schema (SR-039), shared with SCN-008
+      adversarial-tasks: [COR-A-014, COR-A-016, COR-A-017, COR-A-020]  # no tie-breaking (constitution prohibition 8); unresolved refs not silently dropped; ledger append-only under tidy pressure; 020 @ 0.7.0 = enrichment-surface silence discriminator (SR-043 — COR-A-016 under-probed that surface, gen-1 cull finding). SR-046's holdouts (COR-A-018/019) live on its requirement entry below.
+      # "Nothing on this path writes to the vault or mutates a stored session entry"
+      # is graded by the existing INV-2 / INV-3 graders — cited, not duplicated.
+
   # -------------------------------------------------------------------------
   # Non-functional SR mappings — consolidated onto the six Pareto dimensions
   # at flow-init (was: schema-conformance / safety ad-hoc dimensions).
@@ -169,8 +237,8 @@ mappings:
       dataset: security-adv-v1          # was adversarial-input-v1; folded in
       grader: security
       mapping-pending: false
-      tasks: [SEC-A-001, SEC-A-002, SEC-A-003, SEC-A-004, SEC-A-005, SEC-A-006, SEC-A-007, SEC-A-008, SEC-A-009, SEC-A-010, SEC-A-011, SEC-A-012, SEC-A-013]  # 013 provenance-injection @ v3.1.0
-      benign-controls: [SEC-R-004, SEC-R-005]  # in security-real-v1 (guard over-sanitizing)
+      tasks: [SEC-A-001, SEC-A-002, SEC-A-003, SEC-A-004, SEC-A-005, SEC-A-006, SEC-A-007, SEC-A-008, SEC-A-009, SEC-A-010, SEC-A-011, SEC-A-012, SEC-A-013, SEC-A-014, SEC-A-015]  # 013 provenance-injection @ v3.1.0; 014 ledger path-traversal + 015 candidate-render injection @ v3.8.0 (SCN-008/009, also SR-039/SR-043)
+      benign-controls: [SEC-R-004, SEC-R-005, SEC-R-006]  # in security-real-v1 (guard over-sanitizing); 006 legitimate unusual vault paths @ v3.8.0
 
     - requirement: SR-102
       text: No vault or session content committed to the code repository.
@@ -187,6 +255,67 @@ mappings:
       grader: documentation
       mapping-pending: false
       tasks: [DOC-R-001, DOC-R-002, DOC-R-003, DOC-R-004, DOC-R-005]
+
+    - requirement: SR-104
+      text: The note-identity pass completes within a stated wall-time bound at live-vault scale (~2,300 notes, ~420 recorded refs).
+      dimension: performance
+      dataset: performance-real-v1
+      grader: performance
+      mapping-pending: calibration   # NOT `false`: the task exists and runs, but SR-104's
+                                     # numeric bound is deliberately uncalibrated at spec
+                                     # v3.8.0 (no defensible figure exists in
+                                     # docs/decision-graph*.md). PERF-R-006 is REPORT-ONLY
+                                     # (no budget, weight 0.0, excluded from the performance
+                                     # aggregate) and exists to produce the gen-1 measured
+                                     # baseline. The bound is fixed in spec/spec.md by PATCH
+                                     # AMENDMENT after gen-1 measurement; only that amendment
+                                     # may flip this to `false` (and give PERF-R-006 a
+                                     # budget_p95_ms + non-zero weight). flow-evaluator must
+                                     # never resolve this state on its own.
+      tasks: [PERF-R-006]
+
+    - requirement: SR-044
+      text: Human confirmation of an unresolved-ref binding is supplied through a local CLI command; the confirmation surface is never exposed as an MCP tool.
+      dimension: correctness
+      dataset: correctness-real-v1
+      grader: correctness
+      mapping-pending: false           # registered @ suite 0.6.1 (spec v3.9.0, panel HITL)
+      tasks: [COR-R-036]               # grades the detected: confirmed ledger effect
+      adversarial-tasks: [COR-A-017]   # append-only under confirmed-append pressure
+      # The no-MCP-surface clause is graded structurally at cull (variant's server.ts
+      # registers no confirmation tool), not by a dataset task.
+
+    - requirement: SR-045
+      text: Matching/resolution keys strictly on the recorded (path, content-hash) pair; direct rebinding from the originally recorded pair against the current vault; newest binding wins; no chain composition.
+      dimension: correctness
+      dataset: correctness-real-v1
+      grader: correctness
+      mapping-pending: false           # registered @ suite 0.6.1 (spec v3.9.0, panel HITL)
+      tasks: [COR-R-029, COR-R-030]    # determinism + read-surface resolution
+      adversarial-tasks: [COR-A-013]   # near-miss hash must not bind
+      # SUITE DEBT: no dedicated discriminator for strict keying (an old-hash ref must
+      # stay unresolved through a new-hash binding) or for the no-chains model under a
+      # double rename. The cull's decision-ledger audit must check both; a future
+      # flow-eval pass owns the dedicated tasks.
+
+    - requirement: SR-046
+      text: A human-confirmed binding is never silently superseded by automatic detection — the confirmed binding is preserved, the conflict surfaced at read surfaces, and only a fresh human confirmation supersedes.
+      dimension: correctness
+      dataset: correctness-adv-v1
+      grader: correctness
+      mapping-pending: false           # registered @ suite 0.7.0 (eval-first before gen-2
+                                       # dispatch — /flow-generate Step-2 halt, HITL chose
+                                       # flow-eval-first over override). Spec v3.10.0 origin:
+                                       # gen-1 population fork, HITL confirmed-sticky. All
+                                       # three gen-1 variants predate the SR (uniform
+                                       # newest-wins); their expected nonconformance is
+                                       # recorded in gen-1/summary.md — gen-2 refinement item.
+      tasks: []                        # no real-dataset task: the SR is an unwanted-behavior
+                                       # guard; both probes are adversarial holdouts
+      adversarial-tasks: [COR-A-018, COR-A-019]  # 018 = preserve confirmed + surface conflict
+                                       # (auto detection at Y while confirmed says X);
+                                       # 019 = only a fresh SR-044 confirmation supersedes,
+                                       # append-only under supersede pressure
 
   # -------------------------------------------------------------------------
   # Invariant mappings — dedicated grader + real/adversarial dataset pair each,
@@ -253,7 +382,7 @@ mappings:
       dataset: performance-real-v1
       grader: performance
       mapping-pending: false
-      tasks: [PERF-R-001, PERF-R-002, PERF-R-003, PERF-R-004, PERF-R-005]
+      tasks: [PERF-R-001, PERF-R-002, PERF-R-003, PERF-R-004, PERF-R-005, PERF-R-006]  # 006 report-only (SR-104), budget_p95_ms: null, weight 0.0 — excluded from the aggregate
     - dimension: maintainability
       dataset: maintainability-real-v1
       grader: maintainability
@@ -280,6 +409,7 @@ runners:
     llm-judge: "client-side claude judge for SEC-A-010 (prompt-injection surface presented as delimited data)."
   performance:
     deterministic: "tsx bench script using perf_hooks; warm+measured iterations, reports p50/p95, seeded deterministic fixture corpora; records host specs. node:sqlite cold-open excluded (measured warm)."
+    report-only: "A task with kind: report-only has budget_p95_ms: null and weight 0.0 (PERF-R-006 / SR-104). The runner MUST still measure and emit p50/p95 + host specs, but MUST NOT synthesize a score or a pass/fail from it, and MUST leave it out of the weighted mean. A missing measurement is an eval-suite error, not a variant score."
   maintainability:
     deterministic: "tsc --noEmit (npm run typecheck) for the binary sub-score; complexity + import-graph via typescript-eslint complexity rule or ts-morph; file-size line count."
     llm-judge: "client-side claude readability judge anchored to S1 src/vault.ts + src/search.ts (weight 0.20)."
