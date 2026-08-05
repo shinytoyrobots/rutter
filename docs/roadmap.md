@@ -104,6 +104,11 @@ No content scrubbing needed: `data/` and `_librarian/` are gitignored and memory
 is kept out of the code repo by spec (SR-102 / prohibition 6). Nothing personal is
 tracked.
 
+**Timing note — the real reason not to let this drift.** Ideas from this codebase have
+begun informing the author's professional work. Publishing promptly establishes the
+mechanism as independently authored prior art, shown by the timeline rather than argued
+after the fact.
+
 **Exit:** public repo, MIT, README that claims the right thing.
 
 ---
@@ -130,6 +135,8 @@ hard parts at team scale: ratification authority, privacy surface, cross-user co
 The June concept bake-off already scored the nearest neighbor (H5 "Remembrancer") last
 at −7.0, sunk by integration burden and privacy sensitivity.
 
+Any commercial move here also has to clear the employer-conflict question first, since
+it overlaps the author's professional work. That is a gate, not a risk.
 
 ---
 

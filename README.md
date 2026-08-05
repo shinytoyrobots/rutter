@@ -1,6 +1,6 @@
 # my-librarian
 
-**A record of what your AI coding sessions decided — and the receipts behind it.**
+**A record of what your AI sessions decided — and the receipts behind it.**
 
 An MCP server over a folder of markdown notes. At the end of each session your client leaves one
 line about what it decided. The server stores that line byte-verbatim, alongside content-hashed
