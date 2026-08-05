@@ -314,3 +314,241 @@ test("SR-040/INV-4: identity projections rebuild from the vault + ledger alone",
   const after = resolveRef(db2, { path: "Notes/old.md", hash: readLedger()[0]!.hash });
   assert.deepEqual(after, before, "identical resolution after a full cache rebuild");
 });
+
+// -- gen-2/var-3-reversibility: SR-046 (confirmed bindings are sticky) ------
+
+/**
+ * The ledger is a gray-matter file: a YAML frontmatter block (whose
+ * `bindings:` key holds a growable LIST) followed by a regenerated markdown
+ * BODY (also a growable list, one line per binding). Appending a binding
+ * necessarily moves the frontmatter's closing `---` delimiter (the list it
+ * closes just grew) -- so a naive "first N raw bytes of the whole file are
+ * unchanged" check is architecturally impossible to satisfy for ANY correct
+ * implementation of this format, appended entry or not.
+ *
+ * What "byte-append-only" actually promises, given that shape, is that EACH
+ * of the two growable list sections -- the frontmatter's `bindings:` array
+ * body and the markdown body's line list -- is a byte-for-byte PREFIX of its
+ * own later self: earlier entries' rendered text is carried forward
+ * unchanged and un-reordered, with new text landing strictly after it. This
+ * extracts those two sections from a ledger file's raw bytes via string
+ * markers only (never via `readLedger`'s zod parse), so the comparison below
+ * is a genuine raw-byte check, not a parsed-structure one.
+ */
+function ledgerSections(raw: Buffer): { frontmatterList: Buffer; bodyList: Buffer } {
+  const text = raw.toString("utf8");
+  const bindingsKey = "bindings:\n";
+  const listStart = text.indexOf(bindingsKey) + bindingsKey.length;
+  assert.ok(listStart > bindingsKey.length - 1, "ledger frontmatter carries a bindings: key");
+  const frontmatterEnd = text.indexOf("\n---\n", listStart);
+  assert.ok(frontmatterEnd >= 0, "frontmatter closes with its own --- delimiter");
+  const bodyMarker = "# Note identity bindings\n\n";
+  const bodyStart = text.indexOf(bodyMarker, frontmatterEnd) + bodyMarker.length;
+  assert.ok(bodyStart > bodyMarker.length - 1, "body carries its own heading");
+  return {
+    frontmatterList: Buffer.from(text.slice(listStart, frontmatterEnd + 1), "utf8"),
+    bodyList: Buffer.from(text.slice(bodyStart), "utf8"),
+  };
+}
+
+/** Assert `after`'s two growable sections carry `before`'s as an exact byte PREFIX. */
+function assertLedgerAppendedNotRewritten(before: Buffer, after: Buffer, msg: string): void {
+  const b = ledgerSections(before);
+  const a = ledgerSections(after);
+  assert.equal(a.frontmatterList.indexOf(b.frontmatterList), 0, `${msg} (frontmatter bindings: list)`);
+  assert.equal(a.bodyList.indexOf(b.bodyList), 0, `${msg} (markdown body list)`);
+}
+
+test(
+  "SR-046: a fresh automatic exact-hash detection never outvotes a confirmed binding -- " +
+    "conflict surfaced, ledger append-only through the conflict path (byte-level)",
+  () => {
+    // An UNRELATED earlier binding whose bytes must survive byte-for-byte
+    // through everything that follows -- this is the "existing-prefix
+    // preservation" the mandatory byte-level assertion below checks for.
+    writeNote("Notes/first.md", "# First\nfirst content");
+    captureSession({ summary: "Touched first.", refs: ["Notes/first.md"], now: NOON });
+    renameNote("Notes/first.md", "Notes/first-renamed.md");
+    reindex(undefined, new Date("2026-07-24T13:00:00.000Z"));
+    const bytesAfterFirst = fs.readFileSync(ledgerPath());
+    assert.equal(readLedger().length, 1, "sanity: one auto-bound entry so far");
+
+    // A pair a human confirms to a target that is DELIBERATELY NOT what
+    // exact-hash matching would say (SR-044 validates existence, never a hash
+    // match -- a human is allowed to override what the hash alone implies).
+    writeNote("Notes/old.md", "# Old\nconflict-prone content");
+    captureSession({ summary: "Touched old.", refs: ["Notes/old.md"], now: new Date("2026-07-24T14:00:00.000Z") });
+    renameNote("Notes/old.md", "Notes/actual.md"); // exact-hash would say THIS
+    writeNote("Notes/confirmed-target.md", "# Confirmed target\nunrelated content"); // a human confirms THIS instead
+
+    const cli = fileURLToPath(new URL("../src/identity-confirm-cli.ts", import.meta.url));
+    const res = spawnSync(process.execPath, ["--import", "tsx", cli, "Notes/old.md", "Notes/confirmed-target.md"], {
+      env: { ...process.env, LIBRARIAN_VAULT_PATH: vaultRoot, LIBRARIAN_DB_PATH: path.join(vaultRoot, "data", "librarian.db") },
+      encoding: "utf8",
+    });
+    assert.equal(res.status, 0, `confirm CLI exits clean; stderr: ${res.stderr}`);
+
+    const bytesAfterConfirm = fs.readFileSync(ledgerPath());
+    assertLedgerAppendedNotRewritten(
+      bytesAfterFirst,
+      bytesAfterConfirm,
+      "confirming appends -- the earlier auto-bound entry's bytes are untouched"
+    );
+    assert.equal(readLedger().length, 2, "confirmed entry appended, nothing rewritten");
+
+    // A SECOND, unrelated rename in the SAME reindex pass, so this pass
+    // legitimately appends a fresh automatic binding elsewhere while the
+    // SR-046 conflict path below appends NOTHING for its own (confirmed) ref
+    // -- proving the byte-append-only guarantee holds even when *something*
+    // does get appended in the same pass as a suppressed conflict.
+    writeNote("Notes/third.md", "# Third\nthird content");
+    captureSession({ summary: "Touched third.", refs: ["Notes/third.md"], now: new Date("2026-07-24T15:00:00.000Z") });
+    renameNote("Notes/third.md", "Notes/third-renamed.md");
+
+    // THIS is the first reindex pass since old.md was renamed to actual.md --
+    // exact-hash matching now finds exactly one candidate (actual.md) for the
+    // CONFIRMED pair, disagreeing with the confirmed target. SR-046 governs.
+    const stats = reindex(undefined, new Date("2026-07-24T16:00:00.000Z"));
+    assert.equal(
+      stats.identity.appended,
+      1,
+      "only the UNRELATED rename (third.md) appends -- the conflicted, confirmed pair appends nothing"
+    );
+
+    const bytesAfterConflictPass = fs.readFileSync(ledgerPath());
+    assert.ok(bytesAfterConflictPass.length > bytesAfterConfirm.length, "the unrelated append DID grow the file");
+    assertLedgerAppendedNotRewritten(
+      bytesAfterConfirm,
+      bytesAfterConflictPass,
+      "SR-046 byte-level check: the confirmed binding's bytes are an exact PREFIX of the growable ledger " +
+        "sections across the conflict pass -- no automatic entry was appended for the conflicted pair, and " +
+        "nothing earlier was rewritten, reordered, or compacted, even though this SAME pass legitimately " +
+        "appended an unrelated entry at the end"
+    );
+
+    const ledger = readLedger();
+    assert.equal(ledger.length, 3, "confirmed binding preserved + the one legitimate unrelated auto-bind, nothing else");
+    assert.ok(
+      !ledger.some((b) => b.from === "Notes/old.md" && b.to === "Notes/actual.md"),
+      "no automatic binding was ever recorded for the conflicted pair -- confirmed stays sticky"
+    );
+
+    const db = openDb();
+    const confirmedEntry = ledger.find((b) => b.from === "Notes/old.md")!;
+    const resolution = resolveRef(db, { path: "Notes/old.md", hash: confirmedEntry.hash });
+    assert.equal(resolution.status, "bound");
+    assert.equal(resolution.path, "Notes/confirmed-target.md", "confirmed binding is sticky at read time");
+    assert.equal(resolution.detected, "confirmed");
+    assert.deepEqual(
+      resolution.conflict,
+      { to: "Notes/actual.md" },
+      "the disagreement is surfaced on the resolution, never silently resolved either way"
+    );
+
+    // Read surface 1: librarian-recent.
+    const oldEntry = recent()
+      .sessions.flatMap((s) => s.increments)
+      .find((e) => e.summary === "Touched old.")!;
+    const rendered = formatRecentEntry(oldEntry, db);
+    assert.match(
+      rendered,
+      /confirmed Notes\/confirmed-target\.md; the hash now matches Notes\/actual\.md/,
+      "librarian-recent surfaces the conflict explicitly, naming both the confirmed target and the fresh hash match"
+    );
+
+    // Read surface 2: search prior-engagement enrichment.
+    const { results } = enrich(search("unrelated content"), buildReferenceIndex(undefined, db));
+    const hit = results.find((r) => r.path === "Notes/confirmed-target.md")!;
+    assert.ok(hit.priorEngagement, "the confirmed binding's target still carries the prior engagement");
+    assert.deepEqual(
+      hit.identityConflict,
+      { to: "Notes/actual.md" },
+      "search enrichment ALSO surfaces the SR-046 conflict, riding alongside the prior-engagement annotation"
+    );
+  }
+);
+
+test("SR-046: candidates.length > 1 (still genuinely ambiguous) never triggers a conflict -- SR-046 is scoped to single-candidate automatic detection", () => {
+  // Reuses the exact ambiguity shape from SCN-009/AC-4: a confirmed binding
+  // sticks even though the vault stays ambiguous by hash alone, and that is
+  // NOT the SR-046 conflict case (no single-candidate automatic detection
+  // exists to disagree with it).
+  writeNote("Notes/old.md", "# Old\nduplicated content");
+  reindex();
+  captureSession({ summary: "Touched old.", refs: ["Notes/old.md"], now: NOON });
+  fs.rmSync(path.join(vaultRoot, "Notes/old.md"));
+  writeNote("Notes/dup1.md", "# Old\nduplicated content");
+  writeNote("Notes/dup2.md", "# Old\nduplicated content");
+  reindex();
+
+  const cli = fileURLToPath(new URL("../src/identity-confirm-cli.ts", import.meta.url));
+  spawnSync(process.execPath, ["--import", "tsx", cli, "Notes/old.md", "Notes/dup1.md"], {
+    env: { ...process.env, LIBRARIAN_VAULT_PATH: vaultRoot, LIBRARIAN_DB_PATH: path.join(vaultRoot, "data", "librarian.db") },
+    encoding: "utf8",
+  });
+
+  reindex(); // still 2 candidates by hash -- no single-candidate automatic detection exists
+  const db = openDb();
+  const ref = readLedger().find((b) => b.detected === "confirmed")!;
+  const resolution = resolveRef(db, { path: ref.from, hash: ref.hash });
+  assert.equal(resolution.status, "bound");
+  assert.equal(resolution.detected, "confirmed");
+  assert.equal(resolution.conflict, undefined, "no conflict -- SR-046 requires a SINGLE-candidate automatic match to disagree with");
+});
+
+// -- gen-2/var-3-reversibility: SR-043 (enrichment surface, complete conformance) --
+
+test("SR-043: search prior-engagement enrichment renders an unresolved ref explicitly with its candidates -- never silently dropped, never a fabricated engagement", () => {
+  writeNote("Notes/old.md", "# Old\nduplicated searchable content");
+  reindex();
+  captureSession({ summary: "Touched old.", refs: ["Notes/old.md"], now: NOON });
+  fs.rmSync(path.join(vaultRoot, "Notes/old.md"));
+  // BYTE-IDENTICAL to old.md (exact-hash matching, INV-6 -- no heuristics): two
+  // current notes share the recorded hash, so the ref is genuinely ambiguous.
+  writeNote("Notes/dup1.md", "# Old\nduplicated searchable content");
+  writeNote("Notes/dup2.md", "# Old\nduplicated searchable content");
+  reindex();
+
+  const db = openDb();
+  const { results } = enrich(search("duplicated searchable content"), buildReferenceIndex(undefined, db));
+  const dup1 = results.find((r) => r.path === "Notes/dup1.md")!;
+  const dup2 = results.find((r) => r.path === "Notes/dup2.md")!;
+
+  for (const hit of [dup1, dup2]) {
+    assert.ok(hit, "both candidates are present -- enrichment never adds or drops a result (SR-009/SR-010)");
+    assert.equal(hit.priorEngagement, undefined, "a mere CANDIDATE is never annotated as a prior engagement (constitution prohibition 8)");
+    assert.ok(hit.unresolvedReference, "the unresolved state is rendered explicitly, not silently dropped (SR-043)");
+    assert.equal(hit.unresolvedReference!.from, "Notes/old.md");
+    assert.deepEqual(
+      [...hit.unresolvedReference!.candidates].sort(),
+      ["Notes/dup1.md", "Notes/dup2.md"],
+      "every candidate is listed, on both candidate results"
+    );
+  }
+
+  const baseline = search("duplicated searchable content").map((r) => r.path);
+  assert.deepEqual(
+    results.map((r) => r.path),
+    baseline,
+    "rendering the unresolved state changes no result's membership or ranking (SR-010)"
+  );
+});
+
+test("SR-043: an unresolved ref whose candidates are NOT among the search results renders no annotation anywhere (enrichment never invents a result)", () => {
+  writeNote("Notes/old.md", "# Old\nduplicated ambiguous content");
+  writeNote("Notes/unrelated.md", "# Unrelated\nsomething else entirely");
+  reindex();
+  captureSession({ summary: "Touched old.", refs: ["Notes/old.md"], now: NOON });
+  fs.rmSync(path.join(vaultRoot, "Notes/old.md"));
+  // BYTE-IDENTICAL to old.md, same reasoning as the test above.
+  writeNote("Notes/dup1.md", "# Old\nduplicated ambiguous content");
+  writeNote("Notes/dup2.md", "# Old\nduplicated ambiguous content");
+  reindex();
+
+  const db = openDb();
+  const { results } = enrich(search("unrelated"), buildReferenceIndex(undefined, db));
+  assert.equal(results.length, 1);
+  assert.equal(results[0]!.path, "Notes/unrelated.md");
+  assert.equal(results[0]!.unresolvedReference, undefined, "no candidate of the unresolved ref is in THIS result set");
+  assert.equal(results[0]!.priorEngagement, undefined);
+});
