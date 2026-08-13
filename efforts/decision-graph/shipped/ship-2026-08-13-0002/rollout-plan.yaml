@@ -1,0 +1,19 @@
+# Rollout plan — ship-2026-08-13-0002 (decision-graph Phase B, position recall)
+# Single-user local MCP server: the constitution defines no release rings and no
+# feature-flag platform exists — same shape as ship-2026-08-05-0001 (Phase 0) and
+# ship-2026-08-13-0001 (Phase A).
+rings:
+  - name: ring-0-dogfood
+    audience: "Robin's live vault + Claude Code sessions (same install as Phase 0/Phase A)"
+    entered-by: "operator commits the promoted working tree + restarts the MCP server (SERVER_INSTRUCTIONS is read at server construction, so a fresh client connection is what actually 'turns on' the client-visible librarian-positions tool and its attribution guidance)"
+    flag-coverage: "n/a — no flag platform; reversibility seam = a disposable, fully-rebuildable SQLite projection (INV-4) plus a verified-unchanged write path (SR-065) — deleting data/librarian.db and re-running reindex fully undoes this ship's data footprint"
+    dwell: "until a watch fires, or until the disclosed ref-path-resolution gap (M3) is resolved via /flow-spec + /flow-eval"
+    eval-tier: "post-ship-eval/watches.yaml — 9 watches: dissent-2026-08-13-0005's 7 reactivation conditions, dissent-2026-08-05-0001's third-read-surface reactivation (fires immediately on this merge), and the anomaly default"
+advance-policy: "no further rings exist for this single-user tool; Phase C (drift visibility, thread grouping) and Phase D (optional backfill) are separate future efforts, not rollout stages of this ship"
+note: >
+  This ship is READ-ONLY: it adds a new query surface (librarian-positions) over
+  events Phase A already captures. It changes zero bytes of session-record@1 or
+  the position-capture write path (SR-065, verified three times independently:
+  cull, deep pass, revert probe). The fold's SQLite tables are disposable and
+  rebuild from _librarian/positions/*.md on every reindex — nothing this ship
+  adds is irreplaceable state.
