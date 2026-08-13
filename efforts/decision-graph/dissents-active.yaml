@@ -175,11 +175,12 @@ dissents:
         trigger: "A promoted build's result on COR-R-039 (both directives in one payload)"
         match: "dimension correctness, task COR-R-039. FAIL on a promoted build => the silent cross-stream loss is live => reactivate. PASS on a build whose spec has ratified an encoding => resolve."
         check: eval-result
-    status: active
-    last-checked: "2026-08-13T06:55:00Z"
+    status: resolved
+    last-checked: "2026-08-13T16:00:00Z"
     reactivation-count: 0
     history:
       - "2026-08-13T06:55:00Z raised by chavruta-pair at gen-3 cull close; velocity-bias holds the minority position"
+      - "2026-08-13T16:00:00Z RESOLVED (HITL): spec v6.0.0 (spec/history/spec-v6.0.0-2026-08-13.md) ratified SCN-010/SR-047/048/052 toward the DISTINCT librarian-position tag -- this dissent's own reactivation condition 1 explicitly names that exact outcome as the resolve case (\"Ratifies distinct => resolve\"), as opposed to the shared-channel outcome which would have required applying the multi-occurrence extraction fix. No code changed; the already-shipped encoding (stability's provisional-resolution, matched by 4/5 of panel-2026-08-13's blind readers) is now spec-settled rather than provisional. Conditions 2-4 (shared-channel landing, synthesis-fix landing, third tag joining) remain unfired and are now moot -- there is no longer a live shared-vs-distinct question for them to watch."
   - id: "dissent-2026-08-13-0004"
     raised-at: "2026-08-13T06:55:00Z"
     raised-by: "flow-chavruta-pair / stability-bias"
