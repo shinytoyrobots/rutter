@@ -168,8 +168,9 @@ The design and build plan already exist, from an earlier (2026-08-04) pass that
 correctly declined to build ahead of evidence: `docs/decision-graph.md` (positions as
 a projection over the event log — two graphs, only one of them authored) and
 `docs/decision-graph-plan.md` (Phase 0, durable note identity, **already shipped**
-2026-08-05; Phases A–D — position capture, recall with supersession, drift
-visibility, optional backfill — not started). Phase B's supersession-chain design
+2026-08-05; Phase A, position capture (SCN-010), and Phase B, position recall
+(SCN-011), **shipped 2026-08-13**; Phases C–D — drift visibility, optional backfill
+— not started). Phase B's supersession-chain design
 already matches today's trajectory generalization without rework. Phase D (backfill)
 is newly load-bearing: the Kellie case predates position capture entirely, so nothing
 answers "what did I decide in September 2025" until either backfill runs or enough
@@ -179,9 +180,10 @@ Original candidates, kept for the record: H3 (ingestion) and H4
 (guide-to-collection), ACH-ranked co-equal at −0.5 with the tie flagged as brittle.
 Neither gained evidence; H2 did.
 
-**Next action:** flow-spec ratification of `docs/decision-graph-plan.md`'s five open
-HITL decision points, then the standard pipeline (flow-spec → HITL → gen → cull →
-ship).
+**Next action:** the backfill decision — `docs/decision-graph-plan.md`'s HITL point #5,
+deferred to two weeks after Phase B shipped, so due ~2026-08-27. Phases A–B already went
+through ratification and the standard pipeline (flow-spec → HITL → gen → cull → ship);
+Phases C–D would follow the same pipeline if taken up.
 
 ---
 
