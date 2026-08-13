@@ -37,3 +37,20 @@ export function toInertLine(raw: string): string {
     ? collapsed.slice(0, config.maxSummaryChars).trimEnd()
     : collapsed;
 }
+
+/**
+ * Words in a piece of client-authored text, counted the way a reader would:
+ * whitespace-separated tokens. Shared by every style-contract length check
+ * (SR-021/SR-034 for a session summary, SR-054 for a position stance) so the
+ * two carriers of the SAME 40/60 word budget (`config.summaryWordTarget`/
+ * `summaryWordCeiling`) never drift into counting words two different ways.
+ */
+export function wordCount(text: string): number {
+  const trimmed = text.trim();
+  return trimmed === "" ? 0 : trimmed.split(/\s+/).length;
+}
+
+/** True when `text` exceeds the shared style-contract's word ceiling. */
+export function overWordCeiling(text: string): boolean {
+  return wordCount(text) > config.summaryWordCeiling;
+}

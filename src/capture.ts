@@ -1,6 +1,5 @@
-import { config } from "./config.js";
-import { toInertLine } from "./sanitize.js";
-import { buildRef, type VersionedRef } from "./refs.js";
+import { toInertLine, wordCount, overWordCeiling } from "./sanitize.js";
+import { resolveRefs, type VersionedRef } from "./refs.js";
 import { appendSession, isDuplicateEntry, type SessionEntry } from "./session-record.js";
 import { deriveWorkspace } from "./workspace.js";
 
@@ -110,10 +109,15 @@ export function captureSession(payload: CapturePayload): CaptureResult {
   return { captured: true, day: isoDay(now), entry, rejectedRefs };
 }
 
-/** Words in a summary, counted the way a reader would: whitespace-separated tokens. */
+/**
+ * Words in a summary, counted the way a reader would: whitespace-separated
+ * tokens. Thin, name-preserving wrapper over sanitize.ts's shared `wordCount`
+ * (decision-graph/gen-3/var-2-maintainability: extracted so SR-054's position-
+ * stance budget check counts words identically, without positions.ts importing
+ * capture.ts) -- same behavior, same call sites, nothing observable changes.
+ */
 export function summaryWordCount(summary: string): number {
-  const trimmed = summary.trim();
-  return trimmed === "" ? 0 : trimmed.split(/\s+/).length;
+  return wordCount(summary);
 }
 
 /**
@@ -126,19 +130,7 @@ export function summaryWordCount(summary: string): number {
  * visible to the operator without the server ever editing the record.
  */
 export function overSummaryWordCeiling(summary: string): boolean {
-  return summaryWordCount(summary) > config.summaryWordCeiling;
-}
-
-/** Split client-named paths into resolved versioned refs and rejected paths. */
-function resolveRefs(paths: string[]): { refs: VersionedRef[]; rejectedRefs: string[] } {
-  const refs: VersionedRef[] = [];
-  const rejectedRefs: string[] = [];
-  for (const p of paths) {
-    const ref = buildRef(p);
-    if (ref) refs.push(ref);
-    else rejectedRefs.push(p);
-  }
-  return { refs, rejectedRefs };
+  return overWordCeiling(summary);
 }
 
 /** UTC calendar day of an instant; matches the vault's UTC date convention. */
@@ -150,3 +142,7 @@ export function isoDay(date: Date): string {
 function compactId(date: Date): string {
   return date.toISOString().replace(/[-:.]/g, "");
 }
+
+// `VersionedRef` re-exported for callers that imported it via capture.ts before
+// resolveRefs moved to refs.ts (none in this codebase today, kept for stability).
+export type { VersionedRef };
