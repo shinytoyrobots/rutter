@@ -71,7 +71,7 @@ session's own shorthand. Aim for about 40 words and stop by 60. The contract is 
 server stores whatever it is handed, byte-verbatim — it never rewrites, shortens, annotates, or
 rejects a line. It cannot. Judging prose is inference, and there is no model in there to do it.
 
-**Reading.** The server exposes three read-only tools over MCP (Model Context Protocol), the
+**Reading.** The server exposes four read-only tools over MCP (Model Context Protocol), the
 standard way an AI client connects to an outside source of data:
 
 - `librarian-search` — ranked full-text search over the notes, each result carrying its path,
@@ -80,6 +80,11 @@ standard way an AI client connects to an outside source of data:
 - `librarian-get-note` — one note's full content, by path.
 - `librarian-recent` — *"what was I working on lately?"* Sessions newest-first, with dates, project
   and references. Filterable by project, day window, or count.
+- `librarian-positions` — *"what do I think about X, and did that change?"* One topic by its exact
+  key, or a list found by free text over recorded stances or by a note the positions reference.
+  Each answer carries the date the stance was formed and the date it was last revised, so a client
+  reports it as your recorded position rather than as its own conclusion. Answered from the last
+  reindex, so a position captured since then appears after the next one.
 
 The Stop hook is Claude Code specific. The tools are not — they work with any MCP client. The
 server also carries its own usage guidance to every client that connects. There is nothing to
