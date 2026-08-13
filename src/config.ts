@@ -81,4 +81,19 @@ export const config = {
    */
   summaryWordTarget: 40,
   summaryWordCeiling: 60,
+  /**
+   * How long a live position may go without any recorded event -- revision,
+   * reaffirmation, or reference -- before `librarian-positions` calls it
+   * dormant (SCN-011 / SR-063).
+   *
+   * This lives in config precisely BECAUSE dormancy is never stored: it is
+   * recomputed from the events' own timestamps on every read, so changing this
+   * number changes every answer immediately, with no schema migration, no
+   * reindex, and no stale stored flag to invalidate. That property is the point
+   * of SR-063, and this constant is where it is exercised.
+   *
+   * 180 days is a starting guess, not a calibrated figure: positions are rare
+   * (≪1 per session) and no real stream is old enough yet to calibrate against.
+   */
+  positionDormantAfterDays: 180,
 };

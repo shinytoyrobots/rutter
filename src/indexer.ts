@@ -1,8 +1,9 @@
-import { openDb, resetSchema, type DB } from "./db.js";
+import { openDb, resetSchema, withTransaction, type DB } from "./db.js";
 import { walkMarkdown, readNote } from "./vault.js";
 import { config } from "./config.js";
 import { runIdentityPass, type IdentityPassStats } from "./identity.js";
 import { readAllRecords } from "./session-record.js";
+import { materializePositionFold, type PositionFoldStats } from "./position-fold.js";
 
 export interface IndexStats {
   notes: number;
@@ -10,6 +11,8 @@ export interface IndexStats {
   ms: number;
   /** SR-036..045, SR-104: dead-ref detection, exact-hash matching, projection rebuild. */
   identity: IdentityPassStats;
+  /** SR-058/SR-059: the position fold. Reindex is its ONLY trigger. */
+  positions: PositionFoldStats;
 }
 
 /**
@@ -37,8 +40,7 @@ export function reindex(db?: DB, now: Date = new Date()): IndexStats {
   let notes = 0;
   let skipped = 0;
 
-  database.exec("BEGIN");
-  try {
+  withTransaction(database, () => {
     for (const abs of walkMarkdown(config.vaultPath)) {
       const note = readNote(abs);
       if (!note) {
@@ -59,16 +61,19 @@ export function reindex(db?: DB, now: Date = new Date()): IndexStats {
       insertFts.run(note.path, note.title, note.body, tagsStr);
       notes++;
     }
-    database.exec("COMMIT");
-  } catch (err) {
-    database.exec("ROLLBACK");
-    throw err;
-  }
+  });
 
   // Identity pass runs AFTER the note index commits, in its own transaction,
   // so a problem here can never unwind an otherwise-successful reindex
   // (reversibility: the two phases are independently rollback-safe).
   const identity = runIdentityPass(database, readAllRecords(), now);
 
-  return { notes, skipped, ms: Date.now() - start, identity };
+  // Position fold (SCN-011, SR-058): the third and last phase, again in its own
+  // transaction. THIS CALL SITE IS THE FOLD'S ONLY TRIGGER -- nothing outside
+  // reindex, and specifically not SCN-010's capture path, may materialize the
+  // position projection. Running it last means a fold problem cannot unwind the
+  // note index or the identity ledger either.
+  const positions = materializePositionFold(database);
+
+  return { notes, skipped, ms: Date.now() - start, identity, positions };
 }

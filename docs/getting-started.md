@@ -141,7 +141,7 @@ That covers the server alone. The Stop hook in Step 6 still reads the `env` bloc
 /mcp
 ```
 
-You should see `rutter` listed with three tools: `librarian-search`, `librarian-get-note`, and `librarian-recent`.
+You should see `rutter` listed with four tools: `librarian-search`, `librarian-get-note`, `librarian-recent`, and `librarian-positions`.
 
 ## Step 6 — Install the Stop hook
 

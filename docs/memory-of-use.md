@@ -222,9 +222,70 @@ against the ~19 session-summary outcomes a day the librarian otherwise sees.
   captured, stored, or read; the reverse holds too.
 - Same idempotence discipline as a session summary: an unchanged directive
   re-fired by the same session appends nothing.
-- **There is no recall path yet.** Positions are stored so a later round
-  (Phase B) can answer "what do I think about X, and how has that changed?"
-  with the full revision history. Today they are write-only.
+- Recall is a separate path with its own guarantees — see §2b.
+
+---
+
+## 2b. Position recall — `librarian-positions` (decision-graph Phase B)
+
+`librarian-positions` answers *"what do I think about X, and how did that
+change?"* from the streams §2a writes. It is read-only, and it reads a
+**projection**, never the stream files themselves.
+
+**Ask one of three ways.** They are three different questions, so exactly one
+argument at a time:
+
+- `topic` — an exact topic key. A topic key is unique, so this returns **one**
+  topic or an explicit not-found (`Position not found: <key>`), never a list.
+  The miss is an ordinary answer, worded like `librarian-get-note`'s own.
+- `query` — free text matched against your recorded stances, all terms
+  required, as `librarian-search` does for notes. Returns a list.
+- `note` — a vault-relative note path; returns the positions whose references
+  include that note, in **any** recorded version of it. Returns a list.
+
+Free-text and note matching scan a topic's **entire history**, not just its
+current stance: a topic surfaces if any event in its chain matches, however
+long since superseded. What comes back is still the *current* stance — what you
+searched and what you get are separate knobs. Add `chain: true` for the whole
+supersession history, oldest event first.
+
+**Every answer says whose it is and when.** A recalled stance always carries
+the date it was **formed** (its original `assert`) and, where there is one, the
+date it was last **revised**. A `reaffirm` re-endorses a stance without
+changing it, so it never moves the revision date — it shows up in the chain
+instead. The server instructions tell any connected client to report all of
+this as *your* recorded position rather than restating it as its own
+present-tense conclusion.
+
+**A retired position is a stub, not a deletion.** Where the most recent event
+for a topic is a `retire`, the answer is that retire event's own text —
+typically the reason you withdrew the stance — with `retired <date>` stated as
+a retirement, never as a revision. Nothing is removed from the history to
+produce it: every earlier event is still there under `chain: true`. (And a
+position asserted *again* after a retirement is simply live again; a retirement
+is terminal only while it is the last thing recorded.)
+
+**Dormant is computed, never stored.** A live position nothing has touched for
+a long while is marked dormant, worked out on every read from the events' own
+timestamps. Nothing about dormancy is written to disk or to the index, so the
+rule can change without a migration or a rebuild. A retired position is never
+marked dormant — withdrawing a stance on purpose is not the same fact as
+letting one go quiet.
+
+**Reindex is the only trigger.** The three projection tables
+(`position_events`, `position_refs`, `positions`) are rebuilt wholesale from
+`_librarian/positions/*.md` at every `npm run reindex`, exactly like the note
+identity projection in §6, and are never patched incrementally. Consequences,
+both deliberate:
+
+- A position captured since your last reindex is **not** recalled until the
+  next one runs. That is a disclosed lag, not a silent gap.
+- Because recall never touches the capture path, capture cannot be disturbed by
+  it. Session records, their bytes, and the position write path are unchanged
+  by the fold running or by any query you make.
+
+Calling `librarian-positions` is logged to `_librarian/stateful-use.jsonl`
+under its own kind, and does **not** count toward the desirability gate (§5).
 
 ---
 
@@ -358,6 +419,13 @@ Every time you invoke `librarian-recent`, or run a search that surfaces at least
 one prior-engagement signal, the librarian appends one timestamped event to a
 local, append-only log (`_librarian/stateful-use.jsonl`). A single search counts
 as exactly one event no matter how many signals it surfaced.
+
+`librarian-positions` writes to the same log, under its own kind, and is
+**excluded from the count** — the gate measures whether S1.5's ambient
+memory-of-use pulls you toward stateful behavior, and folding a later effort's
+read surface into that number would answer a different question than the one
+the gate was set up to ask. The log still records the calls, so they remain
+available to look at; they just do not move the gate figure.
 
 Read the per-ISO-week count to evaluate the gate:
 
