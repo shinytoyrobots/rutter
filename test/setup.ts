@@ -20,6 +20,7 @@ process.env.LIBRARIAN_DB_PATH = path.join(root, "data", "librarian.db");
 export const vaultRoot = root;
 export const librarianDir = path.join(root, "_librarian");
 export const sessionsDir = path.join(librarianDir, "sessions");
+export const positionsDir = path.join(librarianDir, "positions");
 export const statefulLogPath = path.join(librarianDir, "stateful-use.jsonl");
 
 /** Remove all memory-of-use between tests so each starts from a clean slate. */
@@ -47,6 +48,20 @@ export function readSession(day: string): string {
 /** Does a session record file exist for the day? (SR-004 no-empty-file checks.) */
 export function sessionExists(day: string): boolean {
   return fs.existsSync(path.join(sessionsDir, `${day}.md`));
+}
+
+/** Read a position stream file's raw text, or "" if absent (SCN-010 analogue of readSession). */
+export function readPositions(month: string): string {
+  try {
+    return fs.readFileSync(path.join(positionsDir, `${month}.md`), "utf8");
+  } catch {
+    return "";
+  }
+}
+
+/** Does a position stream file exist for the month? */
+export function positionsExist(month: string): boolean {
+  return fs.existsSync(path.join(positionsDir, `${month}.md`));
 }
 
 /**
