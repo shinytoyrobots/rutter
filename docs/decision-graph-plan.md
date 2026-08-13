@@ -13,11 +13,14 @@ story that survives five years of use).
 
 ## Sequencing constraints (read first)
 
-1. **The gate verdict (~2026-08-09) comes first.** Phases A–C below are H2-shaped and the
-   roadmap's rule stands: not on inference alone. This conversation (2026-08-04) is
-   direct human demand for #3 and #5 — **once Robin records it in the wish log**, the
-   evidence requirement is met by the instrument built for exactly that purpose. Draft
-   entry for Robin's approval (he writes or approves it; the wish log is gate evidence):
+1. ~~The gate verdict (~2026-08-09) comes first.~~ **Cleared 2026-08-12.** Gate
+   verdict: PASS (`docs/gate-verdict-2026-08.md`). The draft wish-log entry sketched
+   below was never actually logged — real evidence landed independently instead, on
+   2026-08-11/12: a cross-month consistency check done by hand (the Kellie letter),
+   generalized same-day to the trajectory primitive Phase B below already returns,
+   plus recurring mid-session belief drift. See `docs/roadmap.md` Phase 3 for the
+   naming decision. Kept below as the historical record of what this plan originally
+   expected to need:
    > 2026-08-04 — I want past positions surfaced with their revision history ("you
    > concluded X, revised it here, based on these notes"), and a decision layer separate
    > from the knowledge graph that doesn't drown after a year of accumulation.

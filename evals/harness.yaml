@@ -29,7 +29,68 @@
 # instead, so the converged s1-5-ambient-capture effort is not forced into re-eval.
 
 schema-version: "1.0"
-suite-version: "0.8.0"   # 0.7.0 -> 0.8.0 (minor, additive): +COR-R-038 real + COR-A-021 holdout
+suite-version: "0.10.0"  # 0.9.0 -> 0.10.0 (minor, additive): +cross-boundary dimension.
+                         # /flow-generate's Step 1 admission check (both doctrine
+                         # non-negotiables — flow-operating-doctrine.md step 1) found
+                         # dedicated invariant graders present but NO cross-boundary
+                         # objective anywhere in this suite — a standing gap since
+                         # flow-init, not specific to decision-graph or Phase A. Closed
+                         # here: grader evals/graders/cross-boundary.md (two independent-
+                         # consumer probes — a real @modelcontextprotocol/sdk Client over
+                         # a real stdio child process for the MCP protocol seam; a
+                         # frontmatter parser OTHER than gray-matter/js-yaml, which the
+                         # code itself both writes and reads with, for the vault seam),
+                         # datasets cross-boundary-real-v1 (10 tasks) + cross-boundary-
+                         # adv-v1 (5 holdouts), threshold 1.0 (no partial credit, mirrors
+                         # security), weight 0.15 (funded by trimming correctness
+                         # 0.35->0.30, performance 0.15->0.10, maintainability
+                         # 0.15->0.10 — security/documentation/cost unchanged).
+                         # HITL-approved 2026-08-13 (mechanism + weight both as proposed).
+                         # Added to goodhart-mitigation.adversarial-required-for
+                         # alongside correctness/security. NOT re-triggered: the already-
+                         # shipped var-3-reversibility @ 993a89d (ship-2026-08-05-0001)
+                         # predates this dimension and is not automatically re-scored
+                         # (additive-change rule); a retroactive post-ship probe is a
+                         # separate decision, recorded in
+                         # efforts/decision-graph/flow-state.yaml, not made here. No
+                         # runner script yet — same open-harness status as every other
+                         # dimension's "not yet built" note below; this one additionally
+                         # needs two new TEST-ONLY devDependencies (an independent YAML
+                         # parser + a strict JSON-Schema validator), never server
+                         # dependencies. Suite-gap this round leaves alone (pre-existing,
+                         # tracked in efforts/decision-graph/flow-state.yaml checkpoint.next):
+                         # spec.md's mapping-pending flags for SR-047..057, and SR-101's
+                         # stance/topic-key enumeration gap.
+                         # (0.8.0 -> 0.9.0 (minor, additive): effort decision-graph Phase A —
+                         # SCN-010 (position capture) mapped. 13 real tasks (COR-R-039..051,
+                         # one per acceptance criterion including the two v4.0.0 panel
+                         # amendments — revises-in-identity and empty-stance-is-no-directive)
+                         # + 5 adversarial holdouts (COR-A-022..026): SR-055 session
+                         # non-interference under interleaving; a regression guard for each
+                         # of the two v4.0.0 amendments specifically (an implementer could
+                         # plausibly "simplify" back to the pre-amendment reading); the
+                         # panel's flagged malformed-kind corner (SR-047); and an anti-
+                         # laundering probe mirroring COR-A-012 for SR-053/054's
+                         # report-don't-enforce rule. Admission-gate note: this run removes
+                         # the exact structural blocker flow-state.yaml's checkpoint named
+                         # (SCN-010/SR-047..057 mapping-pending, no correctness tasks
+                         # existed) — not a "more coverage against the same ceiling" case,
+                         # since the correctness runner itself (node:test) already exists
+                         # and needed no new infrastructure, only new tasks.
+                         # GOODHART GAP SURFACED, NOT FIXED HERE: SR-101 (untrusted input ->
+                         # inert text) does not yet enumerate stance/topic-key fields in its
+                         # text — it names "session summary, referenced identity, or
+                         # workspace provenance value" only. Position events carry two new
+                         # field types SR-101 doesn't literally cover. No SEC-A task added
+                         # for positions this round; recommend a future /flow-spec patch
+                         # widening SR-101, mirroring the v3.1.0 precedent that widened it
+                         # to cover provenance. Until then this is an honest coverage gap,
+                         # not a silently-assumed pass.
+                         # SPEC SIDE STILL OWES: spec.md's mapping-pending flags (front
+                         # matter + each SR-047..057 trailer) still read true/mapping-
+                         # pending — clearing them is a patch-level /flow-spec bump
+                         # (mirrors the v3.8.0 -> v3.8.1 precedent), not done by this skill.
+                         # (0.7.0 -> 0.8.0 (minor, additive): +COR-R-038 real + COR-A-021 holdout
                          # from the FIRST PRODUCTION-DERIVED finding (ring-0 day one, 2026-08-05):
                          # the shipped identity pass resolved ref paths against the *.md notes
                          # index, mislabeling 27 refs to existing non-note files (.html/.yaml/
@@ -103,17 +164,37 @@ dimensions:
     graders: [cost]
     datasets: []
     threshold: 0.50
+  - name: cross-boundary       # doctrine non-negotiable #2 (flow-operating-doctrine.md
+                                # step 1); added suite 0.10.0, 2026-08-13 — see suite-version
+                                # comment above for the gap this closes and why.
+    graders: [cross-boundary]
+    datasets: [cross-boundary-real-v1, cross-boundary-adv-v1]
+    threshold: 1.0
 
-weights:                          # sum = 1.0; documentation inherits accessibility's 0.10
-  correctness: 0.35
-  performance: 0.15
-  maintainability: 0.15
+weights:                          # sum = 1.0; documentation inherits accessibility's 0.10.
+                                   # Rebalanced 2026-08-13 (suite 0.10.0) to fund
+                                   # cross-boundary at 0.15 (matches security's weight —
+                                   # both are threshold-1.0, no-partial-credit dimensions):
+                                   # correctness 0.35->0.30, performance 0.15->0.10,
+                                   # maintainability 0.15->0.10; documentation/security/cost
+                                   # untouched. Reminder (flow-eval-protocol.md): weights
+                                   # are tiebreaker/reporting-only — the Pareto front itself
+                                   # is unweighted.
+  correctness: 0.30
+  performance: 0.10
+  maintainability: 0.10
   documentation: 0.10
   security: 0.15
   cost: 0.10
+  cross-boundary: 0.15
 
 goodhart-mitigation:
-  adversarial-required-for: [correctness, security]
+  adversarial-required-for: [correctness, security, cross-boundary]  # cross-boundary added
+                                                                       # 2026-08-13 (suite
+                                                                       # 0.10.0) — constitution-
+                                                                       # required-equivalent by
+                                                                       # doctrine, not just
+                                                                       # accepted-gap policy.
   rotation-period-days: 90
   score-climb-flag-threshold: 0.30
 
@@ -226,6 +307,23 @@ mappings:
       adversarial-tasks: [COR-A-014, COR-A-016, COR-A-017, COR-A-020]  # no tie-breaking (constitution prohibition 8); unresolved refs not silently dropped; ledger append-only under tidy pressure; 020 @ 0.7.0 = enrichment-surface silence discriminator (SR-043 — COR-A-016 under-probed that surface, gen-1 cull finding). SR-046's holdouts (COR-A-018/019) live on its requirement entry below.
       # "Nothing on this path writes to the vault or mutates a stored session entry"
       # is graded by the existing INV-2 / INV-3 graders — cited, not duplicated.
+
+    # --- effort decision-graph (Phase A), added @ spec v3.12.0/v4.0.0 / suite 0.9.0 ---
+    - scenario: SCN-010
+      title: A formed stance is captured as a position event, exactly once per distinct directive
+      dimension: correctness
+      dataset: correctness-real-v1
+      grader: correctness
+      mapping-pending: false
+      derived-requirements: [SR-047, SR-048, SR-049, SR-050, SR-051, SR-052, SR-053, SR-054, SR-055, SR-056, SR-057]
+      tasks: [COR-R-039, COR-R-040, COR-R-041, COR-R-042, COR-R-043, COR-R-044, COR-R-045, COR-R-046, COR-R-047, COR-R-048, COR-R-049, COR-R-050, COR-R-051]  # one per acceptance criterion; 042/043 split the idempotence AC (unchanged vs revises-differs, per the v4.0.0 amendment); 051 = SR-057 (v4.0.0)
+      adversarial-tasks: [COR-A-022, COR-A-023, COR-A-024, COR-A-025, COR-A-026]  # 022 = SR-055 interleaving; 023/024 = regression guards for the two v4.0.0 panel amendments specifically; 025 = the panel's flagged malformed-kind corner (SR-047); 026 = anti-laundering for SR-053/054, mirrors COR-A-012
+      # Write confinement to _librarian/ is graded by the existing INV-2 grader; retire's
+      # append-only guarantee by INV-3; no-model-judgment fold by INV-6 — cited, not
+      # duplicated here.
+      # KNOWN GAP (not this round): SR-101 doesn't yet enumerate stance/topic-key fields,
+      # so no SEC-A task exists for position-directive content injection. See suite-version
+      # comment above. Recommend a future /flow-spec patch widening SR-101.
 
   # -------------------------------------------------------------------------
   # Non-functional SR mappings — consolidated onto the six Pareto dimensions
@@ -402,6 +500,16 @@ mappings:
       grader: cost
       mapping-pending: false
       tasks: []                         # intentionally empty — assembled from pipeline telemetry
+    - dimension: cross-boundary          # added suite 0.10.0, 2026-08-13. Unlike the other
+                                          # cross-cutting dimensions, this one carries an
+                                          # adversarial pairing (goodhart-mitigation above) —
+                                          # shaped like the invariants section's {real,
+                                          # adversarial} datasets/tasks, not like the
+                                          # real-only performance/maintainability entries.
+      datasets: {real: cross-boundary-real-v1, adversarial: cross-boundary-adv-v1}
+      grader: cross-boundary
+      mapping-pending: false
+      tasks: {real: [XB-R-001, XB-R-002, XB-R-003, XB-R-004, XB-R-005, XB-R-006, XB-R-007, XB-R-008, XB-R-009, XB-R-010], adversarial: [XB-A-001, XB-A-002, XB-A-003, XB-A-004, XB-A-005]}
 
 # ---------------------------------------------------------------------------
 # Runner decisions the grader specs assumed. NOTE: flow-eval (DESIGN mode) does
@@ -427,5 +535,7 @@ runners:
     llm-judge: "client-side claude coverage judge over README.md + docs/, per-behavior covered/partial/absent + wrong-statement flagging."
   cost:
     deterministic: "no runner — sums tokens-to-generate + tokens-to-evaluate + elapsed-ms counters emitted by flow-generate and this evaluator."
+  cross-boundary:
+    deterministic: "added suite 0.10.0. Probe A (protocol seam): spawn the variant's built/tsx server as a real child process; drive it with a separate @modelcontextprotocol/sdk Client over stdio (genuine second process, real JSON-RPC frames) plus a strict-mode JSON-Schema validator (new test-only devDependency, e.g. ajv) for the tools/list schema check. Probe B (vault seam): parse every written markdown artifact with a frontmatter/YAML reader independent of gray-matter/js-yaml (new test-only devDependency) against the hand-maintained schema descriptions in evals/graders/cross-boundary.md. No runner script exists yet — same not-yet-built status as every dimension above; the two new devDependencies are test-only, never server dependencies (INV-1/INV-6 govern the server, not the harness)."
   invariants:
     deterministic: "static scans (network/stdout/destructive-op/dependency imports) + runtime harnesses: egress monitor (no-network namespace or syscall trace) for INV-1/6; write-path interposition + vault hash-diff for INV-2; record-preservation checks for INV-3; delete-and-rebuild + corruption-recovery for INV-4; separated stdout/stderr capture + MCP frame parser for INV-5. All threshold 1.0, hard-cull."

@@ -154,6 +154,35 @@ detect demand for it (the wish log) conspicuously never asked for it.
 **Exit condition to even start:** Phase 0's verdict names a pillar, supported by
 observed use rather than analysis.
 
+**Status (2026-08-12): NAMED — H2 (belief-lifecycle).** Two wish-log entries (dated
+2026-08-11 and 2026-08-12) supply what the rule required: real, dated friction, not
+analysis. The Kellie-letter entry — a cross-month consistency check performed by
+hand, referencing decisions from September and November 2025 — was generalized
+same-day to the actual primitive needed: a topic's full trajectory of positions over
+a date range, not a two-point diff. A second entry names recurring mid-session belief
+drift, tracked today only by hand-built handoffs and session-ID cross-referencing.
+This supersedes the 2026-08-04 draft entry noted in `docs/decision-graph-plan.md`
+§Sequencing, which was never actually logged.
+
+The design and build plan already exist, from an earlier (2026-08-04) pass that
+correctly declined to build ahead of evidence: `docs/decision-graph.md` (positions as
+a projection over the event log — two graphs, only one of them authored) and
+`docs/decision-graph-plan.md` (Phase 0, durable note identity, **already shipped**
+2026-08-05; Phases A–D — position capture, recall with supersession, drift
+visibility, optional backfill — not started). Phase B's supersession-chain design
+already matches today's trajectory generalization without rework. Phase D (backfill)
+is newly load-bearing: the Kellie case predates position capture entirely, so nothing
+answers "what did I decide in September 2025" until either backfill runs or enough
+new positions accumulate to make old history moot.
+
+Original candidates, kept for the record: H3 (ingestion) and H4
+(guide-to-collection), ACH-ranked co-equal at −0.5 with the tie flagged as brittle.
+Neither gained evidence; H2 did.
+
+**Next action:** flow-spec ratification of `docs/decision-graph-plan.md`'s five open
+HITL decision points, then the standard pipeline (flow-spec → HITL → gen → cull →
+ship).
+
 ---
 
 ## Phase 4 — Org scale (watch item, not a build)

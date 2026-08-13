@@ -1,11 +1,77 @@
 ---
-version: "3.11.0"
+version: "4.0.0"
 status: active
 effort:
   - s1-5-ambient-capture   # converged
-  - decision-graph         # active (v3.8.0 —)
-last-amended: 2026-08-05
-mapping-pending: false     # one per-entry exception carried on a harness entry: SR-104 (bound pending gen-1 calibration)
+  - decision-graph         # active (v3.8.0 Phase 0 shipped; v3.12.0 Phase A drafted; v4.0.0 panel amendments)
+last-amended: 2026-08-12
+mapping-pending: true      # SR-104 (bound pending gen-1 calibration) + SCN-010/SR-047..057 (Phase A, entirely unmapped — evals/ owned by flow-eval)
+# v4.0.0 (major — effort decision-graph, Phase A): /flow-panel ran 3 independent
+# sonnet readers over SCN-010/SR-047..056 (no code touched, no build dispatched —
+# this is a pre-implementation spec probe). Verdict: 2 real divergences (routed by
+# HITL, AskUserQuestion, both resolved AMEND — majority reading in each case), 2
+# convergent-but-underspecified textual gaps noted for a future patch (not amended
+# here), and 1 apparent divergence (SR-054's 40-vs-60 trigger) that dissolved on
+# checking its own cited precedent (SR-034 already uses the ceiling, not the
+# target — no amendment needed). Full panel record: spec/.staging/panel-2026-08-12.md.
+#   AMENDED: SR-049. 2 of 3 readers flagged that its enumerated identity tuple
+#   ("kind, topic key, stance, and referenced note paths") omits `revises:`, so a
+#   directive differing only in an added/changed `revises:` would silently collide
+#   with a prior one and drop the client's correction — in tension with this
+#   project's own stance (HANDOFF §1): "weighs openly, attributably, reversibly —
+#   never silently." SR-049 now explicitly includes `revises` (present-or-absent,
+#   and its value) in the identity tuple, and states the non-identical case appends.
+#   +SR-057 (new, derived from SCN-010): an empty-or-whitespace-only stance after a
+#   well-formed `topic-key:` is treated as no directive at all — same precedent as
+#   SCN-001's unfilled-`<template>` rule — reported on stderr, nothing appended to
+#   either stream. 2 of 3 readers held this reading (the third would have stored an
+#   empty string verbatim, absent an explicit minimum). SCN-010 gains one new
+#   acceptance criterion naming this; its Given/When/Then and the other nine
+#   acceptance criteria are unchanged.
+#   This is a MAJOR bump per the version-semantics table (existing SCN-010 and
+#   SR-049 text modified) even though both changes are narrow corrections to
+#   same-day, not-yet-dispatched text — no code exists yet that could regress, and
+#   constitution escalation trigger 4 (light -> standard class-promotion review)
+#   remains separately un-cleared, so this amendment changes nothing about
+#   readiness to build.
+# v3.12.0 (minor, additive — effort decision-graph, Phase A): position capture, the
+# write path for capability #3 (belief-lifecycle). Escalation trigger 5's two gates
+# both cleared 2026-08-12: the desirability-gate verdict passed
+# (docs/gate-verdict-2026-08.md), and two wish-log entries (2026-08-11, 2026-08-12)
+# recorded real operator demand — a cross-month consistency check performed by hand
+# (referencing decisions from September and November 2025), generalized same-day to
+# the actual primitive needed (a topic's full trajectory over a date range, not a
+# two-point diff), plus recurring mid-session belief drift tracked today only by
+# hand-built handoffs and session-ID cross-referencing. This supersedes the
+# 2026-08-04 draft wish-log entry noted in docs/decision-graph-plan.md's sequencing
+# constraints, which was never actually logged.
+#   +SCN-010 (a formed stance is captured as a position event, exactly once per
+#   distinct directive): new sentinel-channel directive
+#   `POSITION <assert|revise|reaffirm|retire> <topic-key>: <stance>`, routed by kind;
+#   stored in a wholly separate append-only stream (`_librarian/positions/<YYYY-MM>.md`,
+#   schema `position-event@1`) so `session-record@1` and all existing capture behavior
+#   (SCN-001, SCN-002) stay byte-for-byte unchanged — the plan's own HITL
+#   recommendation (separate stream over extending session-record@1) is adopted.
+#   +SR-047..SR-056: grammar/kind routing; stream shape and event fields; idempotence
+#   (SR-013's pattern); retire-appends-never-deletes (INV-3); supersession as
+#   deterministic fold order with no model judgment (INV-6) — free-form topic keys,
+#   reported not enforced (the plan's other adopted HITL recommendation); an optional
+#   `revises:` field; the stance's word budget, reported not enforced (SR-034
+#   pattern); session non-interference as a required test; and an instruction-budget
+#   cap (≤350 chars over the OBS-1 baseline of 2,093) on the SERVER_INSTRUCTIONS
+#   addition that teaches the directive.
+#   Deliberately NOT in this round: anything that reads positions back — the
+#   trajectory query, supersession chains, drift detection. That is Phase B, a
+#   separate future round; Phase A only guarantees the stored events support it.
+#   All ten SRs and the SCN-010 traceability row enter mapping-pending: true
+#   (evals/ owned by flow-eval).
+#   Constitution escalation trigger 4 is a SEPARATE, NOT-YET-CLEARED gate: because
+#   SR-047 and SR-056 touch the capture contract and SERVER_INSTRUCTIONS, a light →
+#   standard weight-class promotion review is required BEFORE this version is
+#   dispatched to flow-generate. Approving this spec round does not clear it.
+#   No existing SCN/SR/INV text modified. Desirability-gate clock unaffected
+#   (verdict already PASSED, see docs/gate-verdict-2026-08.md); prohibition 9 keeps
+#   any future decision-graph read path out of the gate arithmetic regardless.
 # v3.11.0 (minor — effort s1-5-ambient-capture): the gate's "unprompted" axis is
 # INTENT, not call origin. HITL 2026-08-05 (operator, pre-verdict): "what have I been
 # working on?" is model-executed but human-intended — the assistant is the delivery
@@ -243,19 +309,27 @@ genuine mechanism open (the exact Claude Code Stop-hook wiring; the depth of
 appraisal), this spec constrains the observable behavior and records the openness —
 it does not fabricate mechanism detail.
 
-### Effort: decision-graph (Phase 0) *(v3.8.0)*
+### Effort: decision-graph (Phase 0 + Phase A) *(v3.8.0, v3.12.0)*
 
 From v3.8.0 this spec is the shared living artifact of two efforts:
 **s1-5-ambient-capture** (converged — everything above reads unchanged) and
 **decision-graph** (active). The decision-graph effort contributes **Phase 0 of
-`docs/decision-graph-plan.md` only**: a durable note-identity ledger. Refs key on
-vault-relative path plus content hash; the hash is deliberately a *version*, not an
-identity, so path is the de facto identity — and Obsidian renames freely (~2% of
-recorded ref paths dead over a measured 10 days). Phase 0 makes a recorded ref
-survive a vault rename, deterministically where that is safe and non-silently where
-it is not, and nothing else. **Phases A–C (positions, supersession, drift, threads)
-are OUT of scope** pending the desirability-gate verdict and the operator's wish-log
-entry recording demand (constitution escalation trigger 5).
+`docs/decision-graph-plan.md`** (shipped 2026-08-05): a durable note-identity ledger.
+Refs key on vault-relative path plus content hash; the hash is deliberately a
+*version*, not an identity, so path is the de facto identity — and Obsidian renames
+freely (~2% of recorded ref paths dead over a measured 10 days). Phase 0 makes a
+recorded ref survive a vault rename, deterministically where that is safe and
+non-silently where it is not, and nothing else.
+
+**Phases A–C were OUT of scope pending the desirability-gate verdict and the
+operator's wish-log entry recording demand (constitution escalation trigger 5); both
+cleared 2026-08-12** (`docs/gate-verdict-2026-08.md`; wish-log entries dated
+2026-08-11/12). **Phase A (position capture) is IN scope as of v3.12.0** — see
+SCN-010 below. **Phases B–D (position recall with supersession, drift visibility and
+threads, optional backfill) remain OUT of scope**, gated on nothing further than
+ordinary spec/build sequencing — there is no outstanding evidence gate on them, only
+the normal build order (Phase A's write path lands before Phase B's read path has
+anything to read).
 
 ## Scope
 
@@ -313,19 +387,37 @@ In scope:
 - **Read-surface resolution**: `librarian-recent` and search enrichment resolve
   recorded refs through the ledger; unresolved refs render non-silently.
 
-Out of scope for decision-graph (boundaries):
-- **Phases A–C of `docs/decision-graph-plan.md`** — position capture, position
-  recall with supersession, drift visibility, threads. These may not enter spec
-  scope before the desirability-gate verdict (constitution escalation trigger 2) is
-  written AND the operator's wish-log entry recording demand exists (constitution
-  escalation trigger 5). Phase 0 changes no capture contract, no server
-  instructions, and no session-record schema.
+Out of scope for Phase 0 (boundaries):
 - Writing stable ids (or anything else) into vault notes — the ledger approach
   exists precisely because the librarian never writes to the vault (INV-2,
   constitution prohibition 5).
 - Content-similarity / fuzzy rename detection — only exact-hash matching is
   specified; near-matches are unresolved by design.
 - Backfill or retrofit of any stored session record.
+
+### Effort: decision-graph (Phase A) — scope *(v3.12.0)*
+
+In scope:
+- **Position capture**: a new sentinel-channel directive
+  (`POSITION <assert|revise|reaffirm|retire> <topic-key>: <stance>`), routed by
+  `capture-cli` alongside the existing session-summary directive, stored in a wholly
+  separate append-only stream (`_librarian/positions/<YYYY-MM>.md`, schema
+  `position-event@1`). See SCN-010, SR-047..SR-056.
+
+Out of scope for Phase A (boundaries):
+- **Phases B–D of `docs/decision-graph-plan.md`** — position recall with
+  supersession (the read path, including the trajectory-over-a-date-range query the
+  2026-08-12 wish-log correction asked for), drift visibility and threads, and
+  optional backfill of the ~193 pre-position records. Phase A stores events in a
+  shape that makes Phase B possible; it specifies no query, no fold interpretation
+  at read time, and no retrofit.
+- Any change to `session-record@1`, capture idempotence identity (SR-013/SR-018/
+  SR-024), read-path grouping (SR-030..032), or instrumentation (SCN-004) — SR-055
+  makes this a required test, not just an intention.
+- Dispatch to `flow-generate` — constitution escalation trigger 4 (a light →
+  standard weight-class promotion review) is a separate, not-yet-cleared gate; this
+  spec round satisfies escalation trigger 1 (capture-semantics HITL) and trigger 5
+  (the evidence gate), not trigger 4.
 
 ---
 
@@ -632,6 +724,83 @@ only by human confirmation, appended and attributed `detected: confirmed`.
 
 ---
 
+### SCN-010: A formed stance is captured as a position event, exactly once per distinct directive *(v3.12.0, effort decision-graph, Phase A)*
+**Given** a Claude Code session in which the client formed, changed, reaffirmed, or
+retired a stance on a topic — expected ≪ 1 per session, against ~19.3 outcome entries
+per day — with the librarian registered and the Stop hook installed
+**When** the client emits a position directive on the same sentinel channel session
+directives use, `POSITION <assert|revise|reaffirm|retire> <topic-key>: <stance>`, and
+the capture hook lifts it
+**Then** the capture path shall route the directive by kind and append exactly one
+position event per distinct directive to a separate positions stream
+`_librarian/positions/<YYYY-MM>.md` (schema `position-event@1`), storing the stance
+byte-verbatim with workspace provenance and versioned refs — while `session-record@1`
+and all existing session capture behavior remain byte-for-byte unchanged.
+
+**Acceptance criteria:**
+- **Grammar and kind routing.** A directive of the form
+  `POSITION <assert|revise|reaffirm|retire> <topic-key>: <stance>` is routed by
+  `capture-cli` to the position write path; a session-summary directive on the same
+  sentinel channel routes to session capture exactly as before. Kind is the only
+  router — no content heuristics, no model (INV-6 / constitution prohibition 1, cited
+  not restated).
+- **Separate stream.** The event is appended to `_librarian/positions/<YYYY-MM>.md` —
+  append-only, schema `position-event@1`, mdbase-compatible frontmatter (constitution
+  preference 2) — never to a session record. Writes stay under `_librarian/` (INV-2 /
+  constitution prohibition 5).
+- **Event shape.** Each event carries an event id, the directive kind, the topic key,
+  the stance byte-verbatim, a timestamp, workspace provenance (SR-015's derivation,
+  SR-016's never-blocks rule), and any named refs by versioned identity hashed as-read
+  exactly as session refs are (SR-003 pattern) — so a future read path can resolve
+  them later without retrofit.
+- **Idempotence.** A repeat capture of an unchanged position directive (same session
+  id, kind, topic key, stance, and referenced-path set — referenced-note content
+  hashes inert, per SR-024's rule) appends nothing and leaves the positions file
+  byte-identical, regardless of how many Stop events fire (SCN-001/SR-013 pattern). A
+  `reaffirm` differs by kind or by session and is a distinct directive that appends
+  normally — idempotence guards hook re-firing, never the lifecycle.
+- **Retire is an event.** A `retire` directive appends a new position event; no
+  earlier event is modified, removed, or compacted (INV-3 / constitution
+  prohibition 3). The stream is never rewritten, reordered, or compacted.
+- **Supersession is deterministic fold order.** For events sharing a topic key,
+  supersession is implicit in the stream's append order — a deterministic fold
+  computable by code alone, no model judgment (INV-6 / constitution prohibition 1) —
+  with an explicit `revises: <event-id>` field, where supplied, stored verbatim on the
+  event for precision. Phase A guarantees the data supports the fold; querying that
+  fold for recall is a separate future round and is deliberately NOT specced here.
+- **Topic keys are reported, never enforced.** Topic keys are free-form kebab-case,
+  client-chosen, grouped only at read time; a key departing from the convention is
+  reported as a stderr diagnostic and stored byte-verbatim — never rejected,
+  rewritten, or normalized (constitution preference 3's quiet-when-unprompted spirit;
+  the SR-034 report-don't-enforce pattern applied to a new field).
+- **Stance budget is reported, never enforced.** The stance line carries the style
+  contract's 40/60 word budget; an over-budget stance is reported on stderr and
+  stored byte-verbatim with no annotation on the record (SR-034 shape; refines
+  SR-023 / INV-6 — never rewrite, truncate, or reject on style or length grounds).
+- **Session capture untouched.** `session-record@1`, every existing session record's
+  bytes, and SCN-001/SCN-002 observable behavior are byte-for-byte unchanged by the
+  presence or absence of position capture — positions are a wholly separate write
+  path, and a session-record byte-compare before/after a position capture is a
+  required test.
+- **Instruction budget.** The `SERVER_INSTRUCTIONS` addition teaching the directive
+  (its emission trigger — only when a stance was formed, changed, reaffirmed, or
+  retired — and its literal grammar, per SR-026's rule) adds at most 350 characters
+  to the OBS-1 baseline (2,093 chars); SR-027's single-source rule applies unchanged,
+  so the README quoted block regenerates and the instruction-anchor tests move
+  deliberately, not accidentally.
+- **Empty stance is no directive.** *(v4.0.0, flow-panel divergence 2)* A directive
+  whose stance portion — the text after the topic key's colon — is empty or
+  whitespace-only fails to match the grammar and is treated as no directive at all,
+  the same treatment SCN-001 gives an unfilled `<template>`: reported as a stderr
+  diagnostic, nothing appended to either stream. A non-empty stance of any length is
+  always a valid directive; SR-054's word budget is advisory only and never
+  establishes a minimum.
+
+**Derived requirements:** SR-047, SR-048, SR-049, SR-050, SR-051, SR-052, SR-053,
+SR-054, SR-055, SR-056, SR-057
+
+---
+
 ## Requirements
 
 EARS notation is mandatory. Scenario-derived SRs name their parent. Non-functional
@@ -833,6 +1002,69 @@ SRs (SR-100+) have no parent.
   hash now matches Y"); only a fresh human confirmation (SR-044) supersedes a
   confirmed binding. *(unwanted-behavior)*
   `# ← SCN-009; added v3.10.0 (gen-1 population fork: var-1 HIGH ambiguity + var-3 MEDIUM echo — SR-045's newest-wins did not carve out confirmed bindings; HITL 2026-08-04: confirmed is sticky, conflict surfaced, never silently outvoted by automation). Scopes SR-045: newest-wins governs AUTOMATIC bindings only. Mapping registered @ suite 0.7.0 (v3.10.1): COR-A-018 conflict preserve+surface, COR-A-019 fresh-confirmation supersede. NOTE: all three gen-1 variants predate this SR (uniform newest-wins) — nonconformance expected at cull, gen-2 refinement item.`
+- **SR-047** — When a capture invocation carries a directive of the form
+  `POSITION <assert|revise|reaffirm|retire> <topic-key>: <stance>` on the capture
+  sentinel channel, `capture-cli` shall route it by directive kind to the position
+  write path and append exactly one position event per distinct directive, leaving
+  session-summary routing unchanged. *(event-driven)*
+  `# ← SCN-010; added v3.12.0 (decision-graph, Phase A); routing is by kind alone — no content heuristics, no model (INV-6 / constitution prohibition 1); mapping-pending: true`
+- **SR-048** — Position events shall be persisted in `_librarian/positions/<YYYY-MM>.md`
+  as an append-only markdown stream under schema `position-event@1` with
+  mdbase-compatible frontmatter, each event carrying an event id, the directive kind,
+  the topic key, the stance byte-verbatim, a timestamp, workspace provenance per
+  SR-015/SR-016 (derived automatically, never blocking a capture), and any named refs
+  by versioned identity hashed as-read per SR-003. *(ubiquitous)*
+  `# ← SCN-010; added v3.12.0 (decision-graph, Phase A); frontmatter per constitution preference 2; writes confined to _librarian/ per INV-2 / constitution prohibition 5 (cited, not restated); parallels SR-039 (note-identity ledger) and SR-100 (session-record schema); mapping-pending: true`
+- **SR-049** — If a position capture invocation carries a session id and directive
+  content identical (after inert-line normalization) to a position event already
+  recorded for that session — kind, topic key, stance, referenced note paths, and the
+  `revises` field (present-or-absent, and its value where present) all unchanged,
+  referenced-note content hashes inert per SR-024's rule — then the system shall
+  append nothing and leave the positions stream byte-identical. If only the `revises`
+  field differs (added, removed, or changed in value) from an otherwise-identical
+  prior directive, the two directives are not identical and the later one shall
+  append as a new event. *(unwanted-behavior)*
+  `# ← SCN-010; added v3.12.0 (decision-graph, Phase A); amended v4.0.0 (flow-panel 2026-08-12, divergence 1: revises is client-authored directive content, not derived metadata like a timestamp — excluding it from identity risked silently dropping a supersession correction the client explicitly typed, contrary to HANDOFF §1's 'never silently' stance); SR-013's idempotence pattern applied to the positions stream; a reaffirm differs by kind or session and is a distinct directive; mapping-pending: true`
+- **SR-050** — When a `retire` directive is captured, the system shall append a new
+  position event attributed to it and shall never modify, remove, reorder, or compact
+  any earlier event in the positions stream. *(event-driven)*
+  `# ← SCN-010; added v3.12.0 (decision-graph, Phase A); enforces INV-3 / constitution prohibition 3 — retirement is an event, not a deletion; mapping-pending: true`
+- **SR-051** — Supersession among position events sharing a topic key shall be
+  implicit in the stream's deterministic fold order (append order, stable event ids),
+  computable by code alone with no model judgment and no load-bearing state beyond
+  the events themselves. *(ubiquitous)*
+  `# ← SCN-010; added v3.12.0 (decision-graph, Phase A); INV-6 / constitution prohibition 1; rebuildable per INV-4; querying this fold for recall/trajectory is a separate future round and deliberately not specced here; mapping-pending: true`
+- **SR-052** — Where a position directive supplies an explicit `revises: <event-id>`
+  field, the system shall store it verbatim on the resulting event.
+  *(optional-feature)*
+  `# ← SCN-010; added v3.12.0 (decision-graph, Phase A); precision override for SR-051's implicit order; stored verbatim at write time — interpretation belongs to a future read-path round; mapping-pending: true`
+- **SR-053** — If a position directive's topic key departs from free-form
+  kebab-case, then the capture path shall report a diagnostic on stderr and store the
+  key byte-verbatim — never rejecting, rewriting, or normalizing it; topic keys are
+  client-chosen and grouped only at read time. *(unwanted-behavior)*
+  `# ← SCN-010; added v3.12.0 (decision-graph, Phase A); report-don't-enforce (SR-034 pattern; constitution preference 3); diagnostics to stderr per INV-5 / constitution prohibition 4; mapping-pending: true`
+- **SR-054** — If a captured stance line exceeds the style contract's stated word
+  budget (target 40, ceiling 60 — the same numbers SR-021 states), then the capture
+  path shall report the word count and the budget on stderr and store the stance
+  byte-verbatim with no annotation on the record; length shall never be grounds for
+  rewriting, truncating, or rejecting a position directive. *(unwanted-behavior)*
+  `# ← SCN-010; added v3.12.0 (decision-graph, Phase A); SR-034 applied to the stance line; refines SR-023 / INV-6; the ceiling stays inside the SR-101 oversized-input bound; mapping-pending: true`
+- **SR-055** — The position write path shall write only to `_librarian/positions/`;
+  the `session-record@1` schema, every existing session record's bytes, and the
+  observable behavior of SCN-001 and SCN-002 shall be byte-for-byte unchanged before
+  and after any position capture. *(ubiquitous)*
+  `# ← SCN-010; added v3.12.0 (decision-graph, Phase A); the separate-stream decision (plan HITL point 1) exists to make this provable — session schema, dedupe identity, and read-time grouping untouched; mapping-pending: true`
+- **SR-056** — When the server-level instructions are extended to teach the position
+  directive (its emission trigger — only when a stance was formed, changed,
+  reaffirmed, or retired — and its literal grammar per SR-026's rule), the addition
+  shall total at most 350 characters over the pre-change OBS-1 baseline of 2,093
+  characters. *(event-driven)*
+  `# ← SCN-010; added v3.12.0 (decision-graph, Phase A); guards SR-020/SR-026 ubiquity against instruction bloat (OBS-1, ship-2026-07-27-0004); SR-027 propagation (README quoted block, anchor tests) applies unchanged; mapping-pending: true`
+- **SR-057** — If a position directive's stance portion is empty or whitespace-only,
+  then the capture path shall treat the directive as no directive at all — reporting
+  a stderr diagnostic and appending nothing to either stream — rather than storing an
+  empty stance. *(unwanted-behavior)*
+  `# ← SCN-010; added v4.0.0 (decision-graph, Phase A; flow-panel 2026-08-12, divergence 2); mirrors SCN-001's unfilled-<template>-is-no-directive precedent (SR-029); does not establish a minimum word count — SR-054's budget stays advisory-only above zero; mapping-pending: true`
 
 ### Non-functional (no scenario parent)
 
@@ -883,6 +1115,7 @@ SRs (SR-100+) have no parent.
 | SCN-008 *(v3.8.0)* | exact-hash auto-bind, deterministic, ledger shape/append, projection rebuild, reindex determinism, read-surface resolution, no vault writes | SR-036, SR-039, SR-040, SR-041, SR-042, SR-045 *(v3.9.0)* | INV-2, INV-3, INV-4, INV-6 | correctness-real-v1 (COR-R-028..032, 037) + correctness-adv-v1 (COR-A-013, 015) | correctness |
 | SCN-009 *(v3.8.0)* | zero-candidate unresolved, multi-candidate unresolved, non-silent render, confirmed-binding append, ledger append-only | SR-037, SR-038, SR-039, SR-043, SR-044 *(v3.9.0)*, SR-045 *(v3.9.0)*, SR-046 *(v3.10.0)* | INV-2, INV-3 | correctness-real-v1 (COR-R-033..037) + correctness-adv-v1 (COR-A-014, 016, 017; @0.7.0: 018/019 SR-046 confirmed-sticky, 020 SR-043 enrichment surface); ledger confinement/injection: security-adv-v1 (SEC-A-014/015) + SEC-R-006 control | correctness, security |
 | — | identity-pass reindex performance *(v3.8.0)* | SR-104 | INV-4 | performance-real-v1 (PERF-R-006, report-only — bound calibration pending at gen-1) | performance |
+| SCN-010 *(v3.12.0; amended v4.0.0)* | grammar+kind routing, separate append-only stream, event shape, idempotence (incl. revises in identity), retire-appends, deterministic fold order, explicit revises, topic-key report-not-enforce, stance-budget report-not-enforce, session non-interference, instruction budget, empty-stance-is-no-directive | SR-047, SR-048, SR-049 *(amended v4.0.0)*, SR-050, SR-051, SR-052, SR-053, SR-054, SR-055, SR-056, SR-057 *(v4.0.0)* | INV-2, INV-3, INV-5, INV-6 | mapping-pending: true — correctness-real-v1 + correctness-adv-v1 expected (TODO flow-eval) | correctness |
 
 ---
 
@@ -942,6 +1175,12 @@ here after gen-1. Known suite debt, deliberately not widened into this pass:
 SR-024..035 (spec v3.3.0–v3.7.0) were never mapped into the suite — a backfill
 flow-eval pass is recommended; their behaviors are currently guarded by the repo's
 own test suite (94 tests) rather than the eval harness.
+
+*(v3.12.0, effort decision-graph, Phase A; v4.0.0 adds SR-057)* SCN-010 and
+SR-047..057 entered entirely `mapping-pending: true` — evals/ is owned by flow-eval
+and untouched by this spec round. Interim: none; Phase A has not yet been dispatched
+(constitution escalation trigger 4 — a light → standard weight-class review — is
+required first and is not satisfied by this spec ratification).
 
 ---
 
@@ -1015,6 +1254,25 @@ own test suite (94 tests) rather than the eval harness.
   type is genuinely dead and follows SR-036/SR-037 exactly as a note would.
   *(v3.10.2 clarification — production finding: the notes-index reading produced 27
   false dead refs on ring-0 day one)*
+- **Position** — a stance Robin holds on a topic, authored client-side (the server
+  infers nothing — INV-6): formed (`assert`), changed (`revise`), re-endorsed
+  (`reaffirm`), or withdrawn from listings (`retire`). A position is a projection
+  over its events — rebuildable and disposable, the same rule as SQLite — never a
+  stored mutable object. *(v3.12.0)*
+- **Position event** — one append-only entry in the positions stream: event id,
+  directive kind, topic key, stance byte-verbatim, timestamp, workspace provenance,
+  refs by versioned identity, and an optional `revises: <event-id>`. Every lifecycle
+  state is attributable to a moment; a retirement is an event, not a deletion
+  (INV-3 / constitution prohibition 3). *(v3.12.0)*
+- **Positions stream (`position-event@1`)** — the monthly append-only sidecar
+  `_librarian/positions/<YYYY-MM>.md` (mdbase-compatible frontmatter, constitution
+  preference 2), deliberately separate from `session-record@1` so the session schema,
+  dedupe identity, and read-time grouping stay untouched. Never rewritten, reordered,
+  or compacted. *(v3.12.0)*
+- **Topic key** — the free-form kebab-case key a client chooses to name a position's
+  topic. Client-chosen, never server-enforced or normalized (departures are reported,
+  not corrected — SR-053); grouping and fold order over a topic key are read-time
+  concerns. *(v3.12.0)*
 
 ---
 

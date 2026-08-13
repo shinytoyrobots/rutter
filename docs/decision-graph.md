@@ -144,15 +144,20 @@ the same client-authored sentinel pattern. Noted for a later effort; not scoped 
 
 ## Sequencing, if any of this proceeds
 
-Nothing here should start before the gate verdict, and the roadmap's rule stands: **do not
-build H2 on inference alone.** This note is inference. The wish log has six entries and
-none of them asked for belief-lifecycle.
+**Cleared 2026-08-12** — see `docs/roadmap.md` Phase 3. This note was inference when
+written; it no longer is. Real evidence landed as two wish-log entries (2026-08-11,
+2026-08-12): a cross-month consistency check done by hand, generalized same-day to a
+trajectory-over-time primitive, plus recurring mid-session belief drift.
 
-Two items are exceptions worth arguing, because they surface data the records *already
-contain* rather than adding a pillar:
+Original text, for the record: nothing here should start before the gate verdict, and
+the roadmap's rule stands: do not build H2 on inference alone. This note is
+inference. The wish log has six entries and none of them asked for belief-lifecycle.
+
+Two items were exceptions worth arguing even then, because they surface data the
+records *already contain* rather than adding a pillar:
 
 1. **Durable note identity** — cheapest now, most expensive later, and a precondition for
-   every supersession chain.
+   every supersession chain. **Shipped 2026-08-05.**
 2. **Drift visibility** — every event already stores the hashes. "The note you concluded
    this from has changed since" is buildable today, and it is the specific claim the
    opportunity scan found nobody else making.
