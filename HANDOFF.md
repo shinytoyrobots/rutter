@@ -3,7 +3,66 @@
 **Last updated:** 2026-08-05
 **Purpose:** Single resume-point after a context clear or model switch. Self-contained: everything needed to continue the build without re-reading the whole history. Written for a fresh model/context.
 
-> **Read §2.0a first, then §2.0.** The second 2026-08-05 session renamed the project to **rutter**, ratified spec v3.11.0 (the gate's "unprompted" = intent, not call origin), and scheduled the public launch article for **2026-08-11**. §2.0 covers the first 2026-08-05 session (note identity; its PR #17 has since MERGED via #17/#18); §2.1 covers 2026-08-04; everything below that is history.
+> **Read §2.0b first, then §2.0a, then §2.0.** §2.0b (2026-08-13) shipped Phase A
+> (position capture) as a **gated ship** and is written with a deep focus on what
+> **Phase B (position recall)** needs to know that the original plan doc
+> (`docs/decision-graph-plan.md`, written 2026-08-04, before any of this existed)
+> gets wrong or doesn't say. §2.0a covers the rutter rename + gate-axis session;
+> §2.0 covers Phase 0 (note identity); §2.1 covers 2026-08-04; everything below
+> that is history.
+
+## 2.0b Session of 2026-08-13 — Phase A shipped (gated), and everything Phase B needs to know
+
+**Spec v4.0.0 · suite 0.10.0 · constitution v5.0.0 · PR #27 MERGED (`1f56f79`). 165 tests + tsc clean on `main`. `dist/` rebuilt this session (was stale since Aug 5).**
+
+**What shipped (effort `decision-graph`, Phase A — `ship-2026-08-13-0001`, GATED not clean):** a session can now capture a *position* (a stance on a topic — formed/changed/reaffirmed/retired), not just a summary. Went through the full flow pipeline for the first time end-to-end at real scale: interpretation panel → gen-3 wide probe (2 variants, neither dominated the other — a genuine fork) → chavruta (2 new dissents) → gen-4 graft (1 variant, folding in the fixes chavruta named) → **the effort's first-ever `deep` eval pass and first-ever actually-fired revert probe** → shipped gated, branch → PR #27 → merge (not a direct commit to `main` — see the new standing git rule below).
+
+**⚠️ Standing rule, effective now, for every session in this repo:** work on a branch, never commit directly to `main`. For anything meant to ship: branch → commit → push → PR → merge (`--merge`, a real merge commit, not squash/rebase — keeps the ship SHA reachable from `main`, matching `ship-2026-08-05-0001`'s PR #17 precedent). This was a direct operator correction this session (a `/flow-ship` promotion had been applied straight onto a `main` checkout and only committed locally before the correction landed) — also saved to Claude's cross-session memory, but written here so it survives a memory miss too.
+
+**Restart mechanics, since this bit the end of the last session too:** the Stop hook always runs fresh (`dist/capture-cli.js` is invoked as a new process per event, so a rebuild is live immediately — no session restart needed for capture itself to work). But **this MCP server's already-connected session doesn't pick up new `SERVER_INSTRUCTIONS` until a fresh connection** — the instructions are read once, at server construction. `npm run build` was run this session (dist/ was 8 days stale). **Whoever reads this next should verify a fresh Claude Code session/reconnect has actually happened** before assuming a live client has been taught the `POSITION` grammar — if `/mcp` in a new session shows old instructions, the server process needs restarting (no daemon; it's spawned per session).
+
+### The ground truth for Phase B (read this before touching `docs/decision-graph-plan.md`'s Phase B section — that doc was written 2026-08-04, before Phase A existed, and drifted from what actually got built)
+
+**1. The wire format is NOT what the plan says, and it's still not spec-ratified.** The plan says positions use "the same sentinel channel" as session summaries. What actually shipped uses a **distinct HTML-comment tag**, `<!-- librarian-position POSITION <kind> <topic-key>: <stance> -->` — deliberately different from `<!-- librarian-session ... -->` — because sharing a tag would let `directive.ts`'s existing "keep the last occurrence" rule silently drop one of two co-occurring directives in the same turn (measured, see `dissent-2026-08-13-0003`). **This choice is disclosed as provisional, not settled** (`SG-11`, `SG-1`): the position-event schema id on disk literally reads `position-event@1-provisional` (see `src/positions.ts`'s `SCHEMA_ID`), specifically so a future reader can tell which wire-format generation produced a given stream file. **Before starting Phase B, re-check `dissents-active.yaml` for `dissent-2026-08-13-0003`'s status and `spec/spec.md`'s SR-048/SR-052 text** — if the dissent has reactivated or the spec has been amended toward the shared-tag reading, Phase B's read/fold logic (below) needs to change, not just be built against what's here.
+
+**2. The actual on-disk schema** (`src/positions.ts`, `PositionEventSchema`) — read the source, not just this summary, but for orientation:
+```
+{ id, session_id?, time, kind, topic_key, stance, revises?, refs: VersionedRef[], workspace? }
+```
+in a per-**month** file `_librarian/positions/<YYYY-MM>.md`, frontmatter `{ collection: "librarian.positions", schema: "position-event@1-provisional", month, events: [...], refs: [...] }` — gray-matter frontmatter + a regenerated human-readable body, same pattern as `session-record.ts`. `refs` is derived by scanning the raw stance for `[[wikilink]]` tokens (`position-directive.ts#deriveRefPaths`) and resolving each through the same versioned-ref builder session refs use. `revises` is derived by scanning the raw stance for a `revises: <id>` substring (`deriveRevises`) and IS stored as its own real schema field (not just embedded text) — SR-052 stores it verbatim once derived. Neither derivation removes anything from the stored, byte-verbatim `stance` — they're read-only scans layered on top.
+
+**3. No fold/supersession code exists yet.** Phase A only guarantees the data supports the fold (SR-051: deterministic append order + optional `revises` pointer) — `isDuplicatePositionEvent`/`appendPositionEvent` are the only operations over the stream today, and they exist for idempotence and writing, not for grouping-by-topic or computing "what's the live stance on X." **This is entirely Phase B's job**, per the original plan: reindex folds events by `topic_key` into projection tables (`position_events`, `position_refs`, `positions`), then `librarian-positions` reads the fold. Two things to get right that the plan doesn't spell out:
+   - **Positions for one topic can land across multiple month files** — the dedupe check already has to scan every month (`readAllPositionStreams()` in `positions.ts`), not just one, and the fold needs the same cross-month read, sorted by `time` (or the time-derived `id`, which sorts identically) to get a stable global order.
+   - **`retire` is just another event with `kind: "retire"`** — there's no separate "deleted" state in the schema. The fold has to treat retire as a terminal marker for that topic, computed at read time, never as a removal.
+
+**4. Every-append-rewrites-the-whole-file risk is now doubly confirmed.** `appendPositionEvent` reads the whole month, spreads in the new event, and rewrites the file — over a Zod schema that **silently strips unknown keys** on read. This is `dissent-2026-08-05-0002`'s exact failure shape (first raised against the *note-identity* ledger), now confirmed live on the *positions* stream too (`dissent-2026-08-13-0004`, mitigated for now only by making the schema-id-as-provisional-marker a **required** field written before any real event exists — see the M1 note in that dissent). **If Phase B adds any new field to `PositionEventSchema` after real events exist, it must be required-with-a-migration-path or explicitly probed with the "drop-a-field" check** (`dissents-active.yaml`, `dissent-2026-08-13-0004`'s reactivation conditions) — not just added optionally and assumed safe.
+
+**5. `topic_key` is unsanitized and unbounded — a Phase B rendering concern, not just a storage one.** Unlike `stance` (which goes through `toInertLine()`), `topic_key` is stored raw with no length bound (`SG-10`). Storage integrity holds (verified against 11 hostile probes: NUL, ANSI, bidi override, zero-width, an 8KB key, a path-traversal-shaped string), but if `librarian-positions` ever prints a topic key straight to a terminal, it needs the same inert-rendering discipline `recent.ts` already applies elsewhere — don't assume `topic_key` is safe to print just because it was safe to store.
+
+**6. Instrumentation is already decided, just not built.** Constitution prohibition 9 ("Decision-graph reads never count toward the desirability gate... unless the gate design itself is amended by HITL") already covers this — Phase B's reads should log as their own kind, excluded from gate arithmetic by the existing rule, not a new decision. The original plan's HITL item 3 ("`position-recall` excluded from gate arithmetic — recommend excluded") is effectively pre-resolved by that prohibition.
+
+**7. Known suite/spec debt that will land on Phase B's desk regardless of what it builds** (full detail: `efforts/decision-graph/generations/gen-4/population/var-1-graft/eval-result.yaml` `suite-gaps` section, and `efforts/decision-graph/flow-state.yaml` `checkpoint.next`):
+   - `SG-9` — one adversarial test wants a diagnostic for an unrecognized directive kind that no SR actually requires; unresolved, doesn't block Phase B.
+   - `SG-2` — no test ever actually crosses a month boundary for the idempotence check, even though the shipped code deliberately scans every month; if Phase B's fold logic assumes month-boundary behavior is well-tested, it isn't.
+   - `SG-12` — a topic key containing a colon mis-parses (first-colon-wins takes everything after the first colon as part of the stance); no client has hit this yet as far as anyone knows, but Phase B's fold will silently group under a truncated topic key if one ever lands.
+   - **SR-056's baseline is still stale and still unfixed** (2,093 chars cited, real baseline is ~3,030+) — this makes SR-056 unsatisfiable as written by any implementation; still an open, urgent `/flow-spec` item, unrelated to Phase B directly but sitting in the same spec file Phase B will be editing.
+   - **`src/stdio.ts` has a live, pre-existing bug**, found incidentally by this ship's cross-boundary checks: a malformed JSON-RPC frame (an unexpected extra top-level field) makes the MCP SDK silently drop the response, hanging the client. Untouched by Phase A, shared by the already-shipped code — worth a look before Phase B adds a new tool that could plausibly get malformed input.
+
+**8. Everything else in `docs/decision-graph-plan.md`'s Phase B section still holds as designed** — the `librarian-positions` tool shape (query by topic/free text/note, live stance + full chain, history on request), read-time attribution guidance, and the dormant-is-computed-not-stored status model. Re-read that section for the parts unchanged; this list is only the corrections and additions Phase A's actual implementation surfaced.
+
+**Open, in priority order:**
+1. **Verify the MCP reconnect actually happened** (see restart mechanics above) before assuming any live client has the new instructions.
+2. **Two `/flow-spec` items disclosed at ship, one urgent:** SR-056's stale baseline (urgent — currently unsatisfiable by any implementation); SR-048 vs. the `-provisional` schema marker / SG-9's unstated diagnostic requirement (not urgent, watched).
+3. **Re-check `dissent-2026-08-13-0003` and `-0004`'s status** before starting Phase B — both are `active`, non-blocking, but `-0003` specifically could flip the wire format Phase B needs to read.
+4. **Phase B itself** — see the ground-truth section above; the plan's mechanism design still holds, the wire-format and schema details above are what's new.
+5. Carried from §2.0/§2.0a, still open: SR-104 calibration patch, flow-eval backlog (now larger — see `checkpoint.next` for the full list across gen-1 through gen-4), spend-calibration notes.
+
+**Mechanics a fresh session must not rediscover (new this session):**
+- `efforts/*/generations/` is gitignored — files a dispatching session writes there (e.g. a generator's brief) **do not exist inside that generator's own git worktree**, even though they exist in the main working tree. Both gen-3 generators and gen-4's hit this independently and self-corrected by reading the (committed) `spec/.staging/` panel record instead. Inline the full brief in the dispatch prompt text next time, don't rely on the file reference.
+- The cost eval dimension is currently meaningless: `evals/graders/cost.md`'s `budget_total_tokens=150000` is a never-updated placeholder that every real generation now blows past regardless of actual frugality — every variant scores 0.00 on it. Don't read a 0.00 cost score as a real signal until `/flow-eval` fixes this.
+- The `deep` eval-depth tier and the ship gate's revert-probe requirement had never actually been exercised in this effort before this session, despite being part of `flow-ship`'s design since the start — both are now proven mechanisms (see `eval-result-deep.yaml` and the ship record's revert-probe section), not just documented ones.
+
+---
 
 ## 2.0a Session of 2026-08-05 (later) — rutter, the gate axis, and the launch clock
 
