@@ -1,4 +1,4 @@
-# Memory-of-use (S1.5): capture, recall, enrichment, and the gate
+# Memory-of-use (S1.5): the mechanics in full
 
 S1 proved retrieval. S1.5 adds the first thing a stateless assistant *can't* have:
 **memory that accrues by itself and surfaces later.** The librarian now quietly
