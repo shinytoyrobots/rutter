@@ -9,6 +9,7 @@ does not, so a future generation does not mistake a real-only score for a harden
 |-----------|--------------|---------------------|-----------|
 | correctness | correctness-real-v1 (16) | correctness-adv-v1 (8) | Constitution-required. Metric-gaming holdouts (transcript-dumping the append, phantom sessions, event double-counting, sneaky re-rank). |
 | security | security-real-v1 (5) | security-adv-v1 (12) | Constitution-required. SR-101 attack corpus (YAML/frontmatter injection, traversal, control chars, prompt-injection, oversized, ref-smuggling). |
+| cross-boundary | cross-boundary-real-v1 (10) | cross-boundary-adv-v1 (5) | **Doctrine-required** (flow-operating-doctrine.md step 1's second non-negotiable — not a constitution clause, but treated the same way: mandatory pairing, not an accepted gap). Added 2026-08-13, suite 0.10.0. Holdouts probe an independent frontmatter parser and a real MCP `Client`/strict-schema validator specifically so a defect the code's own dependencies (`gray-matter`/`js-yaml`) can't see still surfaces. |
 | performance | performance-real-v1 (5) | — | **Accepted gap** (real-only by default). |
 | maintainability | maintainability-real-v1 (5) | — | **Accepted gap** (real-only by default). |
 | documentation | documentation-real-v1 (5) | — | **Accepted gap** (real-only by default). |
@@ -146,3 +147,32 @@ production incidents). Two notes:
   refs from the identity pass entirely) would silently drop genuinely deleted
   non-note files from dead-ref accounting and rendering. The holdout constructs
   exactly that temptation.
+
+## Suite 0.10.0 (2026-08-13) — cross-boundary dimension added
+
+`/flow-generate` halted a dispatch on decision-graph Phase A after finding the suite had
+no cross-boundary objective at all — one of the operating doctrine's two non-negotiables
+(step 1), present in this suite's own dimension table from `flow-eval-protocol.md` but
+never actually authored here. Not Phase-A-specific: this gap existed for the whole
+effort's history, s1-5-ambient-capture included, and both gen-1/gen-2 culls ran without
+it.
+
+- **The Goodhart shape here is unusual**: most dimensions in this suite risk being gamed
+  by a variant that satisfies the metric without satisfying the intent. Cross-boundary's
+  risk is narrower and sharper — a variant (or this suite itself) satisfying the metric
+  by testing against the *same* dependency that produced the artifact, which cannot by
+  construction detect that dependency's own blind spots. `gray-matter`/`js-yaml` is both
+  writer and reader for every frontmatter file in this codebase; a round-trip test built
+  from the same library is not independent evidence, whatever score it reports. The
+  grader (`evals/graders/cross-boundary.md`) states this explicitly and requires the
+  vault-seam probe use a genuinely different parser, and the protocol-seam probe use a
+  real second process over real stdio rather than an in-process handler call.
+- **Retroactive scoring deliberately NOT done**: the already-shipped variant
+  (`ship-2026-08-05-0001`, var-3-reversibility @ `993a89d`) predates this dimension and
+  is not automatically re-scored under the eval protocol's additive-change rule. This is
+  an honest gap, not a silently-assumed pass — recorded in
+  `efforts/decision-graph/flow-state.yaml`'s phase-log as a separate, undecided item.
+- **No runner exists yet**, same as most dimensions in this suite at authoring time. This
+  one additionally needs two devDependencies the harness does not yet have — a
+  frontmatter/YAML parser independent of `js-yaml`, and a strict-mode JSON-Schema
+  validator (e.g. `ajv`) — both test-only, never server dependencies.

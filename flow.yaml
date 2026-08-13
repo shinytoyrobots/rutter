@@ -1,4 +1,4 @@
 # Flow effort registry — used for effort resolution when no slug is passed
 active-efforts:
-  - decision-graph            # in-flight; Phase 0 SHIPPED metastable 2026-08-05 (ship-2026-08-05-0001, var-3 @ 993a89d, uncommitted promotion); open: SR-104 calibration patch, gate verdict ~08-09
-  - s1-5-ambient-capture      # converged; open item: desirability-gate verdict ~2026-08-09
+  - decision-graph            # in-flight; Phase 0 SHIPPED metastable 2026-08-05 (ship-2026-08-05-0001, var-3 @ 993a89d, uncommitted promotion); Phase A spec ratified v3.12.0 2026-08-12 (SCN-010 position capture), NOT dispatched — blocked on flow-eval mapping + escalation trigger 4 (class promotion); open: SR-104 calibration patch
+  - s1-5-ambient-capture      # converged; desirability-gate verdict PASSED 2026-08-12 (docs/gate-verdict-2026-08.md)
