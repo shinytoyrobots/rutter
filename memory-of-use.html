@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Memory-of-use — rutter</title>
-<meta name="description" content="Capture, recall, enrichment, note identity, and the usage gate — the mechanics of rutter's memory-of-use layer in full.">
+<meta name="description" content="Capture, recall, positions, enrichment, note identity, and the usage gate — the mechanics of rutter's memory-of-use layer in full.">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -32,7 +32,7 @@
 
 <div class="hero">
   <h1>Memory-of-use: capture, recall, enrichment, and the gate<span class="cursor" aria-hidden="true">▌</span></h1>
-  <p class="dek">The mechanics in full — where the record lives, how it accrues, and how it comes back.</p>
+  <p class="dek">The mechanics in full — where the record lives, how it accrues, what stances it keeps, and how it all comes back.</p>
 </div>
 
 <main id="main">
@@ -123,6 +123,50 @@
 
 <p><strong>What the server does about style: nothing at all.</strong> It stores the summary <strong>byte-verbatim</strong> — it never rewrites, shortens, "clarifies", or rejects a line for being dense, and there is no style warning written into your record. That is not an oversight, it is the invariant: judging or rewriting prose is inference, and the server runs no model. A dense summary is a <em>readability</em> problem handled by guidance and by read-time rendering, never a <em>data</em> problem solved by editing your memory.</p>
 
+<h2 id="position-capture">2a. Position capture — a second, rarer directive</h2>
+
+<p>Alongside the session summary, your client can leave a second kind of line: a <strong>position directive</strong>, emitted only when a session forms, changes, reaffirms, or retires a stance on some topic — expected far less than once per session, against the ~19 session-summary outcomes a day the librarian otherwise sees.</p>
+
+<pre><code>&lt;!-- librarian-position POSITION assert my-topic: I think X because of the meeting notes. --&gt;</code></pre>
+
+<ul>
+  <li><code>assert | revise | reaffirm | retire</code> — the directive's kind. Kind is the only thing that routes it; there is no content inspection.</li>
+  <li><code>&lt;topic-key&gt;</code> — free-form, client-chosen, kebab-case by convention but never enforced (an off-convention key is reported on stderr, stored as written).</li>
+  <li><code>&lt;stance&gt;</code> — the rest of the line, stored byte-verbatim. A <code>[[wikilink]]</code> anywhere in the stance is captured as a versioned reference exactly like a session ref; the text <code>revises: &lt;event-id&gt;</code> anywhere in the stance records an explicit supersession pointer. Neither is stripped out of the stored stance — what you wrote is what is stored, in full.</li>
+  <li>Position events are appended to a <strong>wholly separate stream</strong>, <code>&lt;vault&gt;/_librarian/positions/&lt;YYYY-MM&gt;.md</code> — never to a session record. Emitting one, or many, changes nothing about how session summaries are captured, stored, or read; the reverse holds too.</li>
+  <li>Same idempotence discipline as a session summary: an unchanged directive re-fired by the same session appends nothing.</li>
+  <li>Recall is a separate path with its own guarantees — see <a href="#position-recall">the next section</a>.</li>
+</ul>
+
+<h2 id="position-recall">2b. Position recall — librarian-positions</h2>
+
+<p><code>librarian-positions</code> answers <em>"what do I think about X, and how did that change?"</em> from the stream position capture writes. It is read-only, and it reads a <strong>projection</strong>, never the stream files themselves.</p>
+
+<p><strong>Ask one of three ways.</strong> They are three different questions, so exactly one argument at a time:</p>
+
+<ul>
+  <li><code>topic</code> — an exact topic key. A topic key is unique, so this returns <strong>one</strong> topic or an explicit not-found (<code>Position not found: &lt;key&gt;</code>), never a list. The miss is an ordinary answer, worded like <code>librarian-get-note</code>'s own.</li>
+  <li><code>query</code> — free text matched against your recorded stances, all terms required, as <code>librarian-search</code> does for notes. Returns a list.</li>
+  <li><code>note</code> — a vault-relative note path; returns the positions whose references include that note, in <strong>any</strong> recorded version of it. Returns a list.</li>
+</ul>
+
+<p>Free-text and note matching scan a topic's <strong>entire history</strong>, not just its current stance: a topic surfaces if any event in its chain matches, however long since superseded. What comes back is still the <em>current</em> stance — what you searched and what you get are separate knobs. Add <code>chain: true</code> for the whole supersession history, oldest event first.</p>
+
+<p><strong>Every answer says whose it is and when.</strong> A recalled stance always carries the date it was <strong>formed</strong> (its original <code>assert</code>) and, where there is one, the date it was last <strong>revised</strong>. A <code>reaffirm</code> re-endorses a stance without changing it, so it never moves the revision date — it shows up in the chain instead. The server instructions tell any connected client to report all of this as <em>your</em> recorded position rather than restating it as its own present-tense conclusion.</p>
+
+<p><strong>A retired position is a stub, not a deletion.</strong> Where the most recent event for a topic is a <code>retire</code>, the answer is that retire event's own text — typically the reason you withdrew the stance — with <code>retired &lt;date&gt;</code> stated as a retirement, never as a revision. Nothing is removed from the history to produce it: every earlier event is still there under <code>chain: true</code>. And a position asserted <em>again</em> after a retirement is simply live again; a retirement is terminal only while it is the last thing recorded.</p>
+
+<p><strong>Dormant is computed, never stored.</strong> A live position nothing has touched for a long while is marked dormant, worked out on every read from the events' own timestamps. Nothing about dormancy is written to disk or to the index, so the rule can change without a migration or a rebuild. A retired position is never marked dormant — withdrawing a stance on purpose is not the same fact as letting one go quiet.</p>
+
+<p><strong>Reindex is the only trigger.</strong> The projection tables (<code>position_events</code>, <code>position_refs</code>, <code>positions</code>) are rebuilt wholesale from <code>_librarian/positions/*.md</code> at every <code>npm run reindex</code>, exactly like the <a href="#note-identity">note identity</a> projection, and are never patched incrementally. Two consequences, both deliberate:</p>
+
+<ul>
+  <li>A position captured since your last reindex is <strong>not</strong> recalled until the next one runs. That is a disclosed lag, not a silent gap.</li>
+  <li>Because recall never touches the capture path, capture cannot be disturbed by it. Session records, their bytes, and the position write path are unchanged by the fold running or by any query you make.</li>
+</ul>
+
+<p>Calling <code>librarian-positions</code> is logged to <code>_librarian/stateful-use.jsonl</code> under its own kind, and does <strong>not</strong> count toward <a href="#the-gate">the desirability gate</a>.</p>
+
 <h2 id="recall">3. Recall recent work — librarian-recent</h2>
 
 <p>Ask <em>"what was I working on lately?"</em> and your client calls the <strong><code>librarian-recent</code></strong> tool. It returns recent session summaries <strong>most-recent-first</strong>, each with its date, its project, and the versioned provenance of the notes it references:</p>
@@ -155,7 +199,9 @@ npm run recent -- --project rutter   # just one project</code></pre>
 
 <h3 id="how-clients-know">How your client knows to ask</h3>
 
-<p>You do not have to tell your client when to use the librarian. The server declares its own MCP instructions, which every client receives on connect: recency questions go to <code>librarian-recent</code>; prior-engagement and content questions go to <code>librarian-search</code>; recalled summaries — including old, dense ones — get reported in plain language.</p>
+<p>You do not have to tell your client when to use the librarian. The server declares its own MCP instructions, which every client receives on connect: recency questions go to <code>librarian-recent</code>; prior-engagement and content questions go to <code>librarian-search</code>; position questions — <em>"what do I think about X?"</em>, <em>"did I change my mind?"</em> — go to <code>librarian-positions</code>; recalled summaries, including old, dense ones, get reported in plain language.</p>
+
+<p>The same instructions carry both directives your client writes, and how a recalled stance must be framed. A session leaves a summary line as each separable thing lands, and leaves a position line as well when it forms, changes, reaffirms, or retires a stance. A stance given back has to be reported as <em>your</em> recorded position, with the date it was formed and, where there is one, the date it was last revised — a retirement named as a retirement, and never restated as the client's own present-tense conclusion.</p>
 
 <p>This matters because guidance in a project's <code>CLAUDE.md</code> only helps in that project. Instructions that ship <em>with the server</em> travel to every client and every directory it's connected from — one install, not one per repo.</p>
 
@@ -182,6 +228,8 @@ npm run recent -- --project rutter   # just one project</code></pre>
 <p><em>Unprompted</em> names intent, not call origin <em>(spec v3.11.0)</em>. "What have I been working on?" answered via <code>librarian-recent</code> is unprompted use even though the model executes the call — the assistant is the delivery mechanism, and memory reached through conversation is still memory reached. What doesn't count is a call made only because the server instructions tell clients to prefer these tools, with no human question behind it.</p>
 
 <p>Every time you invoke <code>librarian-recent</code>, or run a search that surfaces at least one prior-engagement signal, the librarian appends one timestamped event to a local, append-only log (<code>_librarian/stateful-use.jsonl</code>). A single search counts as exactly one event no matter how many signals it surfaced.</p>
+
+<p><code>librarian-positions</code> writes to the same log, under its own kind, and is <strong>excluded from the count</strong> — the gate measures whether ambient memory-of-use pulls you toward stateful behavior, and folding a later effort's read surface into that number would answer a different question than the one the gate was set up to ask. The log still records the calls, so they remain available to look at; they just do not move the gate figure.</p>
 
 <pre><code>npm run gate                       # counts across all history
 npm run gate 2026-07-13 2026-07-26 # counts within a date range</code></pre>
@@ -236,7 +284,7 @@ npm run gate 2026-07-13 2026-07-26 # counts within a date range</code></pre>
 
 <footer class="site">
   <div class="footer-inner">
-    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source and receipts on GitHub</a> · tagged <a href="https://github.com/shinytoyrobots/rutter/releases/tag/v0.1.0">v0.1.0</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/062f651">main@062f651</a> · <a href="sources.json">source hashes</a>.</p>
+    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source and receipts on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/03c49e5">main@03c49e5</a> · <a href="sources.json">source hashes</a>.</p>
   </div>
 </footer>
 </body>

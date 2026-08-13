@@ -46,7 +46,7 @@
 <ul>
   <li><strong>Node 22 or newer.</strong> Check with <code>node -v</code>. npm warns at install time on an older Node — heed it, because the built-in <code>node:sqlite</code> this depends on will simply be missing. Verified on Node 26.</li>
   <li><strong>npm and git.</strong></li>
-  <li><strong>Claude Code.</strong> The three MCP (Model Context Protocol) tools work with any MCP client, but the Stop hook that powers ambient capture is Claude Code specific.</li>
+  <li><strong>Claude Code.</strong> The four MCP (Model Context Protocol) tools work with any MCP client, but the Stop hook that powers ambient capture is Claude Code specific.</li>
   <li><strong>A directory of markdown notes.</strong> Obsidian is what rutter was built against — it understands wikilinks and frontmatter — but nothing requires Obsidian itself.</li>
   <li><strong>No compiler toolchain.</strong> There are zero native dependencies. The index is Node's built-in SQLite, so there is nothing to build and no database to install.</li>
 </ul>
@@ -149,7 +149,7 @@ claude mcp add rutter --scope user -- node "$PWD/dist/stdio.js"</code></pre>
 
 <p>That covers the server alone. The Stop hook in Step 6 still reads the <code>env</code> block, so most people want Step 2's route.</p>
 
-<p><strong>Verify.</strong> Start a fresh Claude Code session and run <code>/mcp</code>. You should see <code>rutter</code> listed with three tools: <code>librarian-search</code>, <code>librarian-get-note</code>, and <code>librarian-recent</code>.</p>
+<p><strong>Verify.</strong> Start a fresh Claude Code session and run <code>/mcp</code>. You should see <code>rutter</code> listed with four tools: <code>librarian-search</code>, <code>librarian-get-note</code>, <code>librarian-recent</code>, and <code>librarian-positions</code>.</p>
 
 <h2 id="step-6">Step 6 — Install the Stop hook</h2>
 
@@ -269,7 +269,7 @@ refs:
 
 <footer class="site">
   <div class="footer-inner">
-    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source and receipts on GitHub</a> · tagged <a href="https://github.com/shinytoyrobots/rutter/releases/tag/v0.1.0">v0.1.0</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/062f651">main@062f651</a> · <a href="sources.json">source hashes</a>.</p>
+    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source and receipts on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/03c49e5">main@03c49e5</a> · <a href="sources.json">source hashes</a>.</p>
   </div>
 </footer>
 </body>
