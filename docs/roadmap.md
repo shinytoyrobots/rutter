@@ -59,6 +59,16 @@ authorize the next build.
 **Exit:** a written verdict naming which thesis the observed behavior supports, and an
 instrumentation change that makes the next gate falsifiable.
 
+**Status (2026-08-12): DONE — see `docs/gate-verdict-2026-08.md`.** Verdict: PASS,
+both on the raw count (W31: 8, W32: 16, both well over the ≥3/week bar) and on the
+intent axis (every logged call traces to a live human question or task, per Robin's
+own 2026-08-05 ruling that model-executed-but-human-intended recall counts). Thesis
+supported: memory-of-use, not H2 — the wish log stayed silent on belief-lifecycle
+through two more gate-passing weeks. The instrumentation-change half of the exit
+condition is carried forward as a non-blocking recommendation (a self-reported
+trigger tag at call time), queued alongside Phase 1's read-value signal rather than
+done here.
+
 ---
 
 ## Phase 1 — Summary discipline (immediately after, small)
@@ -80,9 +90,12 @@ control that decouples recall cost from stored size.
   code cannot drift apart.
 - Consider making `detail` default to abbreviated, with the existing non-silent
   abbreviation notice.
-- Add a **read-value** signal. Today `stateful-use.jsonl` counts reads but nothing
-  records whether a recall paid off. Without it, "the record has gone write-only" —
-  the exact disease this tool was built to cure — is undetectable.
+- ~~Add a **read-value** signal.~~ **Settled qualitatively, 2026-08-12 — no
+  instrument built.** See `docs/read-value-verdict-2026-08.md`: Robin's direct account
+  is that captures reduce rework and often drive new directions, which the
+  architecture (no model in the server) puts on the human side to judge, not a proxy
+  metric. `docs/read-value-signal-plan.md` scoped a mechanical alternative and is
+  retired, kept only for its tier-1 blind-spot finding.
 
 **Exit:** average summary length back inside the contract, and a test that fails if it
 drifts again.
@@ -172,6 +185,11 @@ touching the quiet half.
 **Exit condition to even start:** Phase 0 and the Phase 1 read-value signal show recall
 is real and acted on. A personality on a write-only record is a costume.
 
+**Entry condition met (2026-08-12):** both halves are now verdicted PASS —
+`docs/gate-verdict-2026-08.md` (Phase 0) and `docs/read-value-verdict-2026-08.md`
+(read-value, decided qualitatively). This clears the gate; Phase 5 is still a
+direction, not scheduled, until someone decides to build it.
+
 ---
 
 ## Non-goals
@@ -192,8 +210,11 @@ model-initiated calls excludes the librarian doing its job.)*
 - Phase 0 verdict shows no stateful call traces back to a human question — the memory
   is consulted only under standing instruction, never through conversation → the tool
   is agent infrastructure, not a librarian; re-scope or stop.
+  **Evaluated 2026-08-12: does not hold.** PASS — see `docs/gate-verdict-2026-08.md`.
 - Read-value signal (Phase 1) shows recalls are written but never acted on → the record
   has gone write-only; fix that before building any new pillar. **This is the primary
   condition.** A recall that changes nothing downstream fails regardless of who
   initiated it; one that changes what happens next is the tool working, whoever placed
   the call.
+  **Evaluated 2026-08-12: does not hold.** PASS, decided qualitatively — see
+  `docs/read-value-verdict-2026-08.md`.
