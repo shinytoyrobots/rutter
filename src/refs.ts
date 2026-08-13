@@ -50,3 +50,25 @@ export function normalizeRefPath(raw: string): string | null {
   if (bare === "" || bare.includes("\0")) return null;
   return bare;
 }
+
+/**
+ * Split client-named paths into resolved versioned refs and rejected paths.
+ *
+ * Factored out of capture.ts (decision-graph/gen-3/var-2-maintainability): both
+ * session capture and position capture (SCN-010) need the identical
+ * "resolve-or-reject a list of client-named paths" behavior, and duplicating it
+ * would let the two paths drift silently. This is a pure relocation -- same
+ * body, same behavior, now with one call site per feature instead of one
+ * private copy per module -- so it changes no observable output (verified by
+ * the existing capture.test.ts suite passing unchanged).
+ */
+export function resolveRefs(paths: string[]): { refs: VersionedRef[]; rejectedRefs: string[] } {
+  const refs: VersionedRef[] = [];
+  const rejectedRefs: string[] = [];
+  for (const p of paths) {
+    const ref = buildRef(p);
+    if (ref) refs.push(ref);
+    else rejectedRefs.push(p);
+  }
+  return { refs, rejectedRefs };
+}

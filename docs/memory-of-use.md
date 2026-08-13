@@ -196,6 +196,38 @@ never break your session.
 
 ---
 
+## 2a. Position capture — a second, rarer directive (decision-graph Phase A)
+
+Alongside the session summary, your client can leave a second kind of line: a
+**position directive**, emitted only when a session forms, changes, reaffirms,
+or retires a stance on some topic — expected far less than once per session,
+against the ~19 session-summary outcomes a day the librarian otherwise sees.
+
+```
+<!-- librarian-position POSITION assert my-topic: I think X because of the meeting notes. -->
+```
+
+- `assert | revise | reaffirm | retire` — the directive's kind. Kind is the
+  only thing that routes it; there is no content inspection.
+- `<topic-key>` — free-form, client-chosen, kebab-case by convention but never
+  enforced (an off-convention key is reported on stderr, stored as written).
+- `<stance>` — the rest of the line, stored byte-verbatim. A `[[wikilink]]`
+  anywhere in the stance is captured as a versioned reference exactly like a
+  session ref; the text `revises: <event-id>` anywhere in the stance records
+  an explicit supersession pointer. Neither is stripped out of the stored
+  stance — what you wrote is what is stored, in full.
+- Position events are appended to a **wholly separate stream**,
+  `<notes>/_librarian/positions/<YYYY-MM>.md` — never to a session record.
+  Emitting one, or many, changes nothing about how session summaries are
+  captured, stored, or read; the reverse holds too.
+- Same idempotence discipline as a session summary: an unchanged directive
+  re-fired by the same session appends nothing.
+- **There is no recall path yet.** Positions are stored so a later round
+  (Phase B) can answer "what do I think about X, and how has that changed?"
+  with the full revision history. Today they are write-only.
+
+---
+
 ## 3. Recall recent work — `librarian-recent`
 
 Ask *"what was I working on lately?"* and Claude calls the **`librarian-recent`**

@@ -97,3 +97,171 @@ dissents:
         match: "grep -c 'detected: confirmed' <ledger> >= 1"
     status: active
     last-checked: "2026-08-05T03:20:00Z"
+  - id: "dissent-2026-08-13-0003"
+    raised-at: "2026-08-13T06:55:00Z"
+    raised-by: "flow-chavruta-pair / velocity-bias"
+    generation: 3
+    context: "gen-3 cull close (Phase A wide probe, SCN-010/SR-047..057, spec v4.0.0, suite 0.10.0). Neither variant dominates; the two chose incompatible directive encodings. Which lineage the eventual gated ship is built on. Origin: panel gap 2, spec/.staging/panel-2026-08-12.md, noticed by 1 of 3 readers, not routed to amendment."
+    full-record: "generations/gen-3/dissents/dissent-2026-08-13-0003.md"
+    position: |
+      Ship the SHARED sentinel channel (var-1-convention lineage). SCN-010 literally says
+      "the same sentinel channel session directives use," and the dropped pre-panel staging
+      parenthetical ("this spec fixes the grammar and the routing, not the wrapper bytes")
+      is the only reading that explains the phrase. Choosing a distinct tag settles a
+      /flow-spec question at the chavruta table, in favor of the more inventive answer,
+      under a convention/minimum-novelty brief. The collision stability names is NOT
+      introduced by position capture: src/directive.ts:53-54 has always kept only the last
+      librarian-session occurrence ("keep the last occurrence"), so two session summaries in
+      one turn already collide in shipped ring-0 code, and the shipped instructions invite it
+      ("emit a line for each separable thing"). var-2's distinct tag does not repair that
+      class — it carves one exception out of it. var-1 also leads correctness-for-scope
+      (0.778 vs 0.722) and performance (1.00 vs 0.85) and is the ONLY variant that emits
+      SR-057's diagnostic at all. Two tags also spend SR-056 instruction budget in the one
+      place where nobody knows the headroom (cited baseline 2,093 vs measured ~3,030/3,114).
+    counterposition: |
+      Give positions their own tag (var-2-maintainability lineage). The failure is measured,
+      silent, and crosses streams: COR-R-039, run through the real capture-cli, yields
+      sessionEntries=0/positionEvents=1 one ordering and sessionEntries=1/positionEvents=0
+      the other — one directive dropped, nothing on stderr, against this project's stated
+      "never silently" posture (the same posture that drove SR-049's v4.0.0 amendment).
+      SR-055 requires SCN-001/SCN-002 observable behavior byte-for-byte unchanged before and
+      after any position capture; under the shared tag that becomes conditional on directive
+      content — var-1's own decision-ledger 3 records that parseSessionDirective returns null
+      whenever the POSITION prefix is recognized, REGARDLESS of whether the rest of the
+      grammar matched, putting new position-grammar code on the critical path of the only
+      feature actually in production (ring-0, ship-2026-08-05-0001 @ 993a89d). Velocity is
+      right that last-occurrence-wins is pre-existing, and wrong about the delta: today it can
+      lose one session summary in favor of another (same stream, same schema); after a
+      shared-tag ship it can lose a session summary in favor of a position event, across two
+      streams — which is exactly what SR-055 exists to forbid. Phases B-D add more directive
+      kinds; a construction-level guarantee does not degrade as kinds are added.
+    provisional-resolution: |
+      Stability wins the architecture question; velocity wins scope discipline. Graft base =
+      var-2-maintainability (distinct librarian-position tag), with three bounded grafts before
+      promotion: (1) port var-1's SR-057 empty-stance stderr diagnostic into var-2's
+      runPositionCapture (currently `if (!directive) return;` — silent); (2) fix the shared
+      whitespace-topic-key defect in whichever lineage ships ([^\s:]+ rejects a key with a
+      space, the one outcome SR-053 forbids; COR-R-047, COR-A-026); (3) mark the encoding
+      provisional in the module doc comment and the ship record pending /flow-spec.
+      Buying: SR-055 holding by construction instead of by a null return, and elimination of a
+      measured silent cross-stream loss. Paying: one extra permanently-taught sentinel tag,
+      ~40 chars against an uncounted instruction budget, a hand-ported diagnostic, and the
+      lineage that leads on correctness-for-scope and performance (both measured on tasks that
+      do not discriminate the encoding).
+      EXPLICITLY PROVISIONAL: if /flow-spec ratifies the SHARED channel, the mitigation is NOT
+      to revert to var-1 as written but to make extractPayload return EVERY sentinel occurrence
+      rather than the last — which also retires the pre-existing collision velocity named. That
+      changes SCN-001 observable behavior, is out of Phase A scope under SR-055, and needs its
+      own SR. Do not hold the ship: this ship is gated regardless (both variants below the
+      correctness 0.95 and cross-boundary 1.00 thresholds).
+    reactivation-conditions:
+      - type: spec-change
+        trigger: "/flow-spec names the wire format in SCN-010 or SR-047/048/052"
+        match: "SCN-010 acceptance-criteria text or SR-047/SR-048/SR-052 changes vs v4.0.0, OR grep -nE 'librarian-position|wrapper bytes|ref-extraction' spec/spec.md becomes non-empty. Ratifies shared => stability's resolution is wrong, apply the multi-occurrence fix. Ratifies distinct => resolve."
+        check: regex
+      - type: code-change
+        trigger: "The shared-channel reading lands in the promoted tree after all"
+        match: "grep -c 'POSITION' src/directive.ts >= 1"
+        check: shell
+      - type: code-change
+        trigger: "The synthesis fix lands (multi-occurrence extraction); both readings converge"
+        match: "grep -c 'keep the last occurrence' src/directive.ts == 0 AND grep -c 'matchAll' src/directive.ts >= 1"
+        check: shell
+      - type: code-change
+        trigger: "A third directive kind joins the sentinel channel (Phase B/C)"
+        match: "grep -ohE '<!--\\s*librarian-[a-z]+' src/*.ts | sort -u | wc -l >= 3"
+        check: shell
+      - type: metric
+        trigger: "A promoted build's result on COR-R-039 (both directives in one payload)"
+        match: "dimension correctness, task COR-R-039. FAIL on a promoted build => the silent cross-stream loss is live => reactivate. PASS on a build whose spec has ratified an encoding => resolve."
+        check: eval-result
+    status: active
+    last-checked: "2026-08-13T06:55:00Z"
+    reactivation-count: 0
+    history:
+      - "2026-08-13T06:55:00Z raised by chavruta-pair at gen-3 cull close; velocity-bias holds the minority position"
+  - id: "dissent-2026-08-13-0004"
+    raised-at: "2026-08-13T06:55:00Z"
+    raised-by: "flow-chavruta-pair / stability-bias"
+    generation: 3
+    context: "gen-3 cull close, same checkpoint as dissent-2026-08-13-0003. SR-056's SERVER_INSTRUCTIONS paragraph is the on switch for position capture; both variants ship it. Cites dissent-2026-08-05-0002 (NOT amended)."
+    full-record: "generations/gen-3/dissents/dissent-2026-08-13-0004.md"
+    position: |
+      Do not teach the directive in this ship; promote the capture path DARK and turn it on in
+      a follow-up once /flow-spec has ruled on the encoding. Until SERVER_INSTRUCTIONS teaches
+      the grammar, no client emits a directive, _librarian/positions/ stays empty, and rollback
+      is `git revert` with zero data consequence — a total rollback path that evaporates the
+      moment the paragraph ships. Once taught, events are permanent (INV-3 / prohibition 3:
+      appended, archived, or invalidated — never destroyed) and UNLABELED: both variants write
+      schema "position-event@1" (var-2 positions.ts:172, var-1 position.ts:191) with no field
+      naming the encoding that produced the event. If /flow-spec ratifies a different encoding,
+      the stream carries two derivation regimes (inline [[wikilink]]/revises: scanning vs a JSON
+      refs field) with no discriminator, and SR-051's fold reads both as one. The obvious escape
+      hatch is not free: adding a regime field later is an additive-OPTIONAL schema change, and
+      appendPositionEvent in BOTH variants does read -> spread -> re-serialize the whole event
+      array on every append, with a Zod read schema that strips unknown keys — dissent-2026-08-05-0002's
+      exact thesis, on a third stream, without even the ledger's return-type annotation for tsc to
+      catch it. The hatch must be built BEFORE the first event or it is not a hatch. Escalation
+      trigger 4 already singles out server instructions as the surface that never moves silently.
+    counterposition: |
+      Teach it. SERVER_INSTRUCTIONS is the only channel that makes a client emit anything; ring-0
+      is the operator's own daily use. Ship dark and Phase A produces zero real events, Phase B is
+      designed against an empty stream, and the capture-before-read bet the whole architecture
+      rests on is inverted. The volume argument is the scenario's own: SCN-010's Given says "≪ 1
+      per session, against ~19.3 outcome entries per day," so between ship and a /flow-spec
+      amendment (days, not months — two spec items are already queued from this cull) the stream
+      holds single-digit events, in a file no read path reads, under a schema that is IDENTICAL
+      across both encodings. Only the derivation of refs/revises differs; the worst case is a few
+      events with fewer refs than they might have had, never wrong refs, never corrupt events.
+      Constitution preference 5 asks for the cheapest useful slice behind a kill gate; withholding
+      the switch is not cheaper — it costs a second full ship cycle. And SR-056 is a NAMED SCN-010
+      acceptance criterion, so shipping dark ships a scenario knowingly short of its own criteria
+      and re-opens the same review later having learned nothing.
+    provisional-resolution: |
+      Velocity wins the timing question; stability wins the marking question. Teach the directive
+      at ship, with ONE bounded mitigation applied pre-promotion per this repo's micro-harden-over-arm
+      precedent (s1-5 dissent-2026-07-26-0003):
+      M1 — make the stream self-describing BEFORE the first event exists. Add a REQUIRED (not
+      optional) `directive_format` string field to the position-event schema, written by the append
+      path with a literal naming the shipped encoding (e.g. "librarian-position-inline@provisional"
+      for the var-2 lineage), asserted by one test. Required-not-optional is the load-bearing part:
+      an optional field is exactly what dissent-2026-08-05-0002 shows gets silently dropped by
+      appendPositionEvent's read-spread-rewrite plus a key-stripping Zod schema. Acceptable one-line
+      alternative: bump SCHEMA_ID to "position-event@1-provisional" and change it back when
+      /flow-spec rules. Bound: ~8 lines across position*.ts plus one test; re-verify with
+      `npm run typecheck` and the full suite. If M1 is not clean in one edit, arm the conditions
+      below and ship without it — DO NOT hold the ship.
+      Buying: the ability to partition the stream by encoding regime after the fact, for one field.
+      Giving up: the total-rollback property that only exists while the switch is off.
+      This presumes the encoding is documented as provisional per dissent-2026-08-13-0003's
+      resolution item 3; if that framing is dropped, re-read stability's position.
+    reactivation-conditions:
+      - type: code-change
+        trigger: "The switch is thrown — SERVER_INSTRUCTIONS teaches the POSITION grammar (arms every condition below)"
+        match: "grep -c 'POSITION' src/server.ts >= 1"
+        check: shell
+      - type: spec-change
+        trigger: "The wire format is amended AFTER events exist — the two-regime stream becomes real"
+        match: "SCN-010 / SR-047 / SR-048 / SR-052 text changes vs v4.0.0 AND ls _librarian/positions/*.md is non-empty"
+        check: semantic
+      - type: probe
+        trigger: "Drop-a-field probe against the promoted tree — is the required-field reasoning actually enforced?"
+        match: "append a position event carrying one unrecognized top-level key; trigger one further append into the same month; re-read. Key missing from the earlier event's bytes => reactivate (dissent-2026-08-05-0002's thesis is live on this stream). Key preserved, or the write refuses loudly => note and hold."
+        check: shell
+      - type: code-change
+        trigger: "A field enters PositionEventSchema after the first event exists (optional() count is unusable — `revises` is already optional by spec)"
+        match: "diff of PositionEventSchema's field list vs the promoted ship commit, while _librarian/positions/ is non-empty"
+        check: semantic
+      - type: metric
+        trigger: "The stream outgrows the 'handful of records' the velocity argument rests on, while the spec is still silent"
+        match: "total position events across _librarian/positions/*.md (counted from the frontmatter events: arrays, not rendered body lines) >= 25 AND spec/spec.md still carries no ratified wire-format text for SCN-010"
+        check: shell
+      - type: time
+        trigger: "Velocity's case is explicitly time-bounded ('days, not months'); if /flow-spec has not ruled, the premise has expired"
+        match: "spec semver major increment OR 60 days elapsed since last check"
+        check: semantic
+    status: active
+    last-checked: "2026-08-13T06:55:00Z"
+    reactivation-count: 0
+    history:
+      - "2026-08-13T06:55:00Z raised by chavruta-pair at gen-3 cull close; cites dissent-2026-08-05-0002 without amending it"

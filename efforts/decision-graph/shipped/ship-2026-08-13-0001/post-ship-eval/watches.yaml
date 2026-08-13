@@ -1,0 +1,73 @@
+# Post-ship watches — ship-2026-08-13-0001 (decision-graph Phase A, gen-4/var-1-graft @ 45b0ec9)
+# Each watch: the specific condition, how it's observed, what firing triggers.
+# Anomaly default (always armed): any dimension regressing >0.10 from the pre-ship
+# deep-pass scores (eval-result-deep.yaml) on a future re-run surfaces as an alert.
+
+watches:
+  - id: W-1
+    title: "SG-11 — provisional schema-id marker outlives its own justification window"
+    condition: >-
+      A real position event exists anywhere in _librarian/positions/*.md AND
+      spec/spec.md still names the literal "position-event@1" (not "-provisional")
+      in SR-048, with no /flow-spec ratification of the marker on record.
+    observed-via: "grep -c 'schema:' _librarian/positions/*.md (any hit means a real event exists); grep -n 'position-event@1' spec/spec.md (unamended = still stale)"
+    fires-to: "ruling — /flow-spec must either ratify the -provisional marker (stating when the suffix drops) or direct a revert. The window this watch protects is real: no migration exists yet because no event exists yet; once one does, changing the marker becomes a schema migration, not a one-line edit."
+    severity: high
+
+  - id: W-2
+    title: "SG-9 — SR-047 vs COR-A-025: the malformed-kind diagnostic question stays unresolved"
+    condition: "COR-A-025 still fails on any re-cull of this lineage, with SR-047 still silent on whether a diagnostic is required for an unrecognized directive kind."
+    observed-via: "next /flow-cull or /flow-eval run against this lineage; also directly: grep -n 'kind' spec/spec.md's SR-047 text for a reporting clause"
+    fires-to: "ruling — /flow-spec decides whether SR-047 gains a report-the-unrecognized-kind clause, or /flow-eval amends COR-A-025 to stop asserting a requirement no SR states. Either resolves this watch."
+    severity: medium
+
+  - id: W-3
+    title: "dissent-2026-08-13-0003 reactivation — the wire-format fork"
+    condition: "Any of dissent-2026-08-13-0003's five reactivation conditions fire (see dissents-active.yaml): /flow-spec names a wire format in SCN-010/SR-047/048/052; the shared-channel reading lands in the promoted tree after all; the multi-occurrence synthesis fix lands; a third directive kind joins the sentinel channel; or a promoted build fails COR-R-039."
+    observed-via: "dissent-monitor's standing checks (already wired to this dissent's own match expressions)"
+    fires-to: "reactivation surfaced in flow-pulse; per dissent protocol, acknowledge/mitigate/resolve — NOT an automatic rollback"
+    severity: high
+
+  - id: W-4
+    title: "dissent-2026-08-13-0004 reactivation — dark-vs-hot timing and the drop-a-field probe"
+    condition: "Any of dissent-2026-08-13-0004's six reactivation conditions fire — most notably the drop-a-field probe (append an event with an unrecognized top-level key, append again into the same month, re-read; if the first event's unrecognized key vanished from its own bytes, dissent-2026-08-05-0002's exact failure shape is live on this stream) and the 25-event-with-still-silent-spec volume trigger."
+    observed-via: "dissent-monitor's standing checks; the drop-a-field probe specifically should be run once manually within the first ring-0 week rather than waiting for organic volume, since organic volume is expected to be near-zero per SCN-010's own Given"
+    fires-to: "reactivation surfaced in flow-pulse; the drop-a-field probe failing is itself grounds for an immediate remedy PR (a required-field enforcement gap), independent of whether the dissent's other conditions have fired"
+    severity: high
+
+  - id: W-5
+    title: "SR-056's stale instruction-budget baseline (independent of this ship, but this ship's instructions haven't been taught yet — watch for when they are)"
+    condition: "SERVER_INSTRUCTIONS is extended to actually teach the POSITION grammar to clients (see W-1's observed-via) while spec/spec.md's SR-056 still cites the stale 2,093-char baseline (real measured baseline ~3,030-3,114 chars, confirmed independently three times across gen-3 and gen-4's evaluators)."
+    observed-via: "grep -n '2,093\\|2093' spec/spec.md"
+    fires-to: "URGENT /flow-spec patch — re-baseline SR-056 before it's used to judge anything else; carried forward from gen-3/gen-4's checkpoint.next, not new to this ship"
+    severity: high
+
+  - id: W-6
+    title: "Pre-existing production defect XB-A-004 (src/stdio.ts) — unrelated to this ship, tracked here since it was found via this ship's cross-boundary probes"
+    condition: "A raw MCP tools/call frame carrying an unexpected extra top-level field receives no response at all (client hang), on the currently-shipped server."
+    observed-via: "the cross-boundary adversarial probe that found it (see eval-result.yaml, gen-4/var-1-graft, XB-A-004) can be re-run directly against the live server"
+    fires-to: "operator triage — candidate for its own hotfix dispatch (--hotfix, security/robustness bias) or a scheduled remedy; NOT blocking on this ship since the defect predates it and is shared by main@631640e and the already-shipped var-3-reversibility@993a89d"
+    severity: medium
+
+  - id: W-7
+    title: "Anomaly default — any dimension regresses >0.10 from the pre-ship deep-pass baseline"
+    condition: "A future eval run on this lineage scores any dimension more than 0.10 below its eval-result-deep.yaml figure: correctness 0.987, performance 1.00, maintainability 0.917 (measured), documentation 0.90-1.00 (unstable range, see SG-13), security 1.00, cross-boundary 0.933."
+    observed-via: "next /flow-cull or /flow-eval run against this lineage or its descendants"
+    fires-to: "alert — investigate before treating as a real regression; documentation's own instability (SG-13) means a 0.90 read is NOT itself a regression, it's within the grader's known range"
+    severity: low
+
+carried-forward-suite-gaps-not-independently-watched: >-
+  SG-1 (wire format pinned nowhere — subsumed by W-3), SG-2 (no month-straddling
+  idempotence task), SG-3 (SR-056 baseline — subsumed by W-5), SG-4/SG-10 (SR-101
+  doesn't enumerate stance/topic_key/revises; topic_key unsanitized, no length bound),
+  SG-5/SG-6 (cross-boundary grader's own field-list and byte-identical-expectation
+  defects), SG-7 (no perf task for the position write path), SG-8 (no doc task for a
+  newly added user-visible surface — this is HOW the -provisional marker's
+  undocumented status was caught), SG-12 (colon-bearing topic key delimiter unprobed),
+  SG-13/14/15 (documentation grader's binary no-partial-credit scale is unstable
+  across re-samples; the deep pass's 5 judge re-samples ran in one evaluator context,
+  so its own reported variance is a lower bound, not a full estimate; two harness bugs
+  the deep-pass evaluator found and fixed in its own security probe, recorded so a
+  future evaluator doesn't repeat them). All routed to /flow-eval backlog per
+  checkpoint.next; none independently watched here because none is a live regression
+  risk on ITS OWN — they're suite/instrument debt, not ship risk.
