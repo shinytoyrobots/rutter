@@ -7,7 +7,7 @@ import { atomicWrite, existsConfined } from "./fs-safe.js";
 import { contentHash, type VersionedRef } from "./refs.js";
 import { walkMarkdown } from "./vault.js";
 import { readAllRecords, type SessionRecord } from "./session-record.js";
-import { resetIdentitySchema, type DB } from "./db.js";
+import { resetIdentitySchema, withTransaction, type DB } from "./db.js";
 
 /**
  * Note identity (SCN-008/SCN-009): when a recorded ref's path no longer
@@ -372,8 +372,7 @@ export function runIdentityPass(
     `INSERT OR REPLACE INTO identity_conflicts (from_path, hash, confirmed_to, detected_to) VALUES (?, ?, ?, ?)`
   );
 
-  db.exec("BEGIN");
-  try {
+  withTransaction(db, () => {
     for (const { ref, resolution } of projections) {
       if (resolution.status === "bound") {
         insertBinding.run(ref.path, ref.hash, resolution.to!, resolution.detected!, now.toISOString());
@@ -386,11 +385,7 @@ export function runIdentityPass(
         unresolved++;
       }
     }
-    db.exec("COMMIT");
-  } catch (err) {
-    db.exec("ROLLBACK");
-    throw err;
-  }
+  });
 
   return { checked, bound, unresolved, appended: appended.length, ms: Date.now() - start };
 }

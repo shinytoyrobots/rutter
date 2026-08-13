@@ -1,0 +1,90 @@
+# Post-ship watches — ship-2026-08-13-0002 (decision-graph Phase B, gen-5/var-2-maintainability @ fb4b1c9)
+# Each watch: the specific condition, how it's observed, what firing triggers.
+# Anomaly default (always armed): any dimension regressing >0.10 from the pre-ship
+# deep-pass scores (eval-result-deep.yaml) on a future re-run surfaces as an alert.
+
+watches:
+  - id: W-1
+    title: "dissent-2026-08-13-0005, M3 — the ref-path-from-hostile-filename gap spans both surfaces, only one is fixed"
+    condition: >-
+      A /flow-spec round decides SR-064/SR-101's scope (narrow, with the write-time
+      guarantee named explicitly; or broadened to require render-time neutralization
+      everywhere client-authored content appears) without ALSO addressing
+      librarian-recent's formatRefLine, which shares the exact same exposure and is
+      not touched by this ship.
+    observed-via: "next /flow-spec round touching SR-064 or SR-101; grep -n 'formatRefLine' src/*.ts to confirm which surfaces still call the unguarded renderer"
+    fires-to: "ruling — a spec decision that resolves one read surface's exposure while leaving the other's textually or structurally identical is incomplete; route back to /flow-spec before considering this gap closed"
+    severity: high
+
+  - id: W-2
+    title: "dissent-2026-08-13-0005, M3 — no SEC-A task exists for the filename vector on either surface"
+    condition: "A /flow-eval round adds a SEC-A task for stance/session_id/revises/ref-path injection (SG-15) that covers librarian-positions only, without an equivalent task against librarian-recent's formatRefLine."
+    observed-via: "evals/datasets/security-adv-v1.jsonl — check any new SEC-A task's target surface"
+    fires-to: "suite-gap not fully closed — a positions-only task would let the suite claim this vector is covered when half the exposure remains unscored; the asymmetry itself is the finding, not a missing task count"
+    severity: medium
+
+  - id: W-3
+    title: "dissent-2026-08-05-0001 reactivation — condition 2, 'a third read surface lands' — FIRES ON THIS MERGE"
+    condition: "grep -c 'librarian-positions' src/server.ts >= 1 on main (true as of this ship)."
+    observed-via: "dissent-monitor's standing check against dissent-2026-08-05-0001; also directly checkable any time"
+    fires-to: "reactivation surfaced in flow-pulse immediately after this merge — per dissent protocol, acknowledge/mitigate/resolve, NOT an automatic rollback. dissent-2026-08-05-0001's substance (Phase 0 enrichment zero-candidate class-invisibility) is not about position recall specifically; the operator/dissent-monitor should confirm (not assume) whether its actual concern has any bearing on librarian-positions before dismissing it as a coincidental trigger."
+    severity: high
+
+  - id: W-4
+    title: "F-1 — identity_bindings rebuild non-determinism, cited by SCN-011 as a precedent that isn't actually true"
+    condition: "A note in the live vault is renamed, then reindex runs twice; identity_bindings' rebuilt rows differ between the two runs (a wall-clock value is the cause, confirmed at both cull and deep pass)."
+    observed-via: "rename any note, run reindex twice, diff the identity_bindings table contents"
+    fires-to: "ruling — /flow-eval should tighten SR-041's grader to catch this reliably (it currently only surfaces post-rename, so an empty-bindings-table test run looks clean); /flow-spec should correct or caveat SCN-011's citation of SR-041 as an established precedent, since the precedent's own guarantee doesn't hold. Not attributable to this ship — pre-existing Phase A/SCN-008 code, zero-line diff from this variant."
+    severity: medium
+
+  - id: W-5
+    title: "dissent-2026-08-13-0005 reactivation — write-time guarantee narrows further, or a new client-authored field joins the renderer"
+    condition: "grep -c 'toInertLine' src/position.ts == 0 (the write-time guarantee this ship's disclosure relies on stops holding), OR a new field is added to position-render.ts's output that isn't routed through inert()."
+    observed-via: "dissent-monitor's standing check against dissent-2026-08-13-0005's full reactivation-conditions list (7 total; this watch covers the two most likely to fire organically, the full set is in dissents-active.yaml)"
+    fires-to: "reactivation surfaced in flow-pulse; per dissent protocol, acknowledge/mitigate/resolve"
+    severity: high
+
+  - id: W-6
+    title: "F-7 — BiDi isolate characters (U+2066-U+2069, U+061C) pass toInertLine unneutralized, affects every server surface"
+    condition: "Found at this ship's deep-pass adversarial extension (124-case synthesized matrix); absent from BOTH sanitize.ts's pattern and the suite's own regex. Not new to this ship -- pre-existing across the whole server."
+    observed-via: "the deep-pass evaluator's synthesized adversarial matrix (eval-result-deep.yaml); can be re-run directly against sanitize.ts#toInertLine"
+    fires-to: "remedy PR candidate — zero-line-diff fix to sanitize.ts's NOT_PRINTABLE-class pattern, benefits every surface at once; low severity but cheap to fix, recommend prioritizing over its severity ranking suggests"
+    severity: low
+
+  - id: W-7
+    title: "Anomaly default — any dimension regresses >0.10 from the pre-ship deep-pass baseline"
+    condition: "A future eval run on this lineage scores any dimension more than 0.10 below its eval-result-deep.yaml figure: correctness 0.989, performance 1.00, maintainability 0.740-0.831 (formula-dependent, see ship-record.md gate item 5), documentation 0.85-1.00, security 1.00, cross-boundary 0.933 pooled / 1.000 attributable."
+    observed-via: "next /flow-cull or /flow-eval run against this lineage or its descendants"
+    fires-to: "alert — investigate before treating as a real regression; maintainability's own formula ambiguity (SG-17) means a reading anywhere in its stated range is NOT itself a regression"
+    severity: low
+
+  - id: W-8
+    title: "F-6 — the maintainability grader's own offender-attribution can be wrong (identity-confirm-cli.ts#usage mis-scored)"
+    condition: "The maintainability grader's complexity-offender list is trusted without spot-verification on a future cull/ship."
+    observed-via: "the deep pass's own re-derivation (eval-result-deep.yaml) found identity-confirm-cli.ts#usage scored complexity 12 when it is actually 1 (two console.error calls + a process.exit)"
+    fires-to: "instrument fix — /flow-eval should re-verify the complexity-measurement tooling (ts-morph or the eslint complexity rule config) rather than trust the last measured list going forward"
+    severity: low
+
+  - id: W-9
+    title: "F-8 — invariant static scans using grep -I silently skip NUL-containing source files"
+    condition: "A future invariant grader run on src/ uses grep -I (or an equivalent binary-file auto-skip) rather than grep -a / a NUL-safe scanner."
+    observed-via: "src/identity.ts carries a raw NUL byte today (pre-existing, unrelated to this ship) and was silently skipped by the deep-pass evaluator's first invariant scan attempt before being caught and corrected within the same pass"
+    fires-to: "process fix for /flow-eval — standing instruction: invariant static scans over src/ must use grep -a or a NUL-tolerant reader, never a default that silently excludes binary-flagged files"
+    severity: low
+
+carried-forward-suite-gaps-not-independently-watched: >-
+  SG-13 (no doc task for any SCN-010/011 surface), SG-14/SG-16 (COR-R-064 wording
+  ambiguity, both variants happen to pass either reading), SG-17 (two maintainability
+  sub-formulas underspecified -- W-7's anomaly default absorbs the practical risk),
+  SG-18 (no cost bound on a free-text query), SG-19 (cost's actual token measurement
+  unrecorded, compounding the existing broken placeholder), SG-20 (documentation
+  grader's accuracy-penalty scope unstated), SG-21 (malformed positions stream
+  silently drops a month, pre-existing Phase A parsing behavior), SG-22 (no task
+  appends an event after a retire), SG-23 (no task calls the tool with zero/two
+  query-mode arguments), SG-24 (SR-062 states no length budget), SG-25/SG-12b
+  (cross-boundary grader's tool-schema list still names only three tools). All
+  routed to /flow-eval backlog per checkpoint.next; none independently watched here
+  because none is a live regression risk on its own -- suite/instrument debt, not
+  ship risk. Also carried, unrelated to this ship: XB-A-004 (src/stdio.ts hang on
+  an unexpected extra JSON-RPC field, from Phase A's ship) and SR-056's baseline
+  (already corrected at spec v5.0.0, watch retired).
