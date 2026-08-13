@@ -266,3 +266,131 @@ dissents:
     reactivation-count: 0
     history:
       - "2026-08-13T06:55:00Z raised by chavruta-pair at gen-3 cull close; cites dissent-2026-08-05-0002 without amending it"
+  - id: "dissent-2026-08-13-0005"
+    raised-at: "2026-08-13T21:40:00Z"
+    raised-by: "flow-chavruta-pair / stability-bias"
+    generation: 5
+    context: "gen-5 cull close (Phase B first cull, SCN-011/SR-058..065, spec v14.0.0, suite 0.11.0). Both survivors on the first Pareto front; they diverge on SR-064's field scope and no eval task can discriminate them (SEC-A-016 probes topic_key only — suite gap SG-15). Origin: panel gap 3, spec/.staging/panel-2026-08-13-phase-b.md, named by 1 of 3 blind readers, carried unresolved through spec v10.0.0/v13.0.0/v14.0.0 as non-blocking. Cites dissent-2026-08-05-0001 (NOT amended) — its condition 2 fires on either ship."
+    full-record: "generations/gen-5/dissents/dissent-2026-08-13-0005.md"
+    position: |
+      Adopt the field-agnostic funnel (var-2's reading): every client-authored value the
+      renderer prints goes through toInertLine. The narrow reading's premise is FALSE in one
+      field and the false part is reachable through the ORDINARY write path, not a hand-edit.
+      var-1's ledger D2 argues refs are safe because "a stored ref path is a real vault path";
+      validated is not inert. Verified against shipped src/refs.ts with a temp vault: a file
+      whose FILENAME carries a raw ESC byte, cited by an ordinary [[wikilink]] in a stance,
+      resolves (rejectedRefs empty) and is stored verbatim —
+      path "Notes/a<ESC>[31mred.md" — and var-1 prints it verbatim via the shared
+      formatRefLine. normalizeRefPath rejects only ""/NUL and strips ?#| decoration;
+      resolveWithin rejects only absolute/.. ; readConfined only a symlink escape. Nothing
+      anywhere rejects or neutralizes ANSI/C0/C1/BiDi in a filename. Per-field allowlists have
+      already been mispredicted five times on this surface (the panel assumed a general policy
+      covering stance/refs/session_id — there is none; session_id and revises are stored with
+      raw ESC/NUL; 2 of 3 readers never asked; R3 asked and still assumed; var-1 enumerated
+      two fields right and refs wrong). And the write-time guarantee var-1 leans on is
+      undocumented (no SR says a stored stance is inert; SR-047/054's byte-verbatim language
+      points the other way) and unasserted — if write-time sanitization ever narrows, var-1's
+      renderer becomes an injection surface and NO test fails. Cost of the broader rule is
+      measured at zero: toInertLine is idempotent (COR-R-055 + SEC-R-007 over-sanitization
+      control both pass on var-2).
+    counterposition: |
+      Ship the narrow reading (var-1's). (1) The headline evidence does not discriminate the
+      SURVIVORS: var-2's evaluator's "would print a raw escape from the next field along" is
+      true of a strictly-literal implementation and FALSE of var-1, which inert-renders
+      session_id and revises at exactly those sites (server.ts:376-377). Both close the two
+      fields the write path demonstrably leaves dirty. (2) The residual ref-path exposure is
+      the ALREADY-SHIPPED behavior of librarian-recent — formatRefLine has printed ref.path raw
+      since v3.9.0 — and var-1 reuses that one function. var-2 does not fix the status quo; it
+      forks a SECOND ref renderer covering one of two screens, leaving two codepaths free to
+      drift. (3) That fork costs a property this effort has an open dissent about: var-2's
+      renderRefs takes no db and resolveRef appears nowhere in its positions path (verified), so
+      a renamed note renders under its stale path with no "renamed to" and an unresolved ref
+      renders as if fine — against SR-043's general wording ("the read surface") and
+      constitution prohibition 8, at the exact checkpoint dissent-2026-08-05-0001's third-read-
+      surface condition fires. var-1 threads db into formatRefLine and gets SR-042/043 parity
+      free. (4) The synthesis everyone wants — neutralize inside the shared formatRefLine,
+      covering both surfaces with resolution intact — is FORBIDDEN this phase: formatRecentEntry
+      is SCN-002 and SR-065 requires its observable behavior byte-for-byte unchanged. So the
+      correct fix is out of scope by ratified requirement, and var-2's asymmetry is forced
+      rather than sloppy — an argument for routing an SR, not for choosing a variant. (5) 3 of 3
+      blind panel readers applied inert-rendering to topic_key only; the one who named the
+      ambiguity asked for a CITATION; /flow-spec logged it non-blocking three times. Settling it
+      in code at the chavruta table in favor of the broader answer is the objection velocity
+      raised and lost at gen-3 (dissent-2026-08-13-0003 point 1), with the roles reversed.
+    provisional-resolution: |
+      Velocity wins the code question; stability wins the record question, the probe and the SR.
+      Ship the narrow reading; do NOT adopt the field-agnostic funnel as a requirement this
+      round. Three items, priority order:
+      M1 (pre-ship) — pin the reading with a test in whichever lineage ships: assert that a
+      control-bearing stored stance and a control-bearing RESOLVABLE ref path reach the output
+      under the shipped reading, while topic_key/session_id/revises do not. No behavior change;
+      it converts an unwritten assumption into an asserted one so the next generation flipping
+      the reading trips a red test instead of moving the security posture silently. Precedent:
+      var-2 already ships a test named for dissent-2026-08-13-0004 condition 4. Bound: ~15 lines
+      + one fixture; re-verify with npm run typecheck + full suite. If not clean in one edit,
+      arm the conditions and ship without it — DO NOT hold the ship.
+      M2 (mandatory disclosure, must not be dropped) — one named line in the ship record and in
+      the shipping renderer's doc comment: which fields are inert-rendered vs printed as stored;
+      that a control byte in a VAULT FILENAME reaches the terminal through an ordinarily-captured
+      ref on librarian-positions AND on the already-shipped librarian-recent; and that closing it
+      belongs at both surfaces at once under its own SR because SR-065 forbids changing SCN-002's
+      bytes in this phase. The narrow reading is defensible ONLY if the residual is written down.
+      M3 (routing) — /flow-spec: close panel gap 3 by scoping SR-064 in terms of the mechanism
+      (name the write-time guarantee AS a guarantee) and decide the ref-path question for BOTH
+      read surfaces; the honest candidate is neutralizing inside the shared formatRefLine, which
+      needs its own SR precisely because it changes SCN-002's output. /flow-eval: add SG-15's
+      SEC-A-017/018/019 plus a ref-path-from-a-control-bearing-filename vector, run at
+      librarian-positions AND librarian-recent.
+      BUYING: one ref-rendering codepath instead of two; SR-042/043 parity at the third read
+      surface (what dissent-2026-08-05-0001 has waited for since gen-2); no unratified widening
+      of SR-064 decided by reviewers; no risk to SCN-002's bytes under SR-065.
+      PAYING: a stance (hand-edited stream only) and a ref path (ordinary capture of an
+      oddly-named vault file) can carry a terminal control sequence to the screen.
+      EXPLICIT EXCEPTION to this repo's micro-harden-over-arm precedent (dissent-2026-08-05-0002
+      M1, dissent-2026-08-13-0004 M1), and why: every candidate code mitigation is out of scope
+      (neutralize in the shared formatRefLine => SR-065), against the grain (reject a
+      control-bearing path at write time => SR-101's posture is inert not reject; SR-053's is
+      report never reject), or reproduces the asymmetry this resolution rejects (positions
+      surface only => two codepaths). No edit is clean and the reason is a ratified requirement,
+      so M1 hardens the KNOWLEDGE and the behavior change is routed to the body that owns it.
+      SHIP-CANDIDATE BEARING (input to /flow-ship, not chavruta's decision): being "defensively
+      broader on SR-064" is NOT a net point for var-2 — the breadth is bought by forking the ref
+      renderer and priced in SR-042/043 fidelity at the newest surface. On this fork alone the
+      ordering is var-1 >= var-2. If /flow-ship picks var-2 anyway, M1/M2 stand and one item
+      joins them: thread db into position-render.ts's renderRefs through resolveRef, or state in
+      the ship record that the positions surface deliberately does not resolve refs, and why.
+    reactivation-conditions:
+      - type: code-change
+        trigger: "The write-time guarantee the narrow reading rests on stops holding"
+        match: "grep -c 'toInertLine' src/position.ts == 0, OR src/sanitize.ts's toInertLine stops dropping any of its four character classes today (ANSI CSI, C0/C1, zero-width, BiDi). Either => the narrow reading's premise is gone and stability's position becomes correct with no other change."
+        check: shell
+      - type: code-change
+        trigger: "A new client-authored field joins the positions renderer (the allowlist-decays trigger)"
+        match: "the set of stored PositionEvent fields interpolated by the shipping renderer (server.ts formatPositionEvent/formatPositionTopic, or position-render.ts) grows beyond {topic_key, stance, session_id, revises, refs, kind, time}"
+        check: semantic
+      - type: probe
+        trigger: "A control-bearing ref path actually exists in the live vault or a live stream"
+        match: "sqlite3 data/librarian.db \"select count(*) from position_refs where path glob '*[\\x01-\\x1f\\x7f]*'\" >= 1, OR the same over notes' paths, OR find \"$LIBRARIAN_VAULT_PATH\" -name '*'$'\\033''*' non-empty. Non-zero => the reachable case is live, not hypothetical => reactivate and mitigate rather than re-argue."
+        check: shell
+      - type: spec-change
+        trigger: "SR-064's scope, or SR-101's field enumeration, is decided"
+        match: "SR-064 or SR-101 text changes vs v14.0.0, OR grep -nE 'SR-064.*(stance|ref|session_id)|SR-101.*(stance|topic.key|revises)' spec/spec.md becomes non-empty. Ratifies narrow WITH the write-time guarantee named => resolve. Ratifies broader => stability was right; apply it at BOTH read surfaces in one change under the new SR."
+        check: regex
+      - type: eval-change
+        trigger: "A task lands that can finally score this fork"
+        match: "security-adv-v1.jsonl gains a task driving a control sequence through stance, a revises pointer, or a REF PATH at the positions surface (SG-15's SEC-A-017/018/019). FAIL on the promoted build => mitigate; PASS => resolve. A task added at the positions surface ONLY, with no librarian-recent counterpart, does NOT resolve this — the asymmetry is the finding."
+        check: eval-result
+      - type: code-change
+        trigger: "The synthesis lands and both readings converge"
+        match: "grep -c 'toInertLine\\|inert(' src/server.ts >= 1 WITHIN formatRefLine's body — the shared ref renderer neutralizes the path for every caller. Both surfaces covered by one funnel with resolution intact => resolve."
+        check: shell
+      - type: time
+        trigger: "The single-author threat model this resolution rests on changes"
+        match: "the vault stops being single-author — shared/multi-user vault, imported or clipped corpus, or a per-user overlay enters scope (grep -nEi 'multi-user|overlay|shared vault' spec/spec.md becomes non-empty) — OR 90 days elapse with SR-064's scope still undecided. The 'requires an oddly-named file in Robin's own vault' bound is a single-author bound; it expires the moment filenames stop being Robin's."
+        check: semantic
+    status: active
+    last-checked: "2026-08-13T21:40:00Z"
+    reactivation-count: 0
+    history:
+      - "2026-08-13T21:40:00Z raised by chavruta-pair at gen-5 cull close (Phase B's first cull, unconditional trigger, plus a real evaluator-demonstrated fork the suite cannot score). Stability-bias holds the minority position. Cites dissent-2026-08-05-0001 without amending it: that dissent's condition 2 (third read surface lands) FIRES on either variant's ship, and its subject — read-surface parity for unresolved refs — is the property var-2's ref-renderer fork drops. This is a genuine firing, NOT the one-character near-miss gen-3 flagged (that was the singular wire tag librarian-position in SERVER_INSTRUCTIONS; both gen-5 variants register the plural tool name in src/server.ts)."
+      - "2026-08-13T21:40:00Z chavruta's own new evidence, not from either evaluator: verified against shipped src/refs.ts that a resolvable vault path carrying a raw ESC byte in its FILENAME is stored verbatim with rejectedRefs empty, so the discriminating input for the ref-path field needs no hand-edited stream — it needs one oddly-named vault file plus an ordinary [[wikilink]]. Also verified var-2's positions surface never calls resolveRef (no SR-042/043 rendering), while var-1 threads db into the shared formatRefLine (server.ts:228)."
