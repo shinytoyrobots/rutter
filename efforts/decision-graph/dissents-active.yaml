@@ -41,7 +41,7 @@ dissents:
       - type: spec-change
         trigger: "SR-043 or the read-surface definition is amended"
         match: "grep -nE 'SR-043|read surface' spec/spec.md output changes vs v3.10.1"
-    status: active        # 2026-08-05 ring-0 day one: live projection held 31 zero-candidate rows.
+    status: reactivated   # 2026-08-05 ring-0 day one: live projection held 31 zero-candidate rows.
                           # CONTAMINATED SIGNAL: >=27 were FALSE dead refs (existing non-note files
                           # mislabeled by the notes-index resolution check) — fixed same day, spec
                           # v3.10.2 @ dfa3811, leaving 4 genuine unresolved refs on 2 paths (the
@@ -50,7 +50,20 @@ dissents:
                           # (identity_unresolved zero-candidate count) reads 0. Firing condition
                           # cleared; back to active per HANDOFF §2.0 item 2. Reactivation
                           # conditions stand unchanged.
-    last-checked: "2026-08-05T04:57:13Z"
+                          # 2026-08-13T23:00:00Z REACTIVATED: condition 2 ("a third read surface
+                          # lands") fires — ship-2026-08-13-0002 (decision-graph Phase B) merged
+                          # librarian-positions into src/server.ts on main (grep -c
+                          # 'librarian-positions' src/server.ts = 6). This is a MECHANICAL trigger
+                          # match, not a confirmed substantive concern: this dissent's actual
+                          # position (SR-043 enrichment-surface class-invisibility for
+                          # zero-candidate unresolved refs) is about the note-identity/enrichment
+                          # surface, not position recall — librarian-positions doesn't touch
+                          # identity_unresolved or enrichment at all. Flagged here per dissent
+                          # protocol (reactivation is surfaced, never auto-dismissed) for the
+                          # operator/dissent-monitor to formally acknowledge (the trigger fired on
+                          # a surface unrelated to the dissent's substance) or investigate further
+                          # — not assumed moot by this ship record. Un-actioned as of this entry.
+    last-checked: "2026-08-13T23:00:00Z"
   - id: "dissent-2026-08-05-0002"
     raised-at: "2026-08-05T03:20:00Z"
     raised-by: "flow-chavruta-pair / stability-bias"
