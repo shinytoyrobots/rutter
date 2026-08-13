@@ -537,6 +537,38 @@ test("SR-064 (this variant's broader reading): the session id, the revises point
   assert.ok(out.includes("session: S--hostile"), "and so is the session id");
 });
 
+test("SR-064 pinning test (dissent-2026-08-13-0005, M1): a ref path derived from a HOSTILE VAULT FILENAME renders inert too", () => {
+  // The prior test's title has claimed "ref paths render inert too" since this
+  // variant was generated, but never actually exercised a ref -- only revises
+  // and session_id. dissent-2026-08-13-0005 (gen-5 chavruta) found the gap this
+  // left untested: a ref's path is not the wikilink text a client types, it is
+  // whatever CONFINED FILENAME actually resolved on disk (refs.ts#resolveRefs),
+  // and nothing on that resolution path rejects or neutralizes a control byte
+  // in the filename itself -- a vault note can be named that way without any
+  // stream file being hand-edited. This is the "strongest single fact" the
+  // dissent's stability reviewer found, and the reason chavruta made a pinning
+  // test here a MANDATORY condition of shipping either gen-5 variant (M1): if
+  // this variant's render-time funnel (position-render.ts's `inert()`, applied
+  // unconditionally to every field including ref paths/hashes) ever narrows
+  // back to a per-field allowlist that forgets refs, this test turns that from
+  // a silent regression into a failing one.
+  const hostilePath = `Notes/host${ESC}[31mile.md`;
+  writeNote(hostilePath, "A note whose filename is the attack surface, not its content.");
+  seed("assert", "filename-vector", `Cites a hostile filename. [[${hostilePath}]]`, "2026-05-01T09:00:00.000Z");
+  fold();
+
+  const view = topicView("filename-vector", { chain: true })!;
+  assert.equal(view.live.refs.length, 1, "the wikilink resolved to a real, confined vault note -- not rejected");
+  assert.ok(
+    view.live.refs[0]!.path.includes(ESC),
+    "the STORED ref path really does carry the vault filename's escape byte -- resolveRefs neither rejects nor cleans it"
+  );
+
+  const out = renderTopicView(view);
+  assert.equal(NOT_PRINTABLE.test(out), false, "the hostile filename does not reach the terminal raw, from the live view or the chain view");
+  assert.ok(out.includes("hostile.md"), "the ref is still shown, just neutralised, not silently dropped");
+});
+
 test("SR-064: sanitizing the stance at render is a provable no-op -- the byte-verbatim guarantee is untouched", () => {
   // Capture already stores the stance as toInertLine output and the function is
   // idempotent, so re-applying it at render cannot change a stored stance.
