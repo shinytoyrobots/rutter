@@ -125,6 +125,9 @@ enrichment / gate behaviors in depth. The same docs are published readable at
 [shinytoyrobots.github.io/rutter](https://shinytoyrobots.github.io/rutter/) —
 `npm run site-drift` reports when that site has drifted from these files. [`docs/roadmap.md`](./docs/roadmap.md) is the current
 sequencing, and [`DESIGN.md`](./DESIGN.md) the longer-range storage model.
+[`docs/decision-graph.md`](./docs/decision-graph.md) is the design behind positions — why a position is a
+projection over the append-only event log rather than a second thing you maintain — and
+[`docs/decision-graph-plan.md`](./docs/decision-graph-plan.md) is the build plan that split it into phases.
 
 ## Try it from the CLI
 
@@ -173,7 +176,7 @@ build first):
 ```
 
 **2. Restart Claude Code.** Hooks are read at session start; a fresh session also picks up
-the newly built server. Verify with `/mcp` (three tools), then check captures land in
+the newly built server. Verify with `/mcp` (four tools), then check captures land in
 `<notes>/_librarian/sessions/` after your next real session.
 
 ### What the server tells the client
@@ -239,7 +242,7 @@ src/
   indexer.ts         full reindex (notes -> cache)
   search.ts          FTS5 query + get-note
   embeddings.ts      stubbed port (not implemented — see DESIGN.md)
-  server.ts          MCP tool registration (search, get-note, recent) + server instructions
+  server.ts          MCP tool registration (search, get-note, recent, positions) + server instructions
   stdio.ts           stdio entry point (local Claude Code)
   # memory-of-use:
   fs-safe.ts         write choke point: path confinement + atomic, append-only writes

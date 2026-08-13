@@ -96,9 +96,11 @@ history. They are never written into the code repo. The SQLite FTS5 index is a d
 delete it, reindex, and it rebuilds from the notes and those records alone. The notes are the source
 of truth; the index is a convenience.
 
-As of spec v3.10.2, what exists is full-text search, ambient capture and the style contract. Added
-to that: workspace provenance, prior-engagement annotations on search results, references that
-survive renames, and instrumentation on its own use. Embeddings and semantic search are a stub.
+As of spec v14.0.0, all eleven of the spec's scenarios — SCN-001 through SCN-011 — have shipped.
+That is full-text search, ambient capture and the style contract, plus workspace provenance,
+prior-engagement annotations on search results, references that survive renames, and
+instrumentation on its own use. The most recent additions are position capture and position
+recall. Embeddings and semantic search are a stub.
 
 The client does the thinking. The server only keeps.
 
@@ -191,9 +193,11 @@ something you depend on where it was. The useful thing to take is the mechanism.
 
 **And it is still on trial.** The stateful behavior sits behind a usage gate. An append-only local
 log counts how often that behavior actually gets reached for, and the project is prepared to conclude
-that it isn't. A larger design exists for tracking how your beliefs change over time, and for marking
-conflicts openly. None of it is built. It only gets built if observed use asks for it, rather than a
-plan.
+that it isn't. The larger design for tracking how your beliefs change over time is part-built:
+position capture and recall shipped in August 2026, after logged friction asked for them rather than
+a plan scheduling them. The rest of that design is not built — drift visibility, which would tell you
+the notes a position rests on have changed since it was formed, and an optional backfill of positions
+from records that predate capture. Both wait on the same test: observed use, rather than a plan.
 
 ## Further reading
 
