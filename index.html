@@ -71,19 +71,20 @@
 
 <p>That line carries a style contract. Lead with what was decided. Prefer common words to the session's own shorthand. Aim for about 40 words and stop by 60. The contract is advisory. The server stores whatever it is handed, byte-verbatim — it never rewrites, shortens, annotates, or rejects a line. It cannot. Judging prose is inference, and there is no model in there to do it.</p>
 
-<p><strong>Reading.</strong> The server exposes three read-only tools over MCP (Model Context Protocol), the standard way an AI client connects to an outside source of data:</p>
+<p><strong>Reading.</strong> The server exposes four read-only tools over MCP (Model Context Protocol), the standard way an AI client connects to an outside source of data:</p>
 
 <ul>
   <li><code>librarian-search</code> — ranked full-text search over the notes, each result carrying its path, frontmatter provenance and a matching snippet. A result a past session engaged also carries a quiet prior-engagement note. The annotation is additive only. It never re-ranks anything.</li>
   <li><code>librarian-get-note</code> — one note's full content, by path.</li>
   <li><code>librarian-recent</code> — <em>"what was I working on lately?"</em> Sessions newest-first, with dates, project and references. Filterable by project, day window, or count.</li>
+  <li><code>librarian-positions</code> — <em>"what do I think about X, and did that change?"</em> One topic by its exact key, or a list found by free text over recorded stances or by a note the positions reference. Each answer carries the date the stance was formed and the date it was last revised, so a client reports it as your recorded position rather than as its own conclusion. Answered from the last reindex, so a position captured since then appears after the next one.</li>
 </ul>
 
 <p>The Stop hook is Claude Code specific. The tools are not — they work with any MCP client. The server also carries its own usage guidance to every client that connects. There is nothing to configure per project.</p>
 
 <p>Records live in <code>&lt;notes&gt;/_librarian/</code>, inside your own notes directory. They are plain markdown, sitting beside the notes they describe — greppable in a terminal, committable to the same git history. They are never written into the code repo. The SQLite FTS5 index is a disposable cache: delete it, reindex, and it rebuilds from the notes and those records alone. The notes are the source of truth; the index is a convenience.</p>
 
-<p>As of spec v3.10.2, what exists is full-text search, ambient capture and the style contract. Added to that: workspace provenance, prior-engagement annotations on search results, references that survive renames, and instrumentation on its own use. Embeddings and semantic search are a stub.</p>
+<p>As of spec v14.0.0, all eleven of the spec's scenarios — SCN-001 through SCN-011 — have shipped. That is full-text search, ambient capture and the style contract, plus workspace provenance, prior-engagement annotations on search results, references that survive renames, and instrumentation on its own use. The most recent additions are position capture and position recall. Embeddings and semantic search are a stub.</p>
 
 <p>The client does the thinking. The server only keeps.</p>
 
@@ -125,7 +126,7 @@
 
 <p><strong>Not a supported product.</strong> This is one person's tool, published as a dated reference implementation. No roadmap promises, no support commitment, no guarantee the next commit leaves something you depend on where it was. The useful thing to take is the mechanism. Fork it.</p>
 
-<p><strong>And it is still on trial.</strong> The stateful behavior sits behind a usage gate. An append-only local log counts how often that behavior actually gets reached for, and the project is prepared to conclude that it isn't. A larger design exists for tracking how your beliefs change over time, and for marking conflicts openly. None of it is built. It only gets built if observed use asks for it, rather than a plan.</p>
+<p><strong>And it is still on trial.</strong> The stateful behavior sits behind a usage gate. An append-only local log counts how often that behavior actually gets reached for, and the project is prepared to conclude that it isn't. The larger design for tracking how your beliefs change over time is part-built: position capture and recall shipped in August 2026, after logged friction asked for them rather than a plan scheduling them. The rest of that design is not built — drift visibility, which would tell you the notes a position rests on have changed since it was formed, and an optional backfill of positions from records that predate capture. Both wait on the same test: observed use, rather than a plan.</p>
 
 <h2 id="further-reading">Further reading</h2>
 
@@ -149,7 +150,7 @@
 
 <footer class="site">
   <div class="footer-inner">
-    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source and receipts on GitHub</a> · tagged <a href="https://github.com/shinytoyrobots/rutter/releases/tag/v0.1.0">v0.1.0</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/062f651">main@062f651</a> · <a href="sources.json">source hashes</a>.</p>
+    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source and receipts on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/03c49e5">main@03c49e5</a> · <a href="sources.json">source hashes</a>.</p>
   </div>
 </footer>
 </body>
