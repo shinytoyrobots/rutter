@@ -10,7 +10,30 @@ import { appendLine } from "./fs-safe.js";
  * rebuild of the index (INV-4) and is never hard-deleted (INV-3, append-only).
  */
 
-export type StatefulKind = "librarian-recent" | "search-signal";
+export type StatefulKind = "librarian-recent" | "search-signal" | "librarian-positions";
+
+/**
+ * The kinds that COUNT toward the SCN-004 desirability gate.
+ *
+ * An allowlist rather than a denylist, deliberately: constitution prohibition 9
+ * says reads from tools introduced by the decision-graph effort never count
+ * toward the gate metric unless the gate design itself is amended by HITL. With
+ * a denylist, the next read surface someone adds silently inflates the gate the
+ * moment it logs its first event -- the failure would be invisible, and it
+ * would corrupt the one number the kill-gate decision is made on. With an
+ * allowlist, forgetting to think about it fails the safe way: the new kind is
+ * logged, visible, and simply not counted until somebody adds it here on
+ * purpose.
+ *
+ * `librarian-positions` (SCN-011) is therefore logged under its own kind and
+ * absent from this list.
+ */
+export const GATE_KINDS: readonly StatefulKind[] = ["librarian-recent", "search-signal"];
+
+/** Does this event count toward the SCN-004 gate metric? (prohibition 9) */
+export function countsTowardGate(kind: StatefulKind): boolean {
+  return GATE_KINDS.includes(kind);
+}
 
 export interface StatefulEvent {
   /** ISO-8601 instant of the invocation. */
@@ -54,6 +77,11 @@ export function readEvents(): StatefulEvent[] {
  * Bucket events into per-ISO-week counts over an optional inclusive date range
  * (SR-012). Returned ascending by week so a caller can read a run of weeks off
  * directly to evaluate the gate.
+ *
+ * Only gate-bearing kinds are counted (see `GATE_KINDS`). Decision-graph read
+ * surfaces still write their own events to the same log -- the log is the
+ * record of what was used, and dropping them would lose that -- they just do
+ * not move this number (constitution prohibition 9).
  */
 export function weeklyCounts(
   range: { from?: Date; to?: Date } = {},
@@ -61,6 +89,7 @@ export function weeklyCounts(
 ): WeeklyCount[] {
   const buckets = new Map<string, number>();
   for (const event of events) {
+    if (!countsTowardGate(event.kind)) continue;
     const at = new Date(event.ts);
     if (range.from && at < range.from) continue;
     if (range.to && at > range.to) continue;
