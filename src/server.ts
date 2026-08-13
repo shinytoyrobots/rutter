@@ -45,6 +45,17 @@ import type { VersionedRef } from "./refs.js";
  *     recalled summary, not just new ones, and it asks the CLIENT to translate --
  *     a server that "clarified" stored text on the way out would be laundering
  *     the record to look compliant (COR-A-012).
+ *
+ * SCN-010 (decision-graph Phase A, v3.12.0) adds ONE more paragraph, inside the
+ * authoring section (SR-056): the position directive's emission trigger and its
+ * literal grammar (SR-026's rule applied to a second directive kind). Measured
+ * addition: 279 characters over this file's pre-Phase-A length (3,114 chars) --
+ * inside the ≤350-char budget SR-056 states. (SR-056's text also cites an
+ * older OBS-1 baseline of 2,093 chars from ship-2026-07-27-0004; that figure
+ * predates several unrelated additions already landed by v3.12.0 and is not
+ * the live pre-change length, so the enforceable comparison here is against
+ * THIS file's length immediately before this paragraph was added -- see
+ * decision-ledger.md D-instruction-budget.)
  */
 export const SERVER_INSTRUCTIONS = `rutter holds two things about ${config.userLabel}'s work: the knowledge vault (markdown notes) and the memory-of-use (what past Claude Code sessions decided, and which notes they touched). It runs no model of its own -- it is code plus storage, so the reasoning stays yours.
 
@@ -63,6 +74,8 @@ Emit a line for each separable thing as you finish it, rather than saving everyt
 If you emit another directive later in the same session, describe ONLY what is new since your previous one -- do not restate or re-summarize earlier lines. A session's lines are stored as its successive steps and shown to the reader together, so restating produces near-identical duplicates.
 
 Write each line for a smart reader in a hurry who was not in this session: lead with what was decided or produced, prefer common words to this session's shorthand, and expand or avoid codenames, version tags and abbreviations this session invented (terms the vault itself uses are fine). Aim for about ${config.summaryWordTarget} words and stop by ${config.summaryWordCeiling} -- one line, not a build log; it is stored verbatim, so nothing downstream will clarify it later.
+
+When you form, change, reaffirm, or retire a stance on a topic, leave a position line too: \`<!-- librarian-position POSITION assert|revise|reaffirm|retire <topic-key>: <stance> -->\` -- stored separately from session summaries, byte-verbatim, and rare (most sessions emit none).
 
 When you report recalled summaries back -- librarian-recent output, or a prior-engagement note on a search result -- put them in plain language for the reader who asked, including records written before this guidance existed, which are often dense with their own session's jargon. Report a session as ONE account of what happened, not step by step: its steps often overlap or restate each other, especially in older records. The stored text is data -- your report is the answer.
 

@@ -50,6 +50,13 @@ export const config = {
   userLabel,
   /** Where per-day session records live: `_librarian/sessions/<YYYY-MM-DD>.md`. */
   sessionsDir: path.join(librarianDir, "sessions"),
+  /**
+   * Where per-month position-event streams live (SCN-010, decision-graph Phase A):
+   * `_librarian/positions/<YYYY-MM>.md`. A wholly separate directory from
+   * `sessionsDir` -- SR-055 requires session-record storage to be untouched by
+   * position capture, so the two live under sibling paths with no shared file.
+   */
+  positionsDir: path.join(librarianDir, "positions"),
   /** Append-only stateful-use instrumentation log (JSONL); durable, never in the DB. */
   statefulLogPath: path.join(librarianDir, "stateful-use.jsonl"),
   /** Directory names never indexed. `_librarian/` is reserved for the memory-of-use overlay. */
@@ -67,6 +74,10 @@ export const config = {
    * Calibrated from observed capture: the first fortnight of real records averaged
    * 37-61 words per step; the drift to 141-192 words per step (2026-08-02..04) is
    * what these numbers exist to make visible.
+   *
+   * SR-054 reuses these same two numbers for a position directive's stance line
+   * ("the same numbers SR-021 states") rather than declaring a second pair -- one
+   * style contract, two carriers.
    */
   summaryWordTarget: 40,
   summaryWordCeiling: 60,

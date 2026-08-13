@@ -1,0 +1,15 @@
+# Rollout plan — ship-2026-08-13-0001 (decision-graph Phase A, position capture)
+# Single-user local MCP server: the constitution defines no release rings and no
+# feature-flag platform exists — same shape as ship-2026-08-05-0001 (Phase 0).
+rings:
+  - name: ring-0-dogfood
+    audience: "Robin's live vault + Claude Code sessions (same install as Phase 0)"
+    entered-by: "operator commits the promoted working tree + restarts the MCP server (SERVER_INSTRUCTIONS is read at server construction, so a fresh client connection is what actually 'turns on' the client-visible teaching of the POSITION grammar)"
+    flag-coverage: "n/a — no flag platform; reversibility seam = a wholly separate append-only stream (_librarian/positions/<YYYY-MM>.md), zero-line diff on every pre-existing module except the six touched by this graft"
+    dwell: "until the two disclosed spec-ratification items (SG-9, SG-11) are resolved via /flow-spec, or until a watch fires"
+    eval-tier: "post-ship-eval/watches.yaml — targeted watches on the two disclosed items + the effort's carried-forward suite gaps + dissent reactivation probes"
+advance-policy: "no further rings exist for this single-user tool; Phases B-D (recall, drift visibility, backfill) are separate future efforts, not rollout stages of this ship"
+note: >
+  This ship is CAPTURE-ONLY: no read/recall path exists yet for position events
+  (that is Phase B). The positions stream is real and durable from ring-0 onward,
+  but nothing reads it back to the user in this ship.
