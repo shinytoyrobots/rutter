@@ -193,7 +193,8 @@ something you depend on where it was. The useful thing to take is the mechanism.
 
 **And it is still on trial.** The stateful behavior sits behind a usage gate. An append-only local
 log counts how often that behavior actually gets reached for, and the project is prepared to conclude
-that it isn't. The larger design for tracking how your beliefs change over time is part-built:
+that it isn't. The first reading, in August 2026, [came back a pass](./gate-verdict-2026-08.md) — and
+the gate keeps running. The larger design for tracking how your beliefs change over time is part-built:
 position capture and recall shipped in August 2026, after logged friction asked for them rather than
 a plan scheduling them. The rest of that design is not built — drift visibility, which would tell you
 the notes a position rests on have changed since it was formed, and an optional backfill of positions
