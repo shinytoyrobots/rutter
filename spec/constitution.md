@@ -1,15 +1,16 @@
 ---
-version: "4.0.0"
+version: "5.0.0"
 status: active
 effort:
   - s1-5-ambient-capture   # converged
   - decision-graph         # active (v3.0.0 —)
-last-amended: 2026-08-04
+last-amended: 2026-08-13
 amendment-policy: every edit is a MAJOR version increment and requires HITL
 amendments:
   - "2.0.0 (2026-07-25, HITL-approved at flow-init): eval-dimension override — accessibility replaced by documentation"
   - "3.0.0 (2026-08-04, HITL-approved at flow-init decision-graph): effort-scoped weight class + budgets; prohibitions 8-9; escalation triggers 4-5"
   - "4.0.0 (2026-08-04, HITL-approved at gen-2 dispatch, escalation trigger 3): decision-graph light-class budgets recalibrated 150k/500k -> 200k/700k from gen-1 actuals (variants ran ~190-218k vs 150k; generation ran ~1.28M vs 500k incl. panel+cull). 700k covers a 2-variant refinement honestly; it does NOT cover a light N=3 full-envelope generation — revisit the generation figure at the next full-envelope dispatch with two generations of actuals"
+  - "5.0.0 (2026-08-13, HITL-approved at gen-3 dispatch, per the v4.0.0 amendment's own named revisit condition): decision-graph light-class budgets recalibrated 200k/700k -> 250k/1,200,000 for gen-3 (Phase A / SCN-010 position capture, a novel unimplemented scenario dispatched as a 2-variant wide-probe generation, not a graft-refinement — no surviving lineage existed to graft from since Phase 0's sole variant is already merged to main). Orchestrator estimate: 2 generators x 215k (430k) + 2 quick+adversarial cull evaluators x 250k (500k, calibrated from gen-2's observed ~245k/evaluator, not the 180k assumption that caused gen-2's cull-side overrun) + chavruta pair at cull close (150k, matches gen-2's observed 142,546) = 1,080,000 against the new 1,200,000 ceiling (+11% headroom, same proportion the 4.0.0 amendment left). Operator chose the 2-variant middle-ground width over the orchestrator's recommended N=3 (would have required ~1,545,000) and over an N=1 hotfix-style dispatch (would have fit the unamended 700k but forgone population disagreement on novel scope entirely, per dispatch Rule 2's 'a single variant cannot disagree with itself')"
 ---
 
 # Constitution: rutter
@@ -73,12 +74,17 @@ direction.
 class is assigned to it retroactively)*
 
 - **weight-class: light.** Rationale: small additive gen-1 scope (~6 SRs), no
-  security-bearing surface, append-only reversibility, personal tool.
-- **token-budget-per-variant: 200000**
-- **token-budget-per-generation: 700000**
-- *(v4.0.0 recalibration from gen-1 actuals — see amendments list. The per-variant
-  figure is a ceiling; dispatch may set a tighter in-prompt working budget for
-  refinement runs.)*
+  security-bearing surface, append-only reversibility, personal tool. Escalation
+  trigger 4 re-affirmed KEEP LIGHT for Phase A specifically on 2026-08-13 (narrow,
+  additive capture-contract touch; see flow-state.yaml phase-log).
+- **token-budget-per-variant: 250000**
+- **token-budget-per-generation: 1200000**
+- *(v5.0.0 recalibration for gen-3 (Phase A, 2-variant wide probe) from gen-1/gen-2
+  actuals — see amendments list. The per-variant figure is a ceiling; dispatch may
+  set a tighter in-prompt working budget for refinement runs. Note the 4.0.0 -> 5.0.0
+  jump is NOT like-for-like: 5.0.0 is the first figure to include a chavruta-pair
+  line item, so it should not be read as a further blowout on top of 4.0.0's own
+  generator/evaluator numbers.)*
 
 ## Escalation triggers (HITL required)
 
