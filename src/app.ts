@@ -3,6 +3,12 @@ import { search, type SearchOptions } from "./search.js";
 import { enrich, buildReferenceIndex, type EnrichedResult } from "./enrichment.js";
 import { recent, type RecentOptions, type RecentResult } from "./recent.js";
 import { recordStatefulUse } from "./instrumentation.js";
+import {
+  recallPositions,
+  type PositionQuery,
+  type RecallOptions,
+  type RecallResult,
+} from "./position-recall.js";
 
 /**
  * The application seam between the MCP transport (server.ts) and the pure domain
@@ -42,4 +48,22 @@ export function runSearch(
   const { results, signalCount } = enrich(search(query, opts, database), buildReferenceIndex(undefined, database));
   if (signalCount >= 1) recordStatefulUse("search-signal", now);
   return { results, signalCount };
+}
+
+/**
+ * librarian-positions (SCN-011): log one event per call under its OWN kind,
+ * then answer from the already-materialized projection.
+ *
+ * The kind is distinct from the two SCN-004 gate kinds and is excluded from
+ * `weeklyCounts` by `GATE_KINDS` (constitution prohibition 9) -- so this call
+ * is visible in the use log without moving the desirability-gate number. Logged
+ * once per invocation regardless of mode or how many topics matched, the same
+ * counting rule `runRecent` follows.
+ *
+ * Read-only in the strongest sense: it never folds, never touches the write
+ * path, and never opens a stream file (SR-058).
+ */
+export function runPositions(query: PositionQuery, opts: RecallOptions = {}, db?: DB): RecallResult {
+  recordStatefulUse("librarian-positions", opts.now);
+  return recallPositions(db ?? openDb(), query, opts);
 }
