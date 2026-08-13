@@ -1,11 +1,186 @@
 ---
-version: "7.0.0"
+version: "14.0.0"
 status: active
 effort:
   - s1-5-ambient-capture   # converged
-  - decision-graph         # active (v3.8.0 Phase 0 shipped; v3.12.0 Phase A drafted; v4.0.0 panel amendments; v5.0.0 SR-056 baseline correction; v6.0.0 wire-format ratification; v7.0.0 Phase B drafted)
+  - decision-graph         # active (v3.8.0 Phase 0 shipped; v3.12.0 Phase A drafted; v4.0.0 panel amendments; v5.0.0 SR-056 baseline correction; v6.0.0 wire-format ratification; v7.0.0 Phase B drafted; v8.0.0 retired-stub content pinned; v9.0.0 fold timing pinned; v10.0.0 response envelope pinned; v11.0.0 incremental-clause dropped; v12.0.0 attribution semantics pinned; v13.0.0 dormancy/retirement exemption pinned; v14.0.0 not-found shape + match scope pinned)
 last-amended: 2026-08-13
-mapping-pending: true      # SR-104 (bound pending gen-1 calibration) + SCN-010/SR-047..057 (Phase A) + SCN-011/SR-058..065 (Phase B, new this round) — entirely unmapped, evals/ owned by flow-eval
+mapping-pending: true      # SR-104 (bound pending gen-1 calibration) + SCN-010/SR-047..057 (Phase A) + SCN-011/SR-058..065 (Phase B) — entirely unmapped, evals/ owned by flow-eval
+# v14.0.0 (major — effort decision-graph, panel-2026-08-13-phase-b-reprobe.md
+# follow-up): closes Divergence 1 (the last of that re-probe's four routed
+# divergences) plus its single-reader match-scope flag, both on SR-061. v10.0.0
+# pinned response cardinality (topic-key never a list) but left the not-found
+# wire shape unpinned (structured field vs isError vs text — all defensible,
+# and the cited precedent, librarian-get-note, isn't shown in spec text since
+# S1 tools predate this spec); separately, 1 of 3 re-probe readers found SR-061
+# never states whether free-text/note-identity search scans a topic's live
+# event only or its full chain.
+#   AMENDED: SR-061 and SCN-011's "Query modes" criterion. Not-found response:
+#   a normal, non-error MCP result with one text block naming the unmatched
+#   key — never isError, never a structured field. Match scope: full event
+#   chain, not live-only, so a superseded stance is never silently unfindable.
+#   Resolved by reading actual shipped source this time, not spec text alone
+#   (the v6.0.0 discipline, extended here since the citation pointed at code):
+#   src/server.ts:130-134 (librarian-get-note) and :110-116 (librarian-search)
+#   both already return a plain-text sentinel in a normal success result, no
+#   isError anywhere in this server. Match-scope resolved by citing the first
+#   panel's own convergent FTS-over-full-event-table sketches plus this
+#   project's repeated "never silently" ethos (SR-049 v4.0.0).
+#   Dissent check: relevant conditions key on code landing, not spec text; none
+#   fire (this amendment reads existing S1 source for precedent, generates
+#   nothing).
+#   Panel status: all four routed divergences from panel-2026-08-13-phase-b-reprobe.md
+#   now closed, plus its single-reader flag. Two low-priority, never-routed gaps
+#   remain from the first Phase B panel (gap 2: versioned-note-identity match
+#   precision; gap 3: SR-064's field scope) — recommended for a future patch,
+#   not decisions requiring a stop.
+#   Panel: not re-run — cites shipped code convention and the panel's own
+#   architecture sketches, not new interpretive surface.
+#   History: spec/history/spec-v14.0.0-2026-08-13.md.
+# v13.0.0 (major — effort decision-graph, panel-2026-08-13-phase-b-reprobe.md
+# follow-up): closes Divergence 4, the last of that re-probe's routed
+# divergences. All 3 readers found that SR-063's dormancy computation ("not
+# reaffirmed or referenced within a window") has no exemption for retired
+# topics — a retired topic trivially satisfies any inactivity window, so an
+# unguarded implementation would double-label it "retired" AND "dormant."
+#   AMENDED: SR-063 and SCN-011's Dormant criterion. Retired topics are now
+#   exempt: the dormancy check does not run for a topic whose live view is a
+#   retired stub. Resolved by citing already-ratified spec text, not re-derived
+#   from panel readings alone (the pattern used all round): the glossary's own
+#   "Live position / dormant" entry (written at v7.0.0, before either panel found
+#   this) already frames the two as distinct — dormancy flags unexplained
+#   inactivity, retirement is an explained, deliberate closure.
+#   Dissent check: relevant conditions key on code landing, not spec text; none fire.
+#   Panel status: all four routed divergences from panel-2026-08-13-phase-b-reprobe.md
+#   are now addressed except Divergence 1 (SR-061's not-found response shape),
+#   still open. Also still open: the re-probe's single-reader match-scope flag,
+#   and the first panel's gap 2 (versioned-note-identity match precision) and
+#   gap 3 (SR-064's field scope).
+#   Panel: not re-run — applies an already-ratified glossary distinction to a
+#   question it already answered, not new interpretive surface.
+#   History: spec/history/spec-v13.0.0-2026-08-13.md.
+# v12.0.0 (major — effort decision-graph, panel-2026-08-13-phase-b-reprobe.md
+# follow-up + first Phase B panel's gap 1): closes two related findings in one
+# pass — Divergence 3 of the re-probe (does a retire event's timestamp count as
+# "most recent revision date," newly posable only after SR-060 pinned the
+# retired stub's fields) and gap 1 of the first Phase B panel (does "revision
+# date" advance on reaffirm or only revise — logged underspecified, never
+# routed). Both are the same design question: which event kinds count as a
+# "revision" for attribution purposes?
+#   AMENDED: SR-062 and SCN-011's "Attribution, never blending" criterion.
+#   "Most recent revision date" now advances ONLY on `revise` events; `reaffirm`
+#   re-endorses without changing content and does not advance it. A retired
+#   topic's stub additionally states its own retirement date, labeled explicitly
+#   as a retirement, never presented as a "revision."
+#   Resolved by citing already-ratified spec text, not re-derived from panel
+#   readings alone (the pattern used all round): the glossary's own "Position"
+#   entry (v3.12.0, Phase A) already glosses formed (assert) / changed (revise) /
+#   re-endorsed (reaffirm) / withdrawn (retire) as four distinct meanings — only
+#   `revise` is a content change, and `retire` withdraws rather than changes.
+#   Dissent check: relevant conditions key on code landing, not spec text; none fire.
+#   Not addressed this round (queued): Divergence 4 (SR-060 vs. Dormant), Divergence
+#   1 (SR-061 not-found shape), the re-probe's single-reader match-scope flag, and
+#   the first panel's gaps 2/3 — each a future amendment.
+#   Panel: not re-run — applies an already-ratified glossary distinction to a
+#   question it already answered, not new interpretive surface.
+#   History: spec/history/spec-v12.0.0-2026-08-13.md.
+# v11.0.0 (major — effort decision-graph, panel-2026-08-13-phase-b-reprobe.md
+# follow-up): closes Divergence 2 from the Phase B re-probe (run after v8/v9/v10
+# amended SCN-011/SR-058/060/061), rated the sharpest of that round's four
+# findings by all 3 readers. SR-058 (v9.0.0) commits every reindex to a full
+# re-read of every positions file and forbids any other trigger; SR-059
+# (unchanged since v7.0.0) required a full rebuild and "an incremental update
+# after one new event" to agree byte-for-byte — presuming a second, incremental
+# code path that SR-058's plain reading leaves no room for, degrading the clause
+# into a comparison of one algorithm with itself.
+#   AMENDED: SR-059 and SCN-011's "Deterministic fold, rebuildable" criterion.
+#   Dropped the incremental-update clause entirely; restated as pure
+#   rebuild-determinism (two full rebuilds from an unchanged event stream
+#   produce byte-for-byte identical output). Resolved by citing existing project
+#   convention (the v5.0.0/v6.0.0/v8.0.0/v9.0.0/v10.0.0 pattern): SCN-008's
+#   note-identity ledger — this project's only other read-surface projection —
+#   never had an incremental path either; SR-040/SR-041 test exactly this same
+#   rebuild-twice-agrees guarantee and nothing more. Building a real incremental
+#   algorithm just to give the dropped clause something to test against would add
+#   complexity this project has never needed for its one analogous feature.
+#   Dissent check: relevant conditions key on code landing, not spec text; none fire.
+#   Not addressed this round (queued, same re-probe): Divergence 1 (SR-061 not-found
+#   shape), Divergence 3 (SR-060 vs. Attribution), Divergence 4 (SR-060 vs.
+#   Dormant), and the single-reader match-scope flag — each a future amendment.
+#   Panel: not re-run — removes an untested claim to match what SR-058 already
+#   committed to, using SR-040/041 as the template, not new interpretive surface.
+#   History: spec/history/spec-v11.0.0-2026-08-13.md.
+# v10.0.0 (major — effort decision-graph, panel-2026-08-13-phase-b.md follow-up):
+# closes Divergence 3, the last of the panel's three routed divergences. SR-061
+# named three query modes without stating the response envelope; 2 of 3 blind
+# readers had topic-key mode return a singular object, 1 of 3 argued for a
+# uniform list across all three modes.
+#   AMENDED: SR-061 and SCN-011's "Query modes" acceptance criterion. Topic-key
+#   mode (exact match on a key unique in the fold by construction) returns a
+#   single result or not-found, never a list; free-text and note-identity modes
+#   (either can match multiple topics) return a list of zero or more results.
+#   Resolved by citing this project's own established convention, not re-derived
+#   from panel readings alone (the v5.0.0/v6.0.0/v8.0.0/v9.0.0 pattern): S1's two
+#   existing read-only tools already encode this exact distinction by name —
+#   `librarian-get-note` (singular lookup) vs `librarian-search` (list). Topic-key
+#   mode is structurally a get; free-text/note-identity are structurally a search.
+#   Dissent check: dissent-2026-08-05-0001 condition 2 keys on code landing, not
+#   spec text; does not fire.
+#   Panel status: all three routed divergences from panel-2026-08-13-phase-b.md
+#   now closed (v8.0.0, v9.0.0, this version). Its 3 convergent-but-underspecified
+#   gaps remain open by design (not routed as decisions): revision-date scope
+#   (reaffirm vs. revise-only), versioned-note-identity match precision
+#   (exact-version vs. version-agnostic), and SR-064's field scope (topic_key
+#   alone vs. stance/refs/session-id too).
+#   Panel: not re-run — cites established convention, not new interpretive
+#   surface. History: spec/history/spec-v10.0.0-2026-08-13.md.
+# v9.0.0 (major — effort decision-graph, panel-2026-08-13-phase-b.md follow-up):
+# closes Divergence 2 from /flow-panel's first read of Phase B. SR-058 named
+# "when a reindex runs" as the fold's trigger; SR-059 required a full rebuild and
+# an incremental update to agree byte-for-byte without saying what triggers the
+# incremental update. 1 of 3 blind readers wired it synchronously into SCN-010's
+# write path (instant read-after-write); 1 of 3 kept it reindex-only; the third
+# left it genuinely open in their own sketch.
+#   AMENDED: SR-058 (reindex is the fold's ONLY trigger; no code path outside
+#   reindex, including SCN-010's write path, may invoke it). ADDED: a new SCN-011
+#   acceptance criterion ("Materialization is reindex-triggered only") stating the
+#   user-observable consequence — a position is not visible to librarian-positions
+#   until the next reindex runs — as observable behavior, not just system wording.
+#   Resolved by citing existing project convention, not re-derived from panel
+#   readings alone (the v5.0.0/v6.0.0/v8.0.0 pattern): SCN-008's note-identity
+#   ledger is this project's only other read-surface projection over an
+#   append-only _librarian/ stream, and its own text says its tables are
+#   "rebuilt at reindex" — no feature here has ever used a write-time hook. This
+#   keeps SR-065's non-interference guarantee true BY CONSTRUCTION (Phase B code
+#   never runs near Phase A's write path) rather than by proving a hook
+#   additive-only after the fact.
+#   Dissent check: dissent-2026-08-05-0001 condition 2 and dissent-2026-08-13-0004
+#   conditions 1/4 all key on code landing, not spec text; none fire.
+#   Not addressed this round (queued, same panel): Divergence 3 (query response
+#   envelope shape) — its own future amendment. Panel: not re-run — cites
+#   established convention, not new interpretive surface.
+#   History: spec/history/spec-v9.0.0-2026-08-13.md.
+# v8.0.0 (major — effort decision-graph, panel-2026-08-13-phase-b.md follow-up):
+# closes Divergence 1 from /flow-panel's first read of Phase B (run immediately
+# after v7.0.0 drafted SCN-011). 3 blind readers split on whether the default-view
+# "retired stub" a topic renders includes the retire event's own client-authored
+# stance, or suppresses it: 2 of 3 suppressed, 1 of 3 included.
+#   AMENDED: SCN-011's "Retire is a terminal marker" acceptance criterion, SR-060.
+#   Resolved by checking already-ratified Phase A text rather than re-deriving from
+#   panel readings alone (the v5.0.0/v6.0.0 pattern): SR-057 already requires every
+#   valid retire directive to carry a non-empty stance, no carve-out for retire —
+#   so suppressing that stance from the stub would discard real client-authored
+#   content on EVERY retirement, not an edge case. The stub now carries the retire
+#   event's own kind, timestamp, session id, refs, and stance in full, using the
+#   same uniform event shape SR-048 already gives every event — no new field.
+#   Dissent check: dissent-2026-08-05-0001 condition 2 and dissent-2026-08-13-0004
+#   condition 4 both key on code landing, not spec text; neither fires (spec-only
+#   change, no new field, no Phase B code exists yet).
+#   Not addressed this round (queued, same panel): Divergence 2 (fold materialization
+#   timing vs. SR-065 non-interference) and Divergence 3 (query response envelope
+#   shape) — each its own future amendment. Panel: not re-run — codifies an answer
+#   already derivable from ratified SR-057 text, not new interpretive surface.
+#   History: spec/history/spec-v8.0.0-2026-08-13.md.
 # v7.0.0 (major — effort decision-graph, Phase B): drafts SCN-011 (position
 # recall with supersession — the read path for docs/decision-graph-plan.md's
 # capability #3) and its derived requirements SR-058..SR-065, per escalation
@@ -1057,32 +1232,98 @@ newly concluded.
   file that exists, not only the most recent one, mirroring SR-049's cross-month
   idempotence scope (SCN-010) — a topic whose events span a month boundary folds
   correctly regardless.
+- **Materialization is reindex-triggered only.** *(v9.0.0)* The fold runs
+  exclusively as part of reindex; `librarian-positions` reads only the
+  already-materialized projection and never re-folds or reaches into the write
+  path at query time. A position captured between two reindexes is not visible to
+  `librarian-positions` until the next reindex runs — a disclosed, bounded
+  staleness window, not a silent gap. This mirrors the note-identity ledger's
+  identical reindex-only materialization (SCN-008) and keeps the fold structurally
+  decoupled from SCN-010's write path, so SR-065's non-interference guarantee
+  holds by construction rather than only by a written-after-the-fact test.
 - **Deterministic fold, rebuildable.** Folding is a pure function of the event
-  stream (topic key, append order, event id, optional `revises`) — a full rebuild
-  of the projection tables and an incremental update after one new event agree
-  byte-for-byte. No model judgment (INV-6, cited not restated); no load-bearing
-  state that isn't rebuildable from `_librarian/` (INV-4, cited not restated).
+  stream (topic key, append order, event id, optional `revises`) — running a full
+  rebuild twice against an unchanged event stream produces byte-for-byte identical
+  projection tables, the same rebuild-determinism guarantee SR-041 already gives
+  the note-identity ledger's projections (SCN-008). No model judgment (INV-6,
+  cited not restated); no load-bearing state that isn't rebuildable from
+  `_librarian/` (INV-4, cited not restated). *(v11.0.0 — the fold has no separate
+  incremental code path: SR-058 already commits every reindex to a full re-read of
+  every positions file, so there is no second, incremental algorithm for a
+  full-vs-incremental byte-for-byte comparison to test against; this criterion is
+  restated to test what the design actually builds, mirroring this project's only
+  other read-surface projection, which has never had an incremental path either.)*
 - **Retire is a terminal marker, not a stored deleted state.** A `retire` event is
   folded the same way any other event is — appended to the chain in order — but the
   fold's live-view computation treats it as the topic's terminal state: the default
-  view shows a retired stub (kind: retire, its own timestamp) rather than the
-  stance of the event before it. No event is removed from the underlying stream or
-  the full-chain view to produce this.
+  view shows a retired stub — the retire event's own kind, timestamp, session id,
+  refs, and its own byte-verbatim stance (every valid `retire` directive carries a
+  non-empty stance per SR-057, exactly like every other directive kind; this is the
+  retirement's own recorded text — e.g. a reason — never a copy of the stance from
+  the event before it) — rather than the stance of the event before it. No event is
+  removed from the underlying stream or the full-chain view to produce this.
+  *(v8.0.0 — pins the retired stub's shape; panel-2026-08-13-phase-b.md's
+  Divergence 1: the alternative reading, suppressing the retire event's own stance,
+  would silently discard client-authored content on every single retirement, since
+  SR-057 already guarantees that stance is never empty.)*
 - **Query modes.** `librarian-positions` accepts a topic key (exact match), free
   text (matched against stance content), or a note's versioned identity (returning
-  positions whose refs include that note). The default response is live positions
-  only; the full chain is returned only when explicitly requested.
+  positions whose refs include that note). A topic-key query returns a single
+  topic result or an explicit not-found response, never a list — a topic key is
+  unique in the fold by construction, the same singular-lookup shape
+  `librarian-get-note` already uses for its own exact-key lookup. A free-text or
+  note-identity query returns a list of zero or more topic results, since either
+  can plausibly match more than one topic — the same list shape `librarian-search`
+  already uses. *(v10.0.0 — pins the response envelope; panel-2026-08-13-phase-b.md's
+  Divergence 3.)* Free text and note-identity matching scan a topic's **entire
+  event chain**, not only its live event — a topic surfaces if any of its events,
+  live or superseded, matches, since a "did I ever take this position" search
+  that silently missed a superseded stance would be exactly the kind of silent
+  gap this project's capture contract elsewhere refuses to accept. A matched
+  topic's *response* still defaults to its live position only, with the full
+  chain returned only on explicit request — matching scope and response scope
+  are independent knobs. A not-found response (topic-key mode) is a normal,
+  non-error MCP result carrying one human-readable text content block naming the
+  unmatched topic key — never an `isError` result, never a structured sentinel
+  field — matching the exact convention every existing tool in this server
+  already uses (`librarian-get-note`: "Note not found: \<path\>";
+  `librarian-search`: "No notes matched \"\<query\>\""). *(v14.0.0 — pins match
+  scope to the full chain and the not-found response's wire shape;
+  panel-2026-08-13-phase-b-reprobe.md's Divergence 1 (verified against
+  `src/server.ts`'s actual shipped tools rather than re-derived from panel
+  readings alone) and its single-reader match-scope flag.)* The default response
+  for any matched topic is its live position only; the full chain is returned
+  only when explicitly requested.
 - **Attribution, never blending.** Every recalled stance is rendered with its
-  provenance stated explicitly — at minimum the formed date and, if superseded, the
-  most recent revision date — per read-time guidance taught in
-  `SERVER_INSTRUCTIONS`. A client is told to present this as "from your position
-  record," never to restate it as its own present-tense belief without that
-  framing.
-- **Dormant is computed, never stored.** No new stored field represents "dormant,"
-  "stale," or any decay score. A convenience display attribute may be computed at
-  read time from an event's timestamps (e.g., not reaffirmed or referenced within a
-  window), and changing that computation later requires no schema migration,
-  because nothing about it is persisted.
+  provenance stated explicitly: the formed date (the topic's original `assert`
+  event's timestamp) and, where at least one `revise` event exists, the most
+  recent revision date — the latest `revise` event's timestamp specifically. A
+  `reaffirm` re-endorses the current stance without changing it (per the
+  glossary's own "changed (`revise`)" vs. "re-endorsed (`reaffirm`)" distinction)
+  and does not advance the revision date; its own most-recent-reaffirmed
+  timestamp remains visible via the full chain but is not part of the default
+  attribution line. Where the topic's most recent event is a `retire`, the stub
+  additionally states the retirement's own date, labeled explicitly as a
+  retirement (e.g. "retired \<date\>") — never folded into or presented as a
+  "revision," since retiring withdraws a topic rather than changing its content.
+  Attribution is per read-time guidance taught in `SERVER_INSTRUCTIONS`. A client
+  is told to present this as "from your position record," never to restate it as
+  its own present-tense belief without that framing. *(v12.0.0 — pins which event
+  kinds advance "revision date" and how a retirement's own date is labeled;
+  panel-2026-08-13-phase-b-reprobe.md's Divergence 3, folding in the first Phase B
+  panel's gap 1 since it's the same design question.)*
+- **Dormant is computed, never stored, and never applies to a retired topic.**
+  No new stored field represents "dormant," "stale," or any decay score. A
+  convenience display attribute may be computed at read time from an event's
+  timestamps (e.g., not reaffirmed or referenced within a window), and changing
+  that computation later requires no schema migration, because nothing about it
+  is persisted. A topic whose live view is a retired stub is never additionally
+  labeled dormant — retirement is an explicit, deliberate closure (an event),
+  while dormancy exists to flag unexplained inactivity (an absence of events);
+  the glossary already treats these as distinct, and a retired topic trivially
+  satisfies any inactivity window, so an unguarded computation would
+  double-label it. *(v13.0.0 — pins that dormancy computation is skipped for
+  retired topics; panel-2026-08-13-phase-b-reprobe.md's Divergence 4.)*
 - **`topic_key` renders inert.** Every place `librarian-positions` prints a topic
   key — a listing, a query echo, an error message — passes it through the same
   inert-rendering treatment (`toInertLine`-class handling) already applied to other
@@ -1381,37 +1622,67 @@ SRs (SR-100+) have no parent.
   `# ← SCN-010; added v4.0.0 (decision-graph, Phase A; flow-panel 2026-08-12, divergence 2); mirrors SCN-001's unfilled-<template>-is-no-directive precedent (SR-029); does not establish a minimum word count — SR-054's budget stays advisory-only above zero; mapping-pending: true`
 - **SR-058** — When a reindex runs, the position fold shall read every
   `_librarian/positions/<YYYY-MM>.md` file that exists, not only the most recently
-  written one, before computing any topic's live position or chain. *(event-driven)*
-  `# ← SCN-011; added v7.0.0 (decision-graph, Phase B); mirrors SR-049's cross-month idempotence scope on the read side — a topic whose events straddle a month boundary must fold correctly regardless; mapping-pending: true`
+  written one, before computing any topic's live position or chain. Reindex shall
+  be the fold's only trigger: no code path outside reindex — including SCN-010's
+  position-capture write path — shall invoke the fold or write to its projection
+  tables, so `librarian-positions` always reads an already-materialized projection
+  and a position captured between reindexes remains invisible to it until the next
+  reindex runs. *(event-driven)*
+  `# ← SCN-011; added v7.0.0 (decision-graph, Phase B); amended v9.0.0 (panel-2026-08-13-phase-b.md, Divergence 2: pins materialization to reindex-only, ruling out a write-time hook into SCN-010's write path — matches this project's only existing precedent for a read-surface projection, SCN-008's note-identity ledger, and keeps SR-065's non-interference guarantee true by construction rather than by a hook that must be proven additive-only after the fact); mirrors SR-049's cross-month idempotence scope on the read side; mapping-pending: true`
 - **SR-059** — The position fold shall be a pure, deterministic function of the
-  event stream (topic key, append order, stable event ids, optional `revises`); a
-  full rebuild of the projection tables and an incremental update after one new
-  event shall agree byte-for-byte, with no model judgment and no load-bearing state
-  that is not rebuildable from `_librarian/`. *(ubiquitous)*
-  `# ← SCN-011; added v7.0.0 (decision-graph, Phase B); INV-4 / INV-6, cited not restated; parallels SR-051's write-side determinism guarantee, now exercised by an actual reader; mapping-pending: true`
+  event stream (topic key, append order, stable event ids, optional `revises`),
+  with no model judgment and no load-bearing state that is not rebuildable from
+  `_librarian/`; running a full rebuild twice against an unchanged event stream
+  shall produce byte-for-byte identical projection tables. *(ubiquitous)*
+  `# ← SCN-011; added v7.0.0 (decision-graph, Phase B); amended v11.0.0 (panel-2026-08-13-phase-b-reprobe.md, Divergence 2: drops the "incremental update after one new event" clause — SR-058 already commits every reindex to a full re-read of every positions file, so no separate incremental-fold code path exists for that clause to test against; restated as rebuild-determinism only, mirroring SR-041's identical guarantee for the note-identity ledger's projections (SCN-008), this project's only other precedent for this kind of read-surface projection); INV-4 / INV-6, cited not restated; parallels SR-051's write-side determinism guarantee; mapping-pending: true`
 - **SR-060** — When the most recent event for a topic key is a `retire`, the
   default (live) view of `librarian-positions` shall render that topic as a
-  retired stub rather than the stance of any earlier event, while every event for
-  that topic — including those before the retirement — shall remain unmodified and
-  queryable via the full-chain view. *(event-driven)*
-  `# ← SCN-011; added v7.0.0 (decision-graph, Phase B); INV-3 / constitution prohibition 3, cited not restated; "dropped from the default view" is a read-time display decision, never a write to the underlying stream; mapping-pending: true`
+  retired stub carrying the retire event's own kind, timestamp, session id, refs,
+  and byte-verbatim stance, rather than the stance of any earlier event, while
+  every event for that topic — including those before the retirement — shall
+  remain unmodified and queryable via the full-chain view. *(event-driven)*
+  `# ← SCN-011; added v7.0.0 (decision-graph, Phase B); amended v8.0.0 (panel-2026-08-13-phase-b.md, Divergence 1: pins the retired stub's shape — it carries the retire event's OWN stance, never suppresses it, since SR-057 already guarantees every retire directive has a non-empty stance and omitting it would silently discard client-authored content on every retirement); INV-3 / constitution prohibition 3, cited not restated; "dropped from the default view" is a read-time display decision, never a write to the underlying stream; mapping-pending: true`
 - **SR-061** — `librarian-positions` shall support querying by topic key (exact
   match), by free text matched against stance content, and by a note's versioned
-  identity (returning positions whose refs include that note); the default
-  response shall return live positions only, with the full supersession chain
-  returned only on explicit request. *(ubiquitous)*
-  `# ← SCN-011; added v7.0.0 (decision-graph, Phase B); the "default live, history on request" split mirrors the plan's own status-lifecycle framing; mapping-pending: true`
+  identity (returning positions whose refs include that note). A topic-key query
+  shall return a single topic result or an explicit not-found response, never a
+  list — mirroring `librarian-get-note`'s singular-lookup convention, since a topic
+  key is by construction unique in the fold. A free-text or note-identity query
+  shall return a list of zero or more topic results — mirroring
+  `librarian-search`'s list convention, since both can match more than one topic.
+  Free-text and note-identity matching shall scan a topic's entire event chain,
+  not only its live event, so a topic whose distinguishing stance or ref appears
+  only in a superseded event is never silently excluded from matching. The
+  default response for any matched topic shall return its live position only,
+  with the full supersession chain returned only on explicit request. Where a
+  topic-key query finds no match, the response shall be a normal, non-error MCP
+  result carrying one text content block naming the unmatched topic key — never
+  an `isError` result and never a structured sentinel field — matching the exact
+  convention `librarian-get-note` and `librarian-search` already use for their own
+  not-found/empty-result cases. *(ubiquitous)*
+  `# ← SCN-011; added v7.0.0 (decision-graph, Phase B); amended v10.0.0 (panel-2026-08-13-phase-b.md, Divergence 3: pins the response envelope shape — singular for topic-key's exact-match lookup, list for the two search-like modes — matching this project's own established get-vs-search tool-shape convention (librarian-get-note singular, librarian-search list) rather than inventing a new uniform-envelope convention for this one tool); amended v14.0.0 (panel-2026-08-13-phase-b-reprobe.md, Divergence 1 + single-reader flag: pins the not-found response's wire shape, verified against src/server.ts's actual shipped librarian-get-note/librarian-search handlers rather than re-derived from panel readings alone — neither uses isError, both return a plain-text sentinel in a normal success result; and pins match scope to the full event chain, not just the live event, so search never silently misses a topic because its matching text was later superseded); the "default live, history on request" split mirrors the plan's own status-lifecycle framing; mapping-pending: true`
 - **SR-062** — When `SERVER_INSTRUCTIONS` is extended to teach read-time rendering
   of a recalled position, the guidance shall require every rendered stance to state
-  its provenance explicitly (at minimum the formed date and, where superseded, the
-  most recent revision date) and shall forbid presenting a recalled stance as the
-  client's own present-tense belief without that attribution. *(ubiquitous)*
-  `# ← SCN-011; added v7.0.0 (decision-graph, Phase B); applies the SCN-007 recall-clarity precedent (cited, not restated) to positions; this is the SR that trips constitution escalation trigger 4 — it extends SERVER_INSTRUCTIONS, the exact surface the trigger names; mapping-pending: true`
+  its provenance explicitly: the formed date (the topic's original `assert`
+  event's timestamp), and — only where at least one `revise` event exists for that
+  topic — the most recent revision date, meaning the latest `revise` event's
+  timestamp specifically; a `reaffirm` event shall not advance the revision date,
+  since it re-endorses the current stance without changing it. Where the topic's
+  most recent event is a `retire`, the guidance shall additionally require the
+  retirement's own date to be stated, labeled explicitly as a retirement and never
+  presented as a revision. The guidance shall forbid presenting a recalled stance
+  as the client's own present-tense belief without this attribution. *(ubiquitous)*
+  `# ← SCN-011; added v7.0.0 (decision-graph, Phase B); amended v12.0.0 (panel-2026-08-13-phase-b-reprobe.md, Divergence 3, folding in panel-2026-08-13-phase-b.md's gap 1: pins "revision date" to revise-only, matching the glossary's own "changed (revise)" vs. "re-endorsed (reaffirm)" distinction, and requires a retired topic's own retirement date be labeled distinctly rather than folded into "revision"); applies the SCN-007 recall-clarity precedent (cited, not restated) to positions; this is the SR that trips constitution escalation trigger 4 — it extends SERVER_INSTRUCTIONS, the exact surface the trigger names; mapping-pending: true`
 - **SR-063** — No stored field or value shall represent a position's dormancy,
   staleness, or decay; any such indicator shown by `librarian-positions` shall be
   computed at read time from timestamps already present on the position's events.
+  If a topic's most recent event is a `retire`, the dormancy computation shall not
+  run for that topic and no dormant indicator shall be shown alongside its
+  retired stub — retirement already explains the topic's inactivity as a
+  deliberate closure, distinct from dormancy's unexplained-inactivity signal (the
+  glossary's own "distinct from" framing for "retired" vs. "dormant").
   *(unwanted-behavior)*
-  `# ← SCN-011; added v7.0.0 (decision-graph, Phase B); "reversible and honest, no decay scores" per the plan's own status-lifecycle framing — changing the computation later needs no schema migration, since nothing about it is persisted; mapping-pending: true`
+  `# ← SCN-011; added v7.0.0 (decision-graph, Phase B); amended v13.0.0 (panel-2026-08-13-phase-b-reprobe.md, Divergence 4: exempts retired topics from dormancy computation — a retired topic trivially satisfies any inactivity window, so an unguarded computation would double-label it; the glossary's own "Live position / dormant" entry already frames "retired" and "dormant" as distinct concepts, this just makes the computation honor that); "reversible and honest, no decay scores" per the plan's own status-lifecycle framing — changing the computation later needs no schema migration, since nothing about it is persisted; mapping-pending: true`
 - **SR-064** — Any topic key rendered by `librarian-positions` — in a listing, a
   query echo, or an error message — shall pass through the same inert-rendering
   treatment already applied to other client-authored text before reaching a
@@ -1474,7 +1745,7 @@ SRs (SR-100+) have no parent.
 | SCN-009 *(v3.8.0)* | zero-candidate unresolved, multi-candidate unresolved, non-silent render, confirmed-binding append, ledger append-only | SR-037, SR-038, SR-039, SR-043, SR-044 *(v3.9.0)*, SR-045 *(v3.9.0)*, SR-046 *(v3.10.0)* | INV-2, INV-3 | correctness-real-v1 (COR-R-033..037) + correctness-adv-v1 (COR-A-014, 016, 017; @0.7.0: 018/019 SR-046 confirmed-sticky, 020 SR-043 enrichment surface); ledger confinement/injection: security-adv-v1 (SEC-A-014/015) + SEC-R-006 control | correctness, security |
 | — | identity-pass reindex performance *(v3.8.0)* | SR-104 | INV-4 | performance-real-v1 (PERF-R-006, report-only — bound calibration pending at gen-1) | performance |
 | SCN-010 *(v3.12.0; amended v4.0.0, v5.0.0, v6.0.0, v7.0.0)* | grammar+kind routing (wire format pinned), separate append-only stream, event shape (ref syntax pinned), idempotence (incl. revises in identity; cross-month scope pinned), retire-appends, deterministic fold order, explicit revises (syntax pinned), topic-key report-not-enforce, stance-budget report-not-enforce, session non-interference, instruction budget, empty-stance-is-no-directive | SR-047 *(amended v6.0.0)*, SR-048 *(amended v6.0.0, v7.0.0)*, SR-049 *(amended v4.0.0, v6.0.0)*, SR-050, SR-051, SR-052 *(amended v6.0.0)*, SR-053, SR-054, SR-055, SR-056 *(amended v5.0.0)*, SR-057 *(v4.0.0)* | INV-2, INV-3, INV-5, INV-6 | mapping-pending: true — correctness-real-v1 + correctness-adv-v1 expected (TODO flow-eval) | correctness |
-| SCN-011 *(v7.0.0, effort decision-graph, Phase B)* | cross-month fold, deterministic/rebuildable fold, retire-as-terminal-marker, query modes (topic/free-text/note), read-time attribution, dormant-computed-not-stored, topic-key inert rendering, write-path non-interference, instrumentation excluded from gate | SR-058, SR-059, SR-060, SR-061, SR-062, SR-063, SR-064, SR-065 | INV-3, INV-4, INV-6 | mapping-pending: true — correctness-real-v1 + correctness-adv-v1 expected (TODO flow-eval) | correctness |
+| SCN-011 *(v7.0.0, effort decision-graph, Phase B)* | cross-month fold, reindex-only materialization (v9.0.0), deterministic/rebuildable fold (incremental clause dropped, v11.0.0), retire-as-terminal-marker (stub carries own stance, v8.0.0), query modes (topic/free-text/note, response envelope pinned v10.0.0), read-time attribution (revision/retirement semantics pinned, v12.0.0), dormant-computed-not-stored (retired-topic exemption, v13.0.0), topic-key inert rendering, write-path non-interference, instrumentation excluded from gate | SR-058 *(amended v9.0.0)*, SR-059 *(amended v11.0.0)*, SR-060 *(amended v8.0.0)*, SR-061 *(amended v10.0.0, v14.0.0)*, SR-062 *(amended v12.0.0)*, SR-063 *(amended v13.0.0)*, SR-064, SR-065 | INV-3, INV-4, INV-6 | mapping-pending: true — correctness-real-v1 + correctness-adv-v1 expected (TODO flow-eval) | correctness |
 
 ---
 

@@ -29,7 +29,48 @@
 # instead, so the converged s1-5-ambient-capture effort is not forced into re-eval.
 
 schema-version: "1.0"
-suite-version: "0.10.0"  # 0.9.0 -> 0.10.0 (minor, additive): +cross-boundary dimension.
+suite-version: "0.11.0"  # 0.10.0 -> 0.11.0 (minor, additive): effort decision-graph
+                         # Phase B — SCN-011 (position recall with supersession) mapped.
+                         # Removes the exact structural blocker escalation trigger 4's
+                         # HITL clearance (2026-08-13) left standing: SCN-011/SR-058..065
+                         # were mapping-pending: true with zero correctness tasks; this is
+                         # that specific piece. 13 real tasks (COR-R-052..064, one per
+                         # acceptance criterion; several ACs split across two tasks since
+                         # the six panel-driven amendments each layered a distinct
+                         # sub-question onto SR-058/060/061/062/063 — see spec history
+                         # v8.0.0..v14.0.0) + 5 adversarial holdouts (COR-A-027..031, one
+                         # per amendment, each a regression guard for the specific
+                         # non-adopted reading the panel/re-probe rejected: retired-stub
+                         # stance suppression, a write-time fold hook coupling into
+                         # SCN-010's write path, revision-date/retirement mislabeling,
+                         # dormant/retired double-labeling, isError-not-found or
+                         # live-event-only match scope). Also +SEC-A-016 (topic_key
+                         # render-injection at the new librarian-positions surface — the
+                         # first surface printing a raw, client-chosen, unbounded topic
+                         # key per Phase A's SG-10, mapped to SR-064 directly rather than
+                         # waiting on SR-101 to be widened) + benign control SEC-R-007.
+                         # COR-R-064 (instrumentation-exclusion) and none of SCN-011's ten
+                         # acceptance criteria cite constitution prohibition 9 as an SR —
+                         # it's tested with requirements: [] rather than duplicating a
+                         # citation, mirroring how INV-covered ACs elsewhere in this suite
+                         # aren't given a second task. ADDITIVE ONLY — no existing task
+                         # edited or renumbered, no re-evaluation of prior generations
+                         # (Phase A's gen-4/var-1-graft is unaffected). checkpoint.
+                         # evaluator-fleet was already open (no structural runner/harness
+                         # ceiling); this round only removes the "zero tasks exist" gap,
+                         # same admission-gate shape as SCN-010's own 0.8.0 -> 0.9.0 round.
+                         # KNOWN GAP, NOT FIXED HERE (same disclosure as Phase A's): SR-101
+                         # still doesn't literally enumerate stance/topic-key content, so
+                         # stance-text injection (as opposed to topic-key injection, now
+                         # covered by SEC-A-016 via SR-064) still has no dedicated SEC-A
+                         # task — carried forward, recommend the same future /flow-spec
+                         # SR-101-widening patch Phase A's round already recommended.
+                         # SPEC SIDE STILL OWES (not this skill's job, mirrors the v3.8.0 ->
+                         # v3.8.1 / v0.8.0 -> v0.9.0 precedent): spec.md's mapping-pending
+                         # flags (front matter + each SR-058..065 trailer) still read
+                         # true/mapping-pending — clearing them is a patch-level /flow-spec
+                         # bump, not performed here.
+                         # (0.9.0 -> 0.10.0 (minor, additive): +cross-boundary dimension.
                          # /flow-generate's Step 1 admission check (both doctrine
                          # non-negotiables — flow-operating-doctrine.md step 1) found
                          # dedicated invariant graders present but NO cross-boundary
@@ -135,7 +176,11 @@ suite-version: "0.10.0"  # 0.9.0 -> 0.10.0 (minor, additive): +cross-boundary di
                          # Dataset REFINEMENT: prior variants re-evaluate per protocol.
                          # 0.3.0 -> 0.4.0: spec v3.1.0 SCN-005/006 tasks COR-R-019..024,
                          # COR-A-010/011, SEC-A-013. 0.2.0 -> 0.3.0: SCN-001 v3.0.0 tasks.)
-spec-version: "3.10.2"
+spec-version: "14.0.0"  # was stale at 3.10.2 (predated v3.11.0-v4.0.0; flagged as a
+                        # separate bookkeeping gap at suite 0.10.0's admission-gate
+                        # check and never fixed since). Synced here as a bonus cleanup
+                        # while this round was already touching the file — not itself
+                        # a mapping change.
 status: active
 mapping-pending: false
 
@@ -325,6 +370,28 @@ mappings:
       # so no SEC-A task exists for position-directive content injection. See suite-version
       # comment above. Recommend a future /flow-spec patch widening SR-101.
 
+    # --- effort decision-graph (Phase B), added @ spec v7.0.0..v14.0.0 / suite 0.11.0 ---
+    - scenario: SCN-011
+      title: A live position and its supersession chain are recalled for a topic
+      dimension: correctness
+      dataset: correctness-real-v1
+      grader: correctness
+      mapping-pending: false
+      derived-requirements: [SR-058, SR-059, SR-060, SR-061, SR-062, SR-063, SR-064, SR-065]
+      tasks: [COR-R-052, COR-R-053, COR-R-054, COR-R-055, COR-R-056, COR-R-057, COR-R-058, COR-R-059, COR-R-060, COR-R-061, COR-R-062, COR-R-063, COR-R-064]  # one per acceptance criterion; 052/053 split SR-058's cross-month + reindex-only clauses; 056/057/058 split SR-061's response-envelope + match-scope + not-found-shape clauses (each pinned by a separate amendment, v10.0.0/v14.0.0/v14.0.0); 059/060 split SR-062's revision-date + retirement-date clauses (v12.0.0); 064 = instrumentation-exclusion (constitution prohibition 9, requirements: [] — no dedicated SR, mirrors how INV-covered ACs elsewhere aren't given a second task)
+      adversarial-tasks: [COR-A-027, COR-A-028, COR-A-029, COR-A-030, COR-A-031]  # one per panel-driven amendment, each a regression guard for the SPECIFIC non-adopted reading the panel/re-probe rejected: 027 = retired-stub stance suppression (v8.0.0); 028 = write-time fold hook into SCN-010's write path (v9.0.0); 029 = revision-date/retirement mislabeling (v12.0.0); 030 = dormant/retired double-labeling (v13.0.0); 031 = isError-not-found or live-event-only match scope (v14.0.0)
+      # Write confinement to _librarian/ is graded by the existing INV-2 grader; INV-4
+      # rebuildability by COR-R-054 directly (this scenario's own rebuild-determinism
+      # test, not the generic INV-4 grader, since SR-059 states it as a scenario AC);
+      # no-model-judgment fold by INV-6 — cited, not duplicated here.
+      # topic_key render-injection: SEC-A-016 + benign control SEC-R-007 (security dim,
+      # mapped to SR-064 directly since SR-101 itself still doesn't enumerate topic_key —
+      # see the SR-101 mapping entry below and the KNOWN GAP note on suite-version 0.11.0.
+      # KNOWN GAP (not this round, carried from Phase A): SR-101 doesn't yet enumerate
+      # stance content, so no SEC-A task exists for stance-text injection specifically
+      # (topic-key injection IS now covered, via SR-064/SEC-A-016). Recommend the same
+      # future /flow-spec patch widening SR-101 that Phase A's round already recommended.
+
   # -------------------------------------------------------------------------
   # Non-functional SR mappings — consolidated onto the six Pareto dimensions
   # at flow-init (was: schema-conformance / safety ad-hoc dimensions).
@@ -346,6 +413,10 @@ mappings:
       mapping-pending: false
       tasks: [SEC-A-001, SEC-A-002, SEC-A-003, SEC-A-004, SEC-A-005, SEC-A-006, SEC-A-007, SEC-A-008, SEC-A-009, SEC-A-010, SEC-A-011, SEC-A-012, SEC-A-013, SEC-A-014, SEC-A-015]  # 013 provenance-injection @ v3.1.0; 014 ledger path-traversal + 015 candidate-render injection @ v3.8.0 (SCN-008/009, also SR-039/SR-043)
       benign-controls: [SEC-R-004, SEC-R-005, SEC-R-006]  # in security-real-v1 (guard over-sanitizing); 006 legitimate unusual vault paths @ v3.8.0
+      # NOT included here: SEC-A-016 (topic_key render-injection @ SCN-011, suite 0.11.0)
+      # and its control SEC-R-007 — deliberately mapped to SR-064 in SCN-011's own
+      # scenario entry above, not to SR-101, since SR-101's text still doesn't literally
+      # enumerate topic_key or stance content. See that entry's KNOWN GAP note.
 
     - requirement: SR-102
       text: No vault or session content committed to the code repository.
