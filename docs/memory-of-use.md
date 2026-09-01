@@ -2,7 +2,7 @@
 
 S1 proved retrieval. S1.5 adds the first thing a stateless assistant *can't* have:
 **memory that accrues by itself and surfaces later.** The librarian now quietly
-records what each Claude Code session decided or produced, lets you recall recent
+records what each AI coding session decided or produced, lets you recall recent
 work, annotates search results you've engaged before, and measures whether you
 actually reach for any of it.
 
@@ -34,7 +34,7 @@ markdown:
 - **You can read and edit it.** It's your markdown, in your vault. Open it in
   Obsidian, edit it, commit it.
 - **It is never auto-deleted.** Records are only ever appended to. The librarian
-  has no prune or delete path that destroys memory-of-use. The Claude Code Stop
+  has no prune or delete path that destroys memory-of-use. The Claude Code / Grok Stop
   hook fires at the end of *every* assistant turn, so the same session's summary
   is offered for capture many times — capture is **idempotent per directive**: an
   unchanged summary is a no-op (the file is left byte-identical, no duplicate
@@ -94,7 +94,7 @@ Everything about this is best-effort and never blocks a capture:
 ## 2. Ambient capture — setting it up
 
 Capture is **ambient**: it happens at session end with no action from you inside
-the session. It is wired through a Claude Code **Stop hook**.
+the session. It is wired through a Claude Code / Grok **Stop hook**.
 
 **Setup is one step** — register the hook (`npm run install-hook`, or by hand; see
 the README). There is nothing to add to your `CLAUDE.md`. From v3.4.0 the whole

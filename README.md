@@ -57,7 +57,7 @@ time.
 ## What it does today
 
 - Indexes the notes directory into a local SQLite FTS5 full-text index — a disposable, regenerable cache. Your files stay the source of truth.
-- **Ambient capture.** As a session decides or produces something, your client leaves a line about it, and a Claude Code Stop hook appends that line to `<notes>/_librarian/sessions/<date>.md`, referencing touched notes by content hash. One line per separable outcome rather than one per session — a working session usually leaves three or four — grouped back into a single account of that session when you read it. Durable, git-committable, written by your client.
+- **Ambient capture.** As a session decides or produces something, your client leaves a line about it, and a Claude Code or Grok Stop hook appends that line to `<notes>/_librarian/sessions/<date>.md`, referencing touched notes by content hash. One line per separable outcome rather than one per session — a working session usually leaves three or four — grouped back into a single account of that session when you read it. Durable, git-committable, written by your client.
 - **A style contract on that line.** Write for a smart reader in a hurry who wasn't in the session: outcome first, common words over session shorthand, no invented codenames or version tags, about 40 words. The contract is guidance carried in the server's MCP instructions. The server stores whatever it is given, **verbatim** — over-budget summaries are reported on the capture path and then stored as written.
 - **Workspace provenance.** Each entry carries the session's working directory, a project name derived from it, and the git remote URL when there is one, so a day spanning three efforts reads cleanly. Nothing to configure; resolution is pure local file reads — it never runs `git` and never contacts a remote.
 - Four read-only MCP tools:
@@ -92,8 +92,9 @@ Stated here rather than discovered later:
 - **Node ≥ 22** (uses the built-in `node:sqlite` — no native build step; FTS5 included). Verified on Node 26.
 - A directory of markdown notes. Obsidian is what it was built against — wikilinks and frontmatter
   are understood — but nothing requires Obsidian itself.
-- Claude Code, for ambient capture. The MCP tools work with any MCP client; the Stop hook is
-  Claude Code specific.
+- Claude Code or Grok, for ambient capture. The MCP tools work with any MCP client; the Stop hook
+  is fired by both Claude Code and Grok (both read it from `~/.claude/settings.json`) — Claude Code
+  lifts the directive from the transcript, Grok from the Stop event's assistant message.
 
 ## Setup
 
@@ -265,7 +266,7 @@ src/
   app.ts             application seam (domain + instrumentation), used by server + tests
   reindex.ts / search-cli.ts / recent-cli.ts / gate-cli.ts / capture-cli.ts / identity-confirm-cli.ts   CLIs
 hooks/
-  librarian-stop.sh  Claude Code Stop hook -> capture-cli
+  librarian-stop.sh  Claude Code / Grok Stop hook -> capture-cli
 spec/                the executable spec — scenarios, requirements, conformance mapping
 test/                node:test suite (temp fixture directories; never touches your real notes)
 ```

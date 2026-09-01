@@ -12,11 +12,20 @@ import { parsePositionDirective, findEmptyStancePositionDirective } from "./posi
  * -- it only lifts already-client-written directives out of the transcript
  * and stores them.
  *
- * Two accepted stdin shapes:
+ * Three accepted stdin shapes:
  *   1. A direct capture payload: {"summary": "...", "refs": [...], "sessionId": "...", "cwd": "...", "position": "..."}
  *   2. A Claude Code Stop payload: {"transcript_path": "...", "session_id": "...", "cwd": "..."}
  *      -- from which the last `librarian-session` directive AND the last
  *      `librarian-position` directive are each independently extracted.
+ *   3. A Grok Stop payload: same as (2) but its `transcript_path` points at an
+ *      ACP `updates.jsonl` stream that carries no directive in `message.content`,
+ *      so the directive is lifted from the Stop event's `lastAssistantMessage`
+ *      field instead. See docs/grok-stop-adapter.md. The substitution to
+ *      `lastAssistantMessage` is reached ONLY when the transcript extract yields
+ *      no directive of that kind, so a real Claude transcript (shape 2) always
+ *      wins and never consults `lastAssistantMessage`; this is safe because
+ *      `lastAssistantMessage` is a subset of the transcript extract (it cannot
+ *      narrow the scan onto a source that hides a directive the extract held).
  * Anything else, or an absent directive of a given kind, is a clean no-op for
  * THAT kind (SR-004 for a session summary, the SR-057 analogue for a position).
  *
@@ -42,6 +51,14 @@ interface StopPayload {
   summary?: string;
   refs?: string[];
   sessionId?: string;
+  /**
+   * Grok Stop field: the finished assistant reply for the turn, verbatim. The
+   * fallback directive source when `transcript_path` (an `updates.jsonl` ACP
+   * stream on Grok) yields nothing. Grok sends camelCase and no
+   * `last_assistant_message` snake alias; `transcript_path` is Grok's own key,
+   * so no `transcriptPath` alias is needed. See docs/grok-stop-adapter.md.
+   */
+  lastAssistantMessage?: string;
   /** Working directory of the session (Claude Code Stop field, also accepted direct). */
   cwd?: string;
   /**
@@ -122,13 +139,26 @@ function runSessionCapture(payload: StopPayload, getTranscriptText: () => string
   }
 }
 
-/** Direct payload wins; otherwise pull the directive from the transcript text. */
+/**
+ * Direct payload wins; then the Claude production path (a real `transcript_path`
+ * directive); then, only if that yielded nothing, the Grok Stop event's
+ * `lastAssistantMessage`. The order is load-bearing: a real Claude transcript
+ * always wins and never reaches the `lastAssistantMessage` branch, and because
+ * `lastAssistantMessage` is a subset of the transcript extract, the fall-through
+ * can only ever substitute a source that also has no directive -- it can never
+ * narrow the scan and drop a directive the transcript held. See
+ * docs/grok-stop-adapter.md.
+ */
 function resolveDirective(payload: StopPayload, getTranscriptText: () => string): SessionDirective | null {
   if (typeof payload.summary === "string") {
     return { summary: payload.summary, refs: payload.refs };
   }
   if (payload.transcript_path) {
-    return parseSessionDirective(getTranscriptText());
+    const fromTranscript = parseSessionDirective(getTranscriptText());
+    if (fromTranscript) return fromTranscript; // Claude path unchanged
+  }
+  if (typeof payload.lastAssistantMessage === "string") {
+    return parseSessionDirective(payload.lastAssistantMessage); // Grok Stop fallback (may be null)
   }
   return null;
 }
@@ -195,24 +225,67 @@ function runPositionCapture(payload: StopPayload, getTranscriptText: () => strin
 }
 
 /**
- * Direct payload wins (mirrors `resolveDirective`'s escape hatch); otherwise
- * the raw transcript text. Returns `null` only when there is no possible
- * source at all (no `position` field, no `transcript_path`) -- the one case
- * that stays silent unconditionally, before any grammar is even attempted.
- * Both `parsePositionDirective` and `findEmptyStancePositionDirective` run
- * against the SAME returned text, so a malformed match (bad kind, missing
- * topic-key, empty stance) is diagnosed once, from one source, never
- * misrouted into session-summary handling (the 2026-08-12 panel's
- * "malformed-kind handling" gap; see decision-ledger.md D3).
+ * Direct payload wins (mirrors `resolveDirective`'s escape hatch); then the
+ * transcript extract IF it is position-shaped; then the Grok Stop event's
+ * `lastAssistantMessage`; then the transcript extract again as the "there was a
+ * source" fallback; else `null` (no possible source at all). This is the
+ * position-side analogue of `resolveDirective`'s substitution, but a different
+ * code shape because this function returns raw text for the caller to parse,
+ * not a parsed directive -- so it must itself detect "the transcript is not
+ * position-shaped" (via `isPositionShaped`) before substituting, rather than
+ * fall through on a null parse. It deliberately does NOT concatenate the
+ * transcript with `lastAssistantMessage`: `parsePositionDirective` keeps the
+ * LAST match, so concatenation could let a trailing template eat a real
+ * directive (the session-side `PLACEHOLDER_SUMMARY` hazard has a position
+ * analogue; see docs/grok-stop-adapter.md "Placeholder last-wins").
+ *
+ * Whichever single source is returned, both `parsePositionDirective` and
+ * `findEmptyStancePositionDirective` run against that SAME text in the caller,
+ * so a malformed match (bad kind, missing topic-key, empty stance) is diagnosed
+ * once, from one source, never misrouted into session-summary handling (the
+ * 2026-08-12 panel's "malformed-kind handling" gap; see decision-ledger.md D3).
  */
 function positionDirectiveSourceText(payload: StopPayload, getTranscriptText: () => string): string | null {
   if (typeof payload.position === "string") {
     return `<!-- librarian-position POSITION ${payload.position} -->`;
   }
+  // (1) Claude production path: a real transcript that actually carries a
+  //     position-shaped comment wins, exactly as `resolveDirective` prefers a
+  //     transcript session directive. "Position-shaped" is the union the caller
+  //     already acts on -- a parseable directive OR the one empty-stance case
+  //     that earns an SR-057 diagnostic -- so precedence and diagnostics both
+  //     stay on the transcript when it holds the comment.
+  if (payload.transcript_path) {
+    const fromTranscript = getTranscriptText();
+    if (isPositionShaped(fromTranscript)) return fromTranscript;
+  }
+  // (2) Grok Stop fallback: the transcript extract held no position comment
+  //     (on Grok it is `updates.jsonl`, which never does); scan the assistant
+  //     text instead. Subset invariant applies, as for the session path.
+  if (typeof payload.lastAssistantMessage === "string") {
+    return payload.lastAssistantMessage;
+  }
+  // (3) A transcript path but no `lastAssistantMessage`: preserve today's
+  //     "there was a source" behavior -- return the extract so the caller runs
+  //     its parse/diagnose over it and stays silent, rather than reporting no
+  //     possible source at all.
   if (payload.transcript_path) {
     return getTranscriptText();
   }
-  return null;
+  return null; // (4) no direct field, no transcript, no assistant text
+}
+
+/**
+ * True when `text` carries a `librarian-position` comment the caller would act
+ * on -- either a fully parseable directive OR the single empty-stance shape
+ * that gets an SR-057 diagnostic. Mirrors exactly the two functions
+ * `runPositionCapture` runs, so "the transcript is position-shaped" here means
+ * precisely "the transcript would produce a capture or a diagnostic there,"
+ * never a heuristic. `getTranscriptText` is memoized, so re-parsing the same
+ * text in the caller is a cheap repeat, not a second file read.
+ */
+function isPositionShaped(text: string): boolean {
+  return parsePositionDirective(text) !== null || findEmptyStancePositionDirective(text) !== null;
 }
 
 // ---------------------------------------------------------------------------

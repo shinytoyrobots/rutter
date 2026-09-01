@@ -64,7 +64,7 @@ import {
  * THIS file's length immediately before this paragraph was added -- see
  * decision-ledger.md D-instruction-budget.)
  */
-export const SERVER_INSTRUCTIONS = `rutter holds two things about ${config.userLabel}'s work: the knowledge vault (markdown notes) and the memory-of-use (what past Claude Code sessions decided, and which notes they touched). It runs no model of its own -- it is code plus storage, so the reasoning stays yours.
+export const SERVER_INSTRUCTIONS = `rutter holds two things about ${config.userLabel}'s work: the knowledge vault (markdown notes) and the memory-of-use (what past AI coding sessions decided, and which notes they touched). It runs no model of its own -- it is code plus storage, so the reasoning stays yours.
 
 Consult these tools before reading files directly; they see session history and vault structure that direct file reads do not:
 

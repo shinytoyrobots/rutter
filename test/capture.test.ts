@@ -15,6 +15,41 @@ beforeEach(resetLibrarian);
 const DAY = "2026-07-24";
 const NOON = new Date("2026-07-24T12:00:00.000Z");
 
+// --- Grok Stop adapter (docs/grok-stop-adapter.md) --------------------------
+// The Grok Stop payload sets `transcript_path` to an ACP `updates.jsonl` stream
+// that carries no directive in `message.content` (Claude extractText scores 0),
+// so the directive must be lifted from the `lastAssistantMessage` field instead.
+const grokCli = fileURLToPath(new URL("../src/capture-cli.ts", import.meta.url));
+
+function fireGrok(payload: object): { stderr: string; stdout: string } {
+  const res = spawnSync(process.execPath, ["--import", "tsx", grokCli], {
+    input: JSON.stringify(payload),
+    env: { ...process.env, LIBRARIAN_VAULT_PATH: vaultRoot, LIBRARIAN_DB_PATH: path.join(vaultRoot, "data", "librarian.db") },
+    encoding: "utf8",
+  });
+  assert.equal(res.status, 0, `hook exits clean; stderr: ${res.stderr}`);
+  return { stderr: res.stderr, stdout: res.stdout };
+}
+
+/**
+ * Write an `updates.jsonl`-shaped fixture: ACP `session/update` lines with NO
+ * `message.content`. The directive token appears only inside a tool-call
+ * `rawInput` blob -- exactly as the 2026-08-31 probe observed -- so Claude
+ * extractText genuinely cannot reach it and the fall-through to
+ * `lastAssistantMessage` is what makes the capture land.
+ */
+function writeUpdatesJsonl(relPath: string, tokenText: string): string {
+  const abs = path.join(vaultRoot, relPath);
+  const lines = [
+    { type: "session/update", sessionUpdate: { kind: "agent_message_chunk" } },
+    { type: "session/update", sessionUpdate: { kind: "tool_call", toolCall: { rawInput: `wrote ${tokenText}` } } },
+  ];
+  fs.writeFileSync(abs, lines.map((l) => JSON.stringify(l)).join("\n"), "utf8");
+  return abs;
+}
+
+const grokDay = (): string => new Date().toISOString().slice(0, 10); // child uses the real clock
+
 test("COR-R-001 SCN-001/AC-1: a session yields exactly one curated one-line entry", () => {
   captureSession({ summary: "Decided to adopt node:sqlite; shipped the walking skeleton.", now: NOON });
   const record = readRecord(DAY);
@@ -247,4 +282,76 @@ test("COR-R-016 SR-100: refs must be a typed list -- a scalar-where-list is reje
   assert.ok(RecordSchema.safeParse(good).success);
   const malformed = { ...good, refs: "Notes/foo.md" }; // scalar where a list is required
   assert.equal(RecordSchema.safeParse(malformed).success, false, "malformed refs shape rejected");
+});
+
+// --- Grok Stop adapter tests (docs/grok-stop-adapter.md) --------------------
+
+test("GROK-1 (trap): a Grok Stop payload captures from lastAssistantMessage when transcript_path (updates.jsonl) carries no message.content directive", () => {
+  // The trap the plan names: transcript_path IS set (Grok fills it), so a
+  // Claude-only extract looks green while capturing nothing. Provenance (cwd)
+  // must still thread through the fallback path.
+  const repo = path.join(vaultRoot, "grok-trap", "my-librarian");
+  fs.mkdirSync(path.join(repo, ".git"), { recursive: true });
+  fs.writeFileSync(path.join(repo, ".git", "config"), '[remote "origin"]\n\turl = https://example.invalid/my-librarian.git\n', "utf8");
+
+  const directive = '<!-- librarian-session {"summary":"Wired the Grok Stop adapter fallback."} -->';
+  const updates = writeUpdatesJsonl("grok-updates-1.jsonl", directive); // token only in tool-call rawInput
+
+  const { stdout } = fireGrok({
+    transcript_path: updates,
+    lastAssistantMessage: `Here is the outcome. ${directive}`,
+    sessionId: "S-grok-1",
+    cwd: repo,
+  });
+  assert.equal(stdout, "", "nothing on stdout (INV-5)");
+
+  const record = matter(readSession(grokDay())).data as { sessions: { summary: string; workspace?: { project: string } }[] };
+  assert.equal(record.sessions.length, 1, "the directive was lifted from lastAssistantMessage, not the updates.jsonl extract");
+  assert.equal(record.sessions[0]!.summary, "Wired the Grok Stop adapter fallback.");
+  assert.equal(record.sessions[0]!.workspace!.project, "my-librarian", "cwd provenance still threads through the Grok path");
+});
+
+test("GROK-2: a Grok payload whose lastAssistantMessage has no directive is a clean no-op", () => {
+  const updates = writeUpdatesJsonl("grok-updates-2.jsonl", "no directive here");
+  const { stderr } = fireGrok({
+    transcript_path: updates,
+    lastAssistantMessage: "An ordinary reply with no librarian-session comment.",
+    sessionId: "S-grok-2",
+  });
+  assert.equal(sessionExists(grokDay()), false, "no session file written");
+  assert.match(stderr, /no session directive found/);
+});
+
+test("GROK-3 (SR-013): hammering an identical Grok payload 5x yields one byte-identical entry", () => {
+  const updates = writeUpdatesJsonl("grok-updates-3.jsonl", "irrelevant");
+  const directive = '<!-- librarian-session {"summary":"Idempotent Grok capture."} -->';
+  const payload = { transcript_path: updates, lastAssistantMessage: `Done. ${directive}`, sessionId: "S-grok-3" };
+  fireGrok(payload);
+  const afterFirst = readSession(grokDay());
+  for (let i = 0; i < 4; i++) fireGrok(payload);
+  assert.equal(readSession(grokDay()), afterFirst, "byte-identical after 5 firings");
+  assert.equal((matter(afterFirst).data as { sessions: unknown[] }).sessions.length, 1);
+});
+
+test("GROK-4 (SR-014): two different directives in lastAssistantMessage under one sessionId append two entries", () => {
+  const updates = writeUpdatesJsonl("grok-updates-4.jsonl", "irrelevant");
+  fireGrok({ transcript_path: updates, lastAssistantMessage: 'A. <!-- librarian-session {"summary":"Directive A."} -->', sessionId: "S-grok-4" });
+  fireGrok({ transcript_path: updates, lastAssistantMessage: 'B. <!-- librarian-session {"summary":"Directive B."} -->', sessionId: "S-grok-4" });
+  const record = matter(readSession(grokDay())).data as { sessions: { summary: string }[] };
+  assert.equal(record.sessions.length, 2);
+  assert.deepEqual(record.sessions.map((s) => s.summary), ["Directive A.", "Directive B."]);
+});
+
+test("GROK-6: a Claude transcript directive wins over a different lastAssistantMessage line (transcript precedence)", () => {
+  const transcriptPath = path.join(vaultRoot, "cc-transcript-grok-6.jsonl");
+  const real = '<!-- librarian-session {"summary":"From the real Claude transcript."} -->';
+  fs.writeFileSync(transcriptPath, JSON.stringify({ message: { content: `Outcome. ${real}` } }), "utf8");
+  fireGrok({
+    transcript_path: transcriptPath,
+    lastAssistantMessage: 'A DIFFERENT line. <!-- librarian-session {"summary":"From lastAssistantMessage."} -->',
+    sessionId: "S-grok-6",
+  });
+  const record = matter(readSession(grokDay())).data as { sessions: { summary: string }[] };
+  assert.equal(record.sessions.length, 1);
+  assert.equal(record.sessions[0]!.summary, "From the real Claude transcript.", "transcript_path directive wins; lastAssistantMessage ignored");
 });
