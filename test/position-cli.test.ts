@@ -1,4 +1,4 @@
-import { resetLibrarian, readSession, readPositions, positionsExist, vaultRoot, sessionsDir } from "./setup.js";
+import { resetLibrarian, readSession, readPositions, positionsExist, sessionExists, vaultRoot, sessionsDir } from "./setup.js";
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -151,4 +151,57 @@ test("SR-056: SERVER_INSTRUCTIONS carries the position directive's trigger and i
   assert.ok(parsed, "the documented grammar, with placeholders filled, is accepted by the real parser");
   assert.equal(parsed!.kind, "assert");
   assert.equal(parsed!.topicKey, "shown-grammar-topic");
+});
+
+// --- Grok Stop adapter, position path (docs/grok-stop-adapter.md) -----------
+
+test("GROK-5 (SR-047): a position directive is lifted from lastAssistantMessage when the transcript extract is not position-shaped", () => {
+  // transcript_path is an updates.jsonl-shaped stream with no librarian-position
+  // comment, so `isPositionShaped` is false on it and the ladder substitutes
+  // `lastAssistantMessage`. Session stream stays a no-op (no session directive).
+  const updates = path.join(vaultRoot, "grok-updates-pos.jsonl");
+  fs.writeFileSync(
+    updates,
+    JSON.stringify({ type: "session/update", sessionUpdate: { kind: "tool_call", toolCall: { rawInput: "no comment here" } } }),
+    "utf8"
+  );
+  const month = new Date().toISOString().slice(0, 7);
+  const day = new Date().toISOString().slice(0, 10);
+  const { stderr } = fire(
+    JSON.stringify({
+      transcript_path: updates,
+      lastAssistantMessage: "Reasoned it through. <!-- librarian-position POSITION assert grok-fallback: lifted from the assistant message. -->",
+      session_id: "S-grok-pos",
+    })
+  );
+  assert.match(stderr, /captured 1 position event \(assert grok-fallback\)/);
+  const stream = matter(readPositions(month)).data as { events: { topic_key: string; stance: string }[] };
+  assert.equal(stream.events.length, 1);
+  assert.equal(stream.events[0]!.topic_key, "grok-fallback");
+  assert.equal(sessionExists(day), false, "no session summary present -> the session stream stays a no-op");
+});
+
+test("GROK-5b (SR-047, mirror of the session-precedence regression): a transcript position directive wins over a different one in lastAssistantMessage", () => {
+  // Pins the position ladder's load-bearing guard: item 1 (a position-shaped
+  // transcript) wins over item 2 (lastAssistantMessage), the way capture.test's
+  // GROK-6 pins the session ladder's precedence.
+  const transcriptPath = path.join(vaultRoot, "cc-transcript-pos-precedence.jsonl");
+  fs.writeFileSync(
+    transcriptPath,
+    JSON.stringify({ message: { content: "<!-- librarian-position POSITION assert from-transcript: the transcript stance wins. -->" } }),
+    "utf8"
+  );
+  const month = new Date().toISOString().slice(0, 7);
+  const { stderr } = fire(
+    JSON.stringify({
+      transcript_path: transcriptPath,
+      lastAssistantMessage: "<!-- librarian-position POSITION assert from-lam: this must be ignored. -->",
+      session_id: "S-pos-precedence",
+    })
+  );
+  assert.match(stderr, /captured 1 position event \(assert from-transcript\)/, "the transcript directive is captured");
+  const stream = matter(readPositions(month)).data as { events: { topic_key: string; stance: string }[] };
+  assert.equal(stream.events.length, 1);
+  assert.equal(stream.events[0]!.topic_key, "from-transcript", "item 1 (transcript) wins over item 2 (lastAssistantMessage)");
+  assert.equal(stream.events[0]!.stance, "the transcript stance wins.");
 });

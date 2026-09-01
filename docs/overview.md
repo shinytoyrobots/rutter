@@ -86,7 +86,7 @@ standard way an AI client connects to an outside source of data:
   reports it as your recorded position rather than as its own conclusion. Answered from the last
   reindex, so a position captured since then appears after the next one.
 
-The Stop hook is Claude Code specific. The tools are not — they work with any MCP client. The
+The Stop hook runs in Claude Code and Grok. The tools work with any MCP client. The
 server also carries its own usage guidance to every client that connects. There is nothing to
 configure per project.
 
