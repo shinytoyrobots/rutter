@@ -1,15 +1,39 @@
 # HANDOFF — rutter
 
-**Last updated:** 2026-08-05
+**Last updated:** 2026-08-13
 **Purpose:** Single resume-point after a context clear or model switch. Self-contained: everything needed to continue the build without re-reading the whole history. Written for a fresh model/context.
 
-> **Read §2.0b first, then §2.0a, then §2.0.** §2.0b (2026-08-13) shipped Phase A
+> **Read §2.0c first, then §2.0b, then §2.0a, then §2.0.** §2.0b (2026-08-13) shipped Phase A
 > (position capture) as a **gated ship** and is written with a deep focus on what
 > **Phase B (position recall)** needs to know that the original plan doc
 > (`docs/decision-graph-plan.md`, written 2026-08-04, before any of this existed)
 > gets wrong or doesn't say. §2.0a covers the rutter rename + gate-axis session;
 > §2.0 covers Phase 0 (note identity); §2.1 covers 2026-08-04; everything below
 > that is history.
+
+## 2.0c Session of 2026-08-13 (later) — Phase B shipped earlier today; this session synced all docs + the site to it
+
+**`main` @ PR #39 merged · 189 tests + tsc clean · gh-pages @ `7c27c42`, `npm run site-drift` GREEN for the first time since 2026-08-05.**
+
+**Context:** Phase B (position recall, SCN-011, `librarian-positions`) shipped earlier on 2026-08-13 via PR #36 (`ship-2026-08-13-0002`), spec now **v14.0.0**, all scenarios SCN-001–011 shipped. That ship's docs pass updated README + `docs/*.md` but NOT the gh-pages site. This session (a `/tw-generate` run: research → write → verify → publish) closed that gap. Full run record: vault `Notes/Reference/Tech-Writer/generate/2026-08/13-readme-ghpages-sync/`.
+
+**What changed (PRs #38, #39 merged; gh-pages commits `9b6fb5a`, `7c27c42` pushed):**
+- Site now documents **four** tools (was three), with full position capture/recall sections on `memory-of-use.html` ported from `docs/memory-of-use.md` §2a/2b; index tool list, spec-version sentence, and `/mcp` verification step all current.
+- `docs/roadmap.md` Phase 3 records A–B shipped 2026-08-13; **next action there is the backfill decision — plan HITL #5, deferred to two weeks after Phase B, so due ~2026-08-27.**
+- "Still on trial" paragraph (`docs/overview.md` + index) now records the first gate reading **passed** (August 2026, linked to `docs/gate-verdict-2026-08.md`) while keeping the gate-keeps-running framing — Robin's explicit call.
+- `docs/memory-of-use.md` title simplified to "the mechanics in full"; site hero matches, with the mechanics enumeration (incl. positions, note identity) moved to the dek — Robin's explicit call (don't re-stuff the h1).
+- README: `/mcp` step says four tools; layout comment includes positions; doc links now surface `docs/decision-graph.md` (the why) and `docs/decision-graph-plan.md` (the phase split).
+
+**Mechanics a fresh session must not rediscover (new this session):**
+- **The gh-pages site is hand-authored HTML, not generated.** Updating it means hand-porting from `docs/{overview,getting-started,memory-of-use}.md` into the three `.html` pages, matching each page's existing markup idiom. `scripts/site-drift.mjs` (`npm run site-drift`) only *detects* drift; it checks `origin/gh-pages` first, so it stays red until the push lands. Any edit to those three md files requires the paired gh-pages update: rehash (`shasum -a 256`), update `sources.json` (`sources`, `builtFrom`, `generated`), commit, push.
+- **Footer convention (decided this session):** all three pages' footers cite the docs content commit — "Built from `main@<short-hash>`" — with NO version-tag claim (the `v0.1.0` tag predates decision-graph and read as a current-state claim). Use the branch commit hash that carries the docs content, not the merge commit (stable before/after merge).
+- **gh-pages takes direct commits + push** (established practice; the branch→PR rule is for `main`). Work in a temporary `git worktree add <scratch> gh-pages`, remove it after.
+- **`gh pr merge` is blocked by the permission classifier** — open the PR, hand Robin the merge (`gh pr merge <n> --merge --delete-branch`), resume after.
+- README's capture-contract block is COR-R-030-protected (byte-compared to `SERVER_INSTRUCTIONS`); no equivalent test protects any gh-pages copy — the site currently quotes none of it, keep it that way or port verbatim from `src/server.ts`.
+
+**Open after this session:** (1) the ~2026-08-27 backfill decision (HITL #5) — now the roadmap's stated next action; (2) `dissent-2026-08-05-0001` was reactivated by Phase B's ship (condition 2, commit `f19927b`) — check `efforts/decision-graph/dissents-active.yaml` before the next flow move; (3) carried items from §2.0b remain (SR-056 stale baseline urgent, `src/stdio.ts` malformed-frame hang, flow-eval backlog).
+
+---
 
 ## 2.0b Session of 2026-08-13 — Phase A shipped (gated), and everything Phase B needs to know
 
