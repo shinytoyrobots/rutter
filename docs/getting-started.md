@@ -1,6 +1,6 @@
 # Getting started: from zero to your first recall
 
-By the end of this lesson your notes will answer *"what was I working on lately?"* The answer comes from records your Claude Code sessions leave behind on their own, unasked.
+By the end of this lesson your notes will answer *"what was I working on lately?"* The answer comes from records your AI coding sessions (Claude Code, Grok, or Codex) leave behind on their own, unasked.
 
 We will install rutter, index your notes, and write one memory by hand so you see a result in the first few minutes. Then we will turn on ambient capture and watch a real working session record itself.
 
@@ -48,9 +48,9 @@ You should see your real note count:
 
 ### Make the path stick
 
-Two things later in this lesson run outside this terminal: the MCP server that Claude Code launches, and the capture hook. Both read `LIBRARIAN_VAULT_PATH`, and neither sees an `export` you typed in one shell session.
+Two things later in this lesson run outside this terminal: the MCP server that your client launches, and the capture hook. Both read `LIBRARIAN_VAULT_PATH`, and neither sees an `export` you typed in one shell session.
 
-Set it once for every Claude Code session, in `~/.claude/settings.json`. Merge this into the file, keeping whatever is already there:
+Set it once for every Claude Code or Grok session, in `~/.claude/settings.json` (Codex is different; see below). Merge this into the file, keeping whatever is already there:
 
 ```json
 { "env": { "LIBRARIAN_VAULT_PATH": "/Users/you/path/to/your/notes" } }
@@ -120,7 +120,7 @@ npm run recent -- --project rutter   # one project, case-insensitive
 
 ## Step 5 — Build and register the MCP server
 
-Compile the TypeScript, then register the server with Claude Code. Run both from the repository root:
+Compile the TypeScript, then register the server with your client. Run both from the repository root. The commands below are for Claude Code; Codex has its own, shown after.
 
 ```bash
 npm run build
@@ -137,7 +137,18 @@ claude mcp add rutter --scope user -e LIBRARIAN_VAULT_PATH="$HOME/path/to/your/n
 
 That covers the server alone. The Stop hook in Step 6 still reads the `env` block, so most people want Step 2's route.
 
-**Verify.** Start a fresh Claude Code session and run:
+**Codex.** Register the server with Codex instead, passing the vault path at registration (Codex does not read the `env` block from `~/.claude/settings.json`):
+
+```bash
+npm run build
+codex mcp add rutter --env LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes" -- node "$PWD/dist/stdio.js"
+```
+
+Check it with `codex mcp list`: `rutter` should appear as `enabled`. An `Auth` column reading `Unsupported` is normal for a local stdio server. This sets the path for the server only; the Codex Stop hook in Step 6 reads it from Codex's own launch environment.
+
+Any other MCP client works too: register `node "$PWD/dist/stdio.js"` as a stdio server and give it `LIBRARIAN_VAULT_PATH`.
+
+**Verify.** In Claude Code, start a fresh session and run (for Codex, use `codex mcp list` as above):
 
 ```text
 /mcp
@@ -188,7 +199,7 @@ This merges into `~/.codex/hooks.json` (or `$CODEX_HOME/hooks.json`). The hook f
 
 ## Step 7 — Restart, and let a real session record itself
 
-Hooks are read at session start, so quit Claude Code and start it again.
+Hooks are read at session start, so quit your client and start it again.
 
 Now open a project directory you actually work in and do something small but real: one decision, or one small change. A "hello" will not do, because there is nothing there worth recalling.
 
@@ -218,7 +229,7 @@ If nothing appeared, check that Step 6 printed its success line and that the `en
 
 ## Step 8 — Recall again, and read the record
 
-This time, ask your client rather than the CLI. In Claude Code:
+This time, ask your client rather than the CLI. In Claude Code, Grok, or Codex:
 
 > What was I working on lately?
 
