@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "rutter": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/dist/stdio.js"],
+      "env": {
+        "LIBRARIAN_VAULT_PATH": "${user_config.vault_path}",
+        "LIBRARIAN_USER_LABEL": "${user_config.user_label}",
+        "LIBRARIAN_DB_PATH": "${CLAUDE_PLUGIN_DATA}/librarian.db"
+      }
+    }
+  }
+}

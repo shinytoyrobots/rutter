@@ -1,0 +1,97 @@
+import { toInertLine, wordCount, overWordCeiling } from "./sanitize.js";
+import { resolveRefs } from "./refs.js";
+import { appendSession, isDuplicateEntry } from "./session-record.js";
+import { deriveWorkspace } from "./workspace.js";
+/**
+ * Capture one session. A summary that is empty after inert-text normalisation is
+ * a no-op: no entry is appended and no empty record file is created (SR-004,
+ * COR-A-003). Refs that don't resolve to a real in-vault note are dropped rather
+ * than stored as valid identities (COR-A-002); their paths are reported back.
+ */
+export function captureSession(payload) {
+    const summary = toInertLine(payload.summary);
+    if (summary === "") {
+        return { captured: false, rejectedRefs: [] };
+    }
+    const { refs, rejectedRefs } = resolveRefs(payload.refs ?? []);
+    const now = payload.now ?? new Date();
+    // SCN-005: provenance is derived here, from the reported cwd alone, with no user
+    // action. It is a best-effort enrichment -- deriveWorkspace never throws and
+    // returns undefined for what it cannot resolve, so a capture is never blocked or
+    // failed by provenance (SR-016). The field is spread last so it is simply absent
+    // (not null) when there is nothing to record.
+    const workspace = deriveWorkspace(payload.cwd);
+    const entry = {
+        id: compactId(now),
+        ...(payload.sessionId ? { session_id: payload.sessionId } : {}),
+        time: now.toISOString(),
+        summary,
+        refs,
+        ...(workspace ? { workspace } : {}),
+    };
+    // SR-013 idempotence. Claude Code fires the Stop event at the END OF EVERY
+    // assistant turn (and around clear/compact), not only at session end, so the
+    // SAME directive is re-presented to this code path many times per session.
+    // If this session already recorded an entry with identical normalized content
+    // -- anywhere in _librarian/sessions/, including a prior UTC day for a session
+    // that straddled midnight -- appending again would duplicate. We compare on
+    // the server-normalized entry (inert summary + resolved ref paths), never on
+    // raw input, and no-op so the record stays byte-identical (COR-R-017/A-009).
+    // A payload with NO session id has no dedupe key and keeps append behavior
+    // (direct-CLI test payloads); isDuplicateEntry returns false for it. Two things
+    // are invisible to this check by construction, both because identity is the
+    // *directive* and not the world around it: workspace provenance (SR-018), so a
+    // cwd that moved between firings still no-ops (COR-R-022); and a ref's content
+    // hash (SR-024, v3.3.0), so a referenced note edited again between firings still
+    // no-ops (COR-R-028) instead of appending a summary-identical twin.
+    //
+    // Atomicity: this compare and the appendSession write below share one
+    // synchronous call stack (no await between them), so within a process no Stop
+    // firing can interleave. Across processes -- Claude Code can fire Stop for a
+    // subagent and the main turn near-simultaneously -- the write in fs-safe.ts is
+    // a full-file recompute published by atomic temp+rename, so two concurrent
+    // identical firings converge on the same superset (last rename wins) rather
+    // than each appending; no duplicate results. RESIDUAL RACE (documented, not
+    // guarded): two truly concurrent FIRST firings of a brand-new directive could
+    // both pass this check and write entries whose only difference is the capture
+    // timestamp -- one entry, but not byte-identical to a single firing. A lock
+    // file was rejected here: a stale lock would durably wedge capture, violating
+    // the "a hook failure must never break the session" contract. The evaluated
+    // per-turn reality is sequential re-firing, which this handles exactly.
+    if (isDuplicateEntry(entry)) {
+        return { captured: false, deduped: true, rejectedRefs };
+    }
+    appendSession(isoDay(now), entry);
+    return { captured: true, day: isoDay(now), entry, rejectedRefs };
+}
+/**
+ * Words in a summary, counted the way a reader would: whitespace-separated
+ * tokens. Thin, name-preserving wrapper over sanitize.ts's shared `wordCount`
+ * (decision-graph/gen-3/var-2-maintainability: extracted so SR-054's position-
+ * stance budget check counts words identically, without positions.ts importing
+ * capture.ts) -- same behavior, same call sites, nothing observable changes.
+ */
+export function summaryWordCount(summary) {
+    return wordCount(summary);
+}
+/**
+ * Whether a summary overruns the style contract's length ceiling (SR-034).
+ *
+ * Deliberately NOT wired into `captureSession`: an over-length summary is stored
+ * byte-verbatim like any other (SR-023), and the record body carries no editorial
+ * annotation (COR-R-027 asserts the body line is time + summary and nothing else).
+ * This is a reporting predicate for the capture path's diagnostics, so drift is
+ * visible to the operator without the server ever editing the record.
+ */
+export function overSummaryWordCeiling(summary) {
+    return overWordCeiling(summary);
+}
+/** UTC calendar day of an instant; matches the vault's UTC date convention. */
+export function isoDay(date) {
+    return date.toISOString().slice(0, 10);
+}
+/** Compact, sortable, unique-per-capture id, e.g. `20260724T140322123Z`. */
+function compactId(date) {
+    return date.toISOString().replace(/[-:.]/g, "");
+}
+//# sourceMappingURL=capture.js.map

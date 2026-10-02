@@ -1,0 +1,15 @@
+import { reindex } from "./indexer.js";
+import { config } from "./config.js";
+const stats = reindex();
+console.log(`[rutter] reindex complete: ${stats.notes} notes indexed, ${stats.skipped} skipped, ${stats.ms}ms\n` +
+    `  vault: ${config.vaultPath}\n  index: ${config.dbPath}`);
+// SR-104: report-only wall time for the identity pass -- no threshold, no failure mode.
+console.error(`[rutter] identity pass: ${stats.identity.checked} dead ref(s) checked, ` +
+    `${stats.identity.bound} bound, ${stats.identity.unresolved} unresolved, ` +
+    `${stats.identity.appended} ledger entr${stats.identity.appended === 1 ? "y" : "ies"} appended, ${stats.identity.ms}ms`);
+// SR-058: reindex is the position fold's only trigger, so this line is the only
+// place the fold is ever reported -- and the point at which anything captured
+// since the last reindex becomes visible to librarian-positions.
+console.error(`[rutter] position fold: ${stats.positions.events} event(s) across ` +
+    `${stats.positions.months} month file(s) folded into ${stats.positions.topics} topic(s), ${stats.positions.ms}ms`);
+//# sourceMappingURL=reindex.js.map
