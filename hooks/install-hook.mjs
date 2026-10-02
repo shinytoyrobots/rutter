@@ -71,7 +71,13 @@ if (!Array.isArray(settings.hooks.Stop)) {
   fail(`${settingsPath} has a non-array hooks.Stop -- fix it, then re-run (nothing was changed).`);
 }
 
-const already = JSON.stringify(settings.hooks.Stop).includes(hookPath) || JSON.stringify(settings.hooks.Stop).includes(hookCommand);
+// Compare parsed command strings, not serialized JSON: a path containing `"` or `\`
+// is escaped in the serialized form and would never match, appending a duplicate.
+const already = settings.hooks.Stop.some(
+  (group) =>
+    Array.isArray(group?.hooks) &&
+    group.hooks.some((h) => typeof h?.command === "string" && (h.command.includes(hookPath) || h.command.includes(hookCommand)))
+);
 if (already) {
   console.error(`[install-hook] already registered in ${settingsPath}; nothing to do.`);
   process.exit(0);
