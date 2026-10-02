@@ -253,8 +253,15 @@ instead (`claude plugin install rutter@rutter`), pass `--config vault_path=/path
   fill in the plugin's notes-folder option, so rutter uses the default folder
   (`~/Documents/knowledge-vault`) unless `LIBRARIAN_VAULT_PATH` is set in the environment you launch
   Grok from; a line on stderr says when the default was used for that reason.
-- **Codex** does not run the plugin (it fills in none of the plugin's variables). Register the server
-  with `codex mcp add` and the hook with `npm run install-hook -- --client codex`, below.
+- **Codex needs a few extra steps.** It cannot use the plugin: it fills in none of a plugin's
+  variables and installs no hook. Set it up by hand from a clone (verified with Codex 0.160.0):
+  1. Register the server with `codex mcp add`, passing your notes path with `--env LIBRARIAN_VAULT_PATH=…`
+     ([`docs/getting-started.md`](./docs/getting-started.md), Step 5).
+  2. Install the hook with `npm run install-hook -- --client codex`, then trust it in Codex with
+     `/hooks`. Installing does not grant trust, and an untrusted hook never runs.
+  3. Export `LIBRARIAN_VAULT_PATH` in the shell that launches Codex. Its hooks see only that
+     environment, not `~/.claude/settings.json`; without it they write captures to the default folder.
+  4. Expect the summary line in Codex's final reply, since that is where its hook looks for it.
 - **Maintainers:** `dist/` is committed so the plugin works straight from a clone. Run
   `npm run build` and commit the result whenever `src/` changes.
 
