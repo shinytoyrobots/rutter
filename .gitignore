@@ -19,6 +19,7 @@ efforts/
 evals/
 HANDOFF.md
 DESIGN.md
+spec/history/
 .flow-index/
 
 # Memory-of-use lives in the vault's _librarian/ overlay, never in the code repo
