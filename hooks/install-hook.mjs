@@ -106,6 +106,8 @@ fs.renameSync(tmp, settingsPath);
 
 console.error(`[install-hook] registered the Stop hook in ${settingsPath}.`);
 if (client === "codex") {
+  console.error(`[install-hook] vault the hook will use: ${process.env.LIBRARIAN_VAULT_PATH ?? "~/Documents/knowledge-vault (default)"}.`);
+  console.error("[install-hook] Codex hooks read LIBRARIAN_VAULT_PATH from the environment Codex is launched with, not from config.toml.");
   console.error("[install-hook] Codex does not run a new hook until you trust it: start Codex, run /hooks, review the");
   console.error("[install-hook] Librarian Stop hook and trust it (installing did NOT grant trust). Then check");
   console.error("[install-hook] <vault>/_librarian/sessions/ after your next turn. Directives must be in the final reply.");

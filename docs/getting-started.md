@@ -60,6 +60,8 @@ The top-level `env` object sets environment variables for Claude Code sessions. 
 
 A shell-profile `export` also works, but only when `claude` launches from a shell that re-sourced the edited profile.
 
+**Codex does not read that file.** A Codex hook inherits only the environment Codex itself was launched with; a `shell_environment_policy` entry in `~/.codex/config.toml` does not reach it. If your notes are not in the default `~/Documents/knowledge-vault`, export `LIBRARIAN_VAULT_PATH` in the shell profile that launches Codex (and re-source it), or the hook will quietly write captures to the default location instead.
+
 Two other variables are optional. `LIBRARIAN_DB_PATH` moves the index, which defaults to `data/librarian.db` inside the repository and is resolved from the module's own location rather than your working directory. `LIBRARIAN_USER_LABEL` is a bare noun — `Robin`, not `Robin's` — used as "<label>'s work" in the descriptions your client receives.
 
 ## Step 3 — Capture your first memory by hand
@@ -180,7 +182,7 @@ The registered script always exits 0, so a failure inside capture can never brea
 npm run install-hook -- --client codex
 ```
 
-This merges into `~/.codex/hooks.json` (or `$CODEX_HOME/hooks.json`). Codex will not run a new hook until you trust it: start Codex, run `/hooks`, review the Librarian Stop hook, and trust it. The installer does not grant trust. If an equivalent hook is already registered inline in `~/.codex/config.toml`, the installer stops and tells you rather than stacking a second one. Codex hands the hook only the final assistant message of each turn, so a directive left in earlier commentary is not captured; the server's instructions teach the client to put it in the final reply.
+This merges into `~/.codex/hooks.json` (or `$CODEX_HOME/hooks.json`). The hook finds your notes through `LIBRARIAN_VAULT_PATH` in Codex's own environment (see Step 2), so export it before launching Codex. Codex will not run a new hook until you trust it: start Codex, run `/hooks`, review the Librarian Stop hook, and trust it. The installer does not grant trust. If an equivalent hook is already registered inline in `~/.codex/config.toml`, the installer stops and tells you rather than stacking a second one. Codex hands the hook only the final assistant message of each turn, so a directive left in earlier commentary is not captured; the server's instructions teach the client to put it in the final reply.
 
 **There is nothing to add to your `CLAUDE.md`.** The whole capture contract ships inside the server as MCP instructions, and reaches every client on connect. That contract covers when to leave a summary, its exact syntax, and how to write it. Setup is the hook, and that is all.
 
