@@ -249,7 +249,12 @@ instead (`claude plugin install rutter@rutter`), pass `--config vault_path=/path
 - **If you already registered the hook by hand** (`npm run install-hook`), remove that entry from
   `~/.claude/settings.json` when you add the plugin, or captures are attempted twice. The duplicate
   is detected and not stored twice, but it is wasted work.
-- **Grok and Codex** are not covered by the plugin. They still use `npm run install-hook`, below.
+- **Grok** picks the plugin up from your Claude Code install, server and hook included. It does not
+  fill in the plugin's notes-folder option, so rutter uses the default folder
+  (`~/Documents/knowledge-vault`) unless `LIBRARIAN_VAULT_PATH` is set in the environment you launch
+  Grok from; a line on stderr says when the default was used for that reason.
+- **Codex** does not run the plugin (it fills in none of the plugin's variables). Register the server
+  with `codex mcp add` and the hook with `npm run install-hook -- --client codex`, below.
 - **Maintainers:** `dist/` is committed so the plugin works straight from a clone. Run
   `npm run build` and commit the result whenever `src/` changes.
 

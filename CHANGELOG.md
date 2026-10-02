@@ -4,17 +4,27 @@ Notable changes to rutter, newest first. Detailed per-ship records — grounds,
 disclosed gaps, and what is being watched — are kept by the maintainer
 outside this repository.
 
+## v0.3.1 — 2026-10-02
+
+- **Hosts that don't fill in the plugin's options no longer break the server.**
+  Grok fills in `${CLAUDE_PLUGIN_ROOT}` and `${CLAUDE_PLUGIN_DATA}` but not the
+  plugin's notes-folder and name options, so the server searched a folder literally
+  named `${user_config.vault_path}` and found nothing, and told the client it was
+  reading "${user_config.user_label}'s work". An unresolved or empty setting is now
+  treated as unset: the default applies and a line on stderr says why. To point a
+  host like that at other notes, set `LIBRARIAN_VAULT_PATH` where it launches.
+- **No stray server when you work in this repo.** The plugin's server is declared
+  inside `plugin.json` rather than a root `.mcp.json`. Claude Code also reads a
+  root `.mcp.json` as a project server, where `${CLAUDE_PLUGIN_ROOT}` is never
+  filled in, so opening Claude in a clone showed a second `rutter` failing with
+  `CONNECTION_CLOSED` beside the working one.
+
 ## v0.3.0 — 2026-10-02
 
 - **Installable from GitHub.** The repository is now its own Claude Code plugin
   marketplace: `/plugin marketplace add shinytoyrobots/rutter`, then
   `/plugin install rutter@rutter`. Claude Code installs the dependencies from the
   lockfile, so there is no build step.
-- **No stray server when you work in this repo.** The plugin's server is declared
-  inside `plugin.json` rather than a root `.mcp.json`. Claude Code also reads a
-  root `.mcp.json` as a project server, where `${CLAUDE_PLUGIN_ROOT}` is never
-  filled in, so opening Claude in a clone showed a second `rutter` failing with
-  `CONNECTION_CLOSED` beside the working one.
 - **The index builds itself.** Installed as a plugin there is no clone and no
   `npm run reindex`, so a fresh install answered every search with "No notes
   matched". The server now builds its index when it starts if none exists, and
