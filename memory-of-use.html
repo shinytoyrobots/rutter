@@ -51,7 +51,7 @@
   <li><strong>One file per day, one line per outcome.</strong> Each separable thing a session decides or produces adds <strong>one curated line</strong> to that day's file — not the raw transcript, and not one line per session. A working session usually leaves three or four; the measured average over the first fortnight of real capture was 3.2. Those lines are its <strong>steps</strong>, and <code>librarian-recent</code> groups them back into a single account of that session when you read it.</li>
   <li><strong>Typed frontmatter.</strong> Each record carries a small typed header (the day, each session's identity and time, the curated summary, and the notes it touched by versioned identity).</li>
   <li><strong>You can read and edit it.</strong> It's your markdown, in your vault. Open it in Obsidian, edit it, commit it.</li>
-  <li><strong>It is never auto-deleted.</strong> Records are only ever appended to. The librarian has no prune or delete path that destroys memory-of-use. The Claude Code Stop hook fires at the end of <em>every</em> assistant turn, so the same session's summary is offered for capture many times — capture is <strong>idempotent per directive</strong>: an unchanged summary is a no-op (the file is left byte-identical, no duplicate entry), and a <em>changed</em> summary is appended as a <strong>revision</strong> after the earlier one. Nothing is ever overwritten or deleted.</li>
+  <li><strong>It is never auto-deleted.</strong> Records are only ever appended to. The librarian has no prune or delete path that destroys memory-of-use. The Claude Code / Grok / Codex Stop hook fires at the end of <em>every</em> assistant turn, so the same session's summary is offered for capture many times — capture is <strong>idempotent per directive</strong>: an unchanged summary is a no-op (the file is left byte-identical, no duplicate entry), and a <em>changed</em> summary is appended as a <strong>revision</strong> after the earlier one. Nothing is ever overwritten or deleted.</li>
 </ul>
 
 <p>A note reference is stored as a <strong>versioned identity</strong> — the vault-relative path plus a content-hash captured as it was read — so the reference still tells you <em>what you saw</em> even after the note changes later.</p>
@@ -87,9 +87,19 @@
 
 <h2 id="ambient-capture">2. Ambient capture — setting it up</h2>
 
-<p>Capture is <strong>ambient</strong>: it happens at session end with no action from you inside the session. It is wired through a Claude Code <strong>Stop hook</strong>.</p>
+<p>Capture is <strong>ambient</strong>: it happens after each turn with no action from you inside the session. It is wired through a Claude Code / Grok / Codex <strong>Stop hook</strong>.</p>
 
-<p><strong>Setup is one step</strong> — register the hook (<code>npm run install-hook</code>, or by hand; see <a href="getting-started.html#step-6">Step 6 of getting started</a>). There is nothing to add to your <code>CLAUDE.md</code>. The whole capture contract lives in the server's MCP (Model Context Protocol) instructions — a single source, quoted rather than restated everywhere else — and reaches every client on connect.</p>
+<p><strong>Setup is one step</strong> — register the hook (<code>npm run install-hook</code>, or by hand; see <a href="getting-started.html#step-6">Step 6 of getting started</a>). For Claude Code and Grok that registers it in <code>~/.claude/settings.json</code>. For Codex, build and run <code>npm run install-hook -- --client codex</code>, then review and trust the hook in Codex with <code>/hooks</code> — installing does not grant trust, and an untrusted hook never runs. There is nothing to add to your <code>CLAUDE.md</code>. The whole capture contract lives in the server's MCP (Model Context Protocol) instructions — a single source, quoted rather than restated everywhere else — and reaches every client on connect.</p>
+
+<p><strong>Host differences.</strong> All three hosts fire the same hook after each turn and store the same records. They differ in where the hook looks for the directive:</p>
+
+<ul>
+  <li><strong>Claude Code</strong> reads the whole transcript, so a directive anywhere in the session is found.</li>
+  <li><strong>Grok</strong> reads the Stop event's final assistant message. Grok clips that message at 32,768 characters, so a long turn can drop a trailing directive.</li>
+  <li><strong>Codex</strong> reads the Stop event's final assistant message and nothing earlier. A directive left in mid-turn commentary is not captured, so the client must put it in the final reply. Codex hooks also see only the environment Codex was launched with, so <code>LIBRARIAN_VAULT_PATH</code> must be exported where Codex starts.</li>
+</ul>
+
+<p>On every host, each firing keeps at most one session summary and one position — the last of each in the text it reads.</p>
 
 <p><strong>How the summary is produced (no AI in the server).</strong> The librarian server never summarizes anything — that would be inference, which it does not do. Instead your client writes the one-line summary <em>during</em> the session as a directive, and the hook lifts it out of the transcript verbatim:</p>
 
@@ -284,7 +294,7 @@ npm run gate 2026-07-13 2026-07-26 # counts within a date range</code></pre>
 
 <footer class="site">
   <div class="footer-inner">
-    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source and receipts on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/df2f8fc">main@df2f8fc</a> · <a href="sources.json">source hashes</a>.</p>
+    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source and receipts on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/624193a">main@624193a</a> (<a href="https://github.com/shinytoyrobots/rutter/releases/tag/v0.2.0">v0.2.0</a>) · <a href="sources.json">source hashes</a>.</p>
   </div>
 </footer>
 </body>

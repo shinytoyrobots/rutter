@@ -46,7 +46,7 @@
 <ul>
   <li><strong>Node 22 or newer.</strong> Check with <code>node -v</code>. npm warns at install time on an older Node — heed it, because the built-in <code>node:sqlite</code> this depends on will simply be missing. Verified on Node 26.</li>
   <li><strong>npm and git.</strong></li>
-  <li><strong>Claude Code.</strong> The four MCP (Model Context Protocol) tools work with any MCP client, but the Stop hook that powers ambient capture is Claude Code specific.</li>
+  <li><strong>Claude Code, Grok, or Codex.</strong> The four MCP (Model Context Protocol) tools work with any MCP client; the Stop hook that powers ambient capture runs in Claude Code, Grok, and Codex. Claude Code and Grok read it from <code>~/.claude/settings.json</code>; Codex reads it from <code>~/.codex/hooks.json</code> (or <code>$CODEX_HOME/hooks.json</code>).</li>
   <li><strong>A directory of markdown notes.</strong> Obsidian is what rutter was built against — it understands wikilinks and frontmatter — but nothing requires Obsidian itself.</li>
   <li><strong>No compiler toolchain.</strong> There are zero native dependencies. The index is Node's built-in SQLite, so there is nothing to build and no database to install.</li>
 </ul>
@@ -91,6 +91,8 @@ npm run reindex</code></pre>
 <p>The top-level <code>env</code> object sets environment variables for Claude Code sessions. It covers the MCP server and the Stop hook together, however you launch Claude Code — from the GUI, Raycast, an IDE terminal, or tmux. You will meet this same file again in Step 6, where the hook installer writes to it.</p>
 
 <p>A shell-profile <code>export</code> also works, but only when <code>claude</code> launches from a shell that re-sourced the edited profile.</p>
+
+<p><strong>Codex does not read that file.</strong> A Codex hook inherits only the environment Codex itself was launched with; a <code>shell_environment_policy</code> entry in <code>~/.codex/config.toml</code> does not reach it. If your notes are not in the default <code>~/Documents/knowledge-vault</code>, export <code>LIBRARIAN_VAULT_PATH</code> in the shell profile that launches Codex (and re-source it), or the hook will quietly write captures to the default location instead.</p>
 
 <p>Two other variables are optional. <code>LIBRARIAN_DB_PATH</code> moves the index, which defaults to <code>data/librarian.db</code> inside the repository and is resolved from the module's own location rather than your working directory. <code>LIBRARIAN_USER_LABEL</code> is a bare noun — <code>Robin</code>, not <code>Robin's</code> — used as "&lt;label&gt;'s work" in the descriptions your client receives.</p>
 
@@ -173,6 +175,12 @@ claude mcp add rutter --scope user -- node "$PWD/dist/stdio.js"</code></pre>
 <pre><code>[install-hook] already registered in /Users/you/.claude/settings.json; nothing to do.</code></pre>
 
 <p>The registered script always exits 0, so a failure inside capture can never break one of your sessions.</p>
+
+<p><strong>Codex.</strong> Codex reads hooks from its own config, so install there explicitly:</p>
+
+<pre><code>npm run install-hook -- --client codex</code></pre>
+
+<p>This merges into <code>~/.codex/hooks.json</code> (or <code>$CODEX_HOME/hooks.json</code>). The hook finds your notes through <code>LIBRARIAN_VAULT_PATH</code> in Codex's own environment (see Step 2), so export it before launching Codex. Codex will not run a new hook until you trust it: start Codex, run <code>/hooks</code>, review the Librarian Stop hook, and trust it. The installer does not grant trust. If an equivalent hook is already registered inline in <code>~/.codex/config.toml</code>, the installer stops and tells you rather than stacking a second one. Codex hands the hook only the final assistant message of each turn, so a directive left in earlier commentary is not captured; the server's instructions teach the client to put it in the final reply.</p>
 
 <div class="callout">
   <span class="label">Nothing goes in CLAUDE.md</span>
@@ -269,7 +277,7 @@ refs:
 
 <footer class="site">
   <div class="footer-inner">
-    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source and receipts on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/df2f8fc">main@df2f8fc</a> · <a href="sources.json">source hashes</a>.</p>
+    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source and receipts on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/624193a">main@624193a</a> (<a href="https://github.com/shinytoyrobots/rutter/releases/tag/v0.2.0">v0.2.0</a>) · <a href="sources.json">source hashes</a>.</p>
   </div>
 </footer>
 </body>
