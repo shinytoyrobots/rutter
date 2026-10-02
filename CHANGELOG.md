@@ -4,7 +4,7 @@ Notable changes to rutter, newest first. Detailed per-ship records — grounds,
 disclosed gaps, and what is being watched — are kept by the maintainer
 outside this repository.
 
-## Unreleased
+## v0.3.0 — 2026-10-02
 
 - **The index builds itself.** Installed as a plugin there is no clone and no
   `npm run reindex`, so a fresh install answered every search with "No notes

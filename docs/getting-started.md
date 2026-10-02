@@ -44,6 +44,8 @@ You should see your real note count:
 
 *Output shape verified against code; your paths, dates, and counts will differ.*
 
+You can skip this step in day-to-day use: the server builds its index the first time it starts and refreshes it whenever it next starts after your notes have changed. Running it by hand is the quickest way to confirm your path is right.
+
 **If it says `0 notes indexed`, stop here and fix the path.** An unreadable notes directory is not an error — you get a successful-looking reindex over nothing. Everything downstream will install cleanly and then recall nothing at all. Check the `vault:` line against where your notes actually are, re-export, and reindex again.
 
 ### Make the path stick
@@ -288,4 +290,4 @@ You now have ambient capture running end-to-end. Three things are worth reading 
 
 The project also measures whether any of this actually gets used. `npm run gate` shows the per-ISO-week count; [§5](./memory-of-use.md) explains what it is for.
 
-One habit to keep: re-run `npm run reindex` when your notes change materially. The index is a disposable cache — your files stay the source of truth.
+The server refreshes its index each time it starts, so a new session picks up changes to your notes on its own. Run `npm run reindex` when you want a refresh without restarting. The index is a disposable cache — your files stay the source of truth.

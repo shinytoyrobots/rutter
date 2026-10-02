@@ -1,6 +1,6 @@
 {
   "name": "rutter",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "description": "A record of what your AI sessions decided — and the receipts behind it. MCP server over a folder of markdown notes.",
   "license": "MIT",

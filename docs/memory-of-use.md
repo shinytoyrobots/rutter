@@ -180,7 +180,9 @@ Compare:
 **Where the contract lives — one place: the server's MCP instructions**
 (`SERVER_INSTRUCTIONS`), which every connected client receives on connect. That is
 the single source (SR-027): the README quotes it verbatim and a test fails if the
-copy drifts. Nothing goes in your `CLAUDE.md` — a paste-in exists only as the
+copy drifts. It has to fit in 2,048 characters, because Claude Code silently cuts
+a server's instructions there; a test holds the line, and guidance that only matters
+when *reporting* a result lives in the description of the tool that returns it. Nothing goes in your `CLAUDE.md` — a paste-in exists only as the
 README's documented fallback if captures refuse to land.
 
 **What the server does about style: nothing at all.** It stores the summary
@@ -271,9 +273,9 @@ supersession history, oldest event first.
 the date it was **formed** (its original `assert`) and, where there is one, the
 date it was last **revised**. A `reaffirm` re-endorses a stance without
 changing it, so it never moves the revision date — it shows up in the chain
-instead. The server instructions tell any connected client to report all of
-this as *your* recorded position rather than restating it as its own
-present-tense conclusion.
+instead. The `librarian-positions` tool description tells any connected client
+to report all of this as *your* recorded position rather than restating it as its
+own present-tense conclusion.
 
 **A retired position is a stub, not a deletion.** Where the most recent event
 for a topic is a `retire`, the answer is that retire event's own text —
@@ -292,12 +294,14 @@ letting one go quiet.
 
 **Reindex is the only trigger.** The three projection tables
 (`position_events`, `position_refs`, `positions`) are rebuilt wholesale from
-`_librarian/positions/*.md` at every `npm run reindex`, exactly like the note
+`_librarian/positions/*.md` at every reindex (`npm run reindex`, or the one the
+server runs itself when it starts and finds something changed), exactly like the note
 identity projection in §6, and are never patched incrementally. Consequences,
 both deliberate:
 
 - A position captured since your last reindex is **not** recalled until the
-  next one runs. That is a disclosed lag, not a silent gap.
+  next one runs — which happens by itself the next time the server starts. That
+  is a disclosed lag, not a silent gap.
 - Because recall never touches the capture path, capture cannot be disturbed by
   it. Session records, their bytes, and the position write path are unchanged
   by the fold running or by any query you make.
@@ -347,7 +351,7 @@ they were captured, and they are **never migrated, edited, or re-summarized** �
 memory-of-use is append-only (INV-3), and rewriting your own past record to look
 tidier would be a worse bug than the density.
 
-Instead the server's instructions ask your **client** to *report* recalled
+Instead the server's tool descriptions ask your **client** to *report* recalled
 summaries in plain language for whoever is asking — and that applies to every
 record, not just new ones. So when you ask "what was I working on?", Claude may
 answer in cleaner words than the stored line uses. That is the intended behavior:
@@ -375,12 +379,15 @@ receives on connect:
 > Recency questions → `librarian-recent`. Prior-engagement and content questions →
 > `librarian-search`. Consult them before reading files directly. Then
 > `librarian-get-note` to read a note in full. Write `librarian-session` summaries
-> to the style contract above. Report recalled summaries — including old, dense
-> ones — in plain language for whoever asked.
+> to the style contract above, and `librarian-position` lines for stances.
 
-So the instructions cover both directions of the memory: how a summary should be
-**written**, and how a recalled summary should be **read back**. Neither is
-enforced by the server; both travel to every client that connects.
+The reading-back half travels in the tool descriptions: `librarian-recent` asks the
+client to report recalled summaries — including old, dense ones — in plain language
+for whoever asked, and `librarian-positions` asks it to attribute a stance to you
+rather than adopt it. So between them the instructions and tool descriptions cover
+both directions of the memory: how a summary should be **written**, and how a
+recalled summary should be **read back**. Neither is enforced by the server; both
+travel to every client that connects.
 
 This matters because guidance in a project's `CLAUDE.md` only helps in that
 project. Instructions that ship *with the server* travel to every client and every

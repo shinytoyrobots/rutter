@@ -84,7 +84,8 @@ standard way an AI client connects to an outside source of data:
   key, or a list found by free text over recorded stances or by a note the positions reference.
   Each answer carries the date the stance was formed and the date it was last revised, so a client
   reports it as your recorded position rather than as its own conclusion. Answered from the last
-  reindex, so a position captured since then appears after the next one.
+  reindex, so a position captured since then appears after the next one — which the server runs
+  itself the next time it starts.
 
 The Stop hook runs in Claude Code, Grok, and Codex. The tools work with any MCP client. The
 server also carries its own usage guidance to every client that connects. There is nothing to
