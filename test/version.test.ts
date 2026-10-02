@@ -36,3 +36,23 @@ test("package.json, the plugin manifest, the server and the CHANGELOG all name t
   assert.ok(newest, "the CHANGELOG has a versioned heading");
   assert.equal(newest[1], pkg, "the newest CHANGELOG heading is this release (no stray 'Unreleased' ahead of it)");
 });
+
+test("the repository's own marketplace lists this plugin, from the repo root, and leaves the version to plugin.json", () => {
+  // `/plugin marketplace add shinytoyrobots/rutter` reads this file. If its entry drifted
+  // from the manifest (a different name, a pinned version that goes stale) the install
+  // command in the README would quietly stop working or install an old release.
+  const market = JSON.parse(fs.readFileSync(path.join(root, ".claude-plugin", "marketplace.json"), "utf8")) as {
+    name: string;
+    plugins: { name: string; source: string; version?: string }[];
+  };
+  const manifest = JSON.parse(fs.readFileSync(path.join(root, ".claude-plugin", "plugin.json"), "utf8")) as { name: string };
+  assert.equal(market.name, "rutter", "the marketplace id is the second half of rutter@rutter in the README");
+  assert.equal(market.plugins.length, 1);
+  assert.equal(market.plugins[0]!.name, manifest.name, "the entry names the plugin the manifest declares");
+  assert.equal(market.plugins[0]!.source, ".", "the plugin is the repository root");
+  assert.equal(
+    market.plugins[0]!.version,
+    undefined,
+    "no version on the entry: plugin.json is the single authority, so there is nothing to forget to bump"
+  );
+});
