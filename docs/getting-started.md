@@ -10,7 +10,7 @@ Eight steps. Each one ends with something you can check.
 
 - **Node 22 or newer.** Check with `node -v`. npm warns at install time on an older Node — heed it, because the built-in `node:sqlite` this depends on will simply be missing. Verified on Node 26.
 - **npm and git.**
-- **Claude Code or Grok.** The four MCP tools work with any MCP client; the Stop hook that powers ambient capture runs in both Claude Code and Grok (both read it from `~/.claude/settings.json`).
+- **Claude Code, Grok, or Codex.** The four MCP tools work with any MCP client; the Stop hook that powers ambient capture runs in Claude Code, Grok, and Codex. Claude Code and Grok read it from `~/.claude/settings.json`; Codex reads it from `~/.codex/hooks.json` (or `$CODEX_HOME/hooks.json`).
 - **A directory of markdown notes.** Obsidian is what rutter was built against — it understands wikilinks and frontmatter — but nothing requires Obsidian itself.
 - **No compiler toolchain.** There are zero native dependencies. The index is Node's built-in SQLite, so there is nothing to build and no database to install.
 
@@ -173,6 +173,14 @@ The installer is deliberately cautious. It merges into `~/.claude/settings.json`
 ```
 
 The registered script always exits 0, so a failure inside capture can never break one of your sessions.
+
+**Codex.** Codex reads hooks from its own config, so install there explicitly:
+
+```bash
+npm run install-hook -- --client codex
+```
+
+This merges into `~/.codex/hooks.json` (or `$CODEX_HOME/hooks.json`). Codex will not run a new hook until you trust it: start Codex, run `/hooks`, review the Librarian Stop hook, and trust it. The installer does not grant trust. If an equivalent hook is already registered inline in `~/.codex/config.toml`, the installer stops and tells you rather than stacking a second one. Codex hands the hook only the final assistant message of each turn, so a directive left in earlier commentary is not captured; the server's instructions teach the client to put it in the final reply.
 
 **There is nothing to add to your `CLAUDE.md`.** The whole capture contract ships inside the server as MCP instructions, and reaches every client on connect. That contract covers when to leave a summary, its exact syntax, and how to write it. Setup is the hook, and that is all.
 

@@ -19,3 +19,6 @@ _librarian/
 
 # Agent working state (worktrees, per-agent memory) — never part of the repo
 .claude/
+
+# Local planning notes and handoffs (not part of the repo)
+efforts/.notes/

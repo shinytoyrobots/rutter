@@ -34,7 +34,7 @@ markdown:
 - **You can read and edit it.** It's your markdown, in your vault. Open it in
   Obsidian, edit it, commit it.
 - **It is never auto-deleted.** Records are only ever appended to. The librarian
-  has no prune or delete path that destroys memory-of-use. The Claude Code / Grok Stop
+  has no prune or delete path that destroys memory-of-use. The Claude Code / Grok / Codex Stop
   hook fires at the end of *every* assistant turn, so the same session's summary
   is offered for capture many times — capture is **idempotent per directive**: an
   unchanged summary is a no-op (the file is left byte-identical, no duplicate
@@ -93,11 +93,14 @@ Everything about this is best-effort and never blocks a capture:
 
 ## 2. Ambient capture — setting it up
 
-Capture is **ambient**: it happens at session end with no action from you inside
-the session. It is wired through a Claude Code / Grok **Stop hook**.
+Capture is **ambient**: it happens after each turn with no action from you inside
+the session. It is wired through a Claude Code / Grok / Codex **Stop hook**.
 
 **Setup is one step** — register the hook (`npm run install-hook`, or by hand; see
-the README). There is nothing to add to your `CLAUDE.md`. From v3.4.0 the whole
+the README). For Claude Code and Grok that registers it in `~/.claude/settings.json`.
+For Codex, build and run `npm run install-hook -- --client codex`, then review and
+trust the hook in Codex with `/hooks` — installing does not grant trust, and an
+untrusted hook never runs. There is nothing to add to your `CLAUDE.md`. From v3.4.0 the whole
 capture contract lives in `SERVER_INSTRUCTIONS` in `src/server.ts` — the single
 source, quoted rather than restated everywhere else — and reaches every client on
 connect as MCP server instructions. Before v3.4.0 the emission trigger and the
