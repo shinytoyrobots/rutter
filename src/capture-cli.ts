@@ -6,13 +6,13 @@ import { capturePosition, overStanceWordCeiling, stanceWordCount } from "./posit
 import { parsePositionDirective, findEmptyStancePositionDirective } from "./position-directive.js";
 
 /**
- * Entry point the Claude Code Stop hook runs at session end. It reads a JSON
+ * Entry point the Stop hook runs (Claude Code, Grok, Codex -- after each turn). It reads a JSON
  * payload on stdin and appends AT MOST ONE session entry and AT MOST ONE
  * position event. It performs no inference and no network I/O (INV-6, INV-1)
  * -- it only lifts already-client-written directives out of the transcript
  * and stores them.
  *
- * Three accepted stdin shapes:
+ * Four accepted stdin shapes:
  *   1. A direct capture payload: {"summary": "...", "refs": [...], "sessionId": "...", "cwd": "...", "position": "..."}
  *   2. A Claude Code Stop payload: {"transcript_path": "...", "session_id": "...", "cwd": "..."}
  *      -- from which the last `librarian-session` directive AND the last
@@ -26,6 +26,10 @@ import { parsePositionDirective, findEmptyStancePositionDirective } from "./posi
  *      wins and never consults `lastAssistantMessage`; this is safe because
  *      `lastAssistantMessage` is a subset of the transcript extract (it cannot
  *      narrow the scan onto a source that hides a directive the extract held).
+ *   4. A Codex Stop payload: `session_id`, `cwd`, and `last_assistant_message`
+ *      (snake_case). Handled by the same fallback as (3) with the same
+ *      precedence; only directives in the FINAL assistant message are seen.
+ *      See codex-compatibility.md.
  * Anything else, or an absent directive of a given kind, is a clean no-op for
  * THAT kind (SR-004 for a session summary, the SR-057 analogue for a position).
  *
@@ -59,6 +63,11 @@ interface StopPayload {
    * so no `transcriptPath` alias is needed. See docs/grok-stop-adapter.md.
    */
   lastAssistantMessage?: string;
+  /**
+   * Codex Stop field: the same finished assistant reply, snake_case. Used only
+   * when Grok's camelCase field is not a string; the two are never combined.
+   */
+  last_assistant_message?: string | null;
   /** Working directory of the session (Claude Code Stop field, also accepted direct). */
   cwd?: string;
   /**
@@ -157,9 +166,23 @@ function resolveDirective(payload: StopPayload, getTranscriptText: () => string)
     const fromTranscript = parseSessionDirective(getTranscriptText());
     if (fromTranscript) return fromTranscript; // Claude path unchanged
   }
-  if (typeof payload.lastAssistantMessage === "string") {
-    return parseSessionDirective(payload.lastAssistantMessage); // Grok Stop fallback (may be null)
+  const message = assistantMessage(payload);
+  if (message !== null) {
+    return parseSessionDirective(message); // Grok/Codex Stop fallback (may be null)
   }
+  return null;
+}
+
+/**
+ * The Stop event's finished assistant reply, for hosts whose transcript carries
+ * no directive. Grok's camelCase field wins when it is a string; otherwise
+ * Codex's snake_case field. Exactly one source is returned -- never a
+ * concatenation (see `positionDirectiveSourceText`). Non-string values
+ * (null, numbers, objects) are treated as absent.
+ */
+function assistantMessage(payload: StopPayload): string | null {
+  if (typeof payload.lastAssistantMessage === "string") return payload.lastAssistantMessage;
+  if (typeof payload.last_assistant_message === "string") return payload.last_assistant_message;
   return null;
 }
 
@@ -262,8 +285,9 @@ function positionDirectiveSourceText(payload: StopPayload, getTranscriptText: ()
   // (2) Grok Stop fallback: the transcript extract held no position comment
   //     (on Grok it is `updates.jsonl`, which never does); scan the assistant
   //     text instead. Subset invariant applies, as for the session path.
-  if (typeof payload.lastAssistantMessage === "string") {
-    return payload.lastAssistantMessage;
+  const message = assistantMessage(payload);
+  if (message !== null) {
+    return message;
   }
   // (3) A transcript path but no `lastAssistantMessage`: preserve today's
   //     "there was a source" behavior -- return the extract so the caller runs
