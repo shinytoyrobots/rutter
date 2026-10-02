@@ -10,11 +10,31 @@
   "homepage": "https://shinytoyrobots.github.io/rutter/",
   "repository": "https://github.com/shinytoyrobots/rutter",
   "license": "MIT",
-  "keywords": ["memory", "notes", "obsidian", "markdown", "recall", "mcp"],
+  "keywords": [
+    "memory",
+    "notes",
+    "obsidian",
+    "markdown",
+    "recall",
+    "mcp"
+  ],
   "icon": "./assets/icon.png",
   "documentationUrl": "https://shinytoyrobots.github.io/rutter/",
   "supportUrl": "https://github.com/shinytoyrobots/rutter/issues",
   "privacyPolicyUrl": "https://github.com/shinytoyrobots/rutter#privacy-policy",
+  "mcpServers": {
+    "rutter": {
+      "command": "node",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/dist/stdio.js"
+      ],
+      "env": {
+        "LIBRARIAN_VAULT_PATH": "${user_config.vault_path}",
+        "LIBRARIAN_USER_LABEL": "${user_config.user_label}",
+        "LIBRARIAN_DB_PATH": "${CLAUDE_PLUGIN_DATA}/librarian.db"
+      }
+    }
+  },
   "userConfig": {
     "vault_path": {
       "type": "directory",

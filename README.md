@@ -307,8 +307,7 @@ src/
 hooks/
   librarian-stop.sh  Claude Code / Grok / Codex Stop hook -> capture-cli
   hooks.json         registers that hook when installed as a Claude plugin
-.claude-plugin/      plugin manifest (name, version, notes-folder option, listing links)
-.mcp.json            how the plugin starts the server
+.claude-plugin/      plugin manifest (name, version, how it starts the server, notes-folder option, listing links) and marketplace
 dist/                committed build, so the plugin runs straight from a clone
 spec/                the executable spec — scenarios, requirements, conformance mapping
 test/                node:test suite (temp fixture directories; never touches your real notes)
