@@ -14,6 +14,15 @@ Eight steps. Each one ends with something you can check.
 - **A directory of markdown notes.** Obsidian is what rutter was built against — it understands wikilinks and frontmatter — but nothing requires Obsidian itself.
 - **No compiler toolchain.** There are zero native dependencies. The index is Node's built-in SQLite, so there is nothing to build and no database to install.
 
+**Using Codex? It takes a few extra steps.** Codex cannot use rutter's one-command plugin install: it fills in none of a plugin's variables and installs no hook. So you set it up by hand from this clone, and the differences are easy to miss:
+
+1. Register the server with `codex mcp add`, passing your notes path at registration (Step 5).
+2. Install the Stop hook with `npm run install-hook -- --client codex`, then trust it with `/hooks` (Step 6). Installing does not grant trust, and an untrusted hook never runs.
+3. Export `LIBRARIAN_VAULT_PATH` in the shell that launches Codex, because its hooks see only that environment, not `~/.claude/settings.json` (Step 2).
+4. Expect the summary line in Codex's final reply, since that is where its hook looks for it.
+
+Verified with Codex 0.160.0 (October 2026).
+
 ## Step 1 — Clone and install
 
 ```bash
