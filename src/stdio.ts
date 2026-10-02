@@ -18,6 +18,7 @@ async function main(): Promise<void> {
   // stop the server -- it carries on with whatever index it already has.
   try {
     const result = ensureIndex();
+    if (result.warning) console.error(`[rutter] ${result.warning}`);
     if (result.built && result.stats) {
       console.error(
         `[rutter] index rebuilt (${result.reason}): ${result.stats.notes} notes in ${result.stats.ms}ms`

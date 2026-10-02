@@ -15,15 +15,25 @@ export interface VaultNote {
   mtime: number;
 }
 
-/** Depth-first walk of the vault yielding absolute paths to `.md` files. */
-export function* walkMarkdown(root: string = config.vaultPath): Generator<string> {
+/**
+ * Depth-first walk of the vault yielding absolute paths to `.md` files.
+ *
+ * A directory that cannot be read is skipped, so one locked folder never aborts an
+ * index. `onUnreadable` lets a caller that must NOT act on a partial picture (the
+ * startup staleness check) find out that the walk was incomplete.
+ */
+export function* walkMarkdown(
+  root: string = config.vaultPath,
+  onUnreadable?: (dir: string, err: unknown) => void
+): Generator<string> {
   const stack: string[] = [root];
   while (stack.length) {
     const dir = stack.pop()!;
     let entries: fs.Dirent[];
     try {
       entries = fs.readdirSync(dir, { withFileTypes: true });
-    } catch {
+    } catch (err) {
+      onUnreadable?.(dir, err);
       continue;
     }
     for (const entry of entries) {
@@ -95,4 +105,22 @@ export function readNote(absPath: string, root: string = config.vaultPath): Vaul
     body,
     mtime,
   };
+}
+
+/**
+ * How many `.md` files the memory-of-use overlay holds (session records plus position
+ * streams). Only a directory that does not exist yet counts as empty; any other
+ * failure (permissions, a file where a directory should be) is thrown, because
+ * reporting zero would let an unreadable input pass for an unchanged one.
+ */
+export function countOverlayMarkdown(): number {
+  let total = 0;
+  for (const dir of [config.sessionsDir, config.positionsDir]) {
+    try {
+      total += fs.readdirSync(dir).filter((n) => n.toLowerCase().endsWith(".md")).length;
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+    }
+  }
+  return total;
 }
