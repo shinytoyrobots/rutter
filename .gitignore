@@ -1,4 +1,12 @@
 node_modules/
+
+# Secrets and credentials
+.env
+.env.*
+*.pem
+*.key
+credentials*.json
+
 data/
 *.db
 *.db-shm
