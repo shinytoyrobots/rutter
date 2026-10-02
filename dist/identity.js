@@ -207,7 +207,7 @@ export function distinctRefs(records) {
     const seen = new Map();
     for (const r of records) {
         for (const ref of r.refs)
-            seen.set(`${ref.path} ${ref.hash}`, ref);
+            seen.set(`${ref.path}\u0000${ref.hash}`, ref);
     }
     return [...seen.values()];
 }

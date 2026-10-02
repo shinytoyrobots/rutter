@@ -231,7 +231,7 @@ function pathResolvesOnDisk(vaultRoot: string, hashIndex: VaultHashIndex, relPat
 export function distinctRefs(records: SessionRecord[]): VersionedRef[] {
   const seen = new Map<string, VersionedRef>();
   for (const r of records) {
-    for (const ref of r.refs) seen.set(`${ref.path} ${ref.hash}`, ref);
+    for (const ref of r.refs) seen.set(`${ref.path}\u0000${ref.hash}`, ref);
   }
   return [...seen.values()];
 }
