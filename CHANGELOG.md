@@ -4,6 +4,16 @@ Notable changes to rutter, newest first. Detailed per-ship records — grounds,
 disclosed gaps, and what is being watched — are kept by the maintainer
 outside this repository.
 
+## v0.3.2 — 2026-10-02
+
+- **A credential in your git remote is no longer copied into your notes.** Each
+  session record stores the git remote URL of the working directory, read from
+  `.git/config`. A remote written as `https://<token>@host/org/repo` would have put
+  that token into a markdown file that may be synced or committed. Any user-info
+  part, query string or fragment is now removed before the URL is stored. Ordinary
+  remotes, including `git@host:org/repo.git`, are unchanged. Records already written
+  are never edited (they are append-only); in the author's vault none contained one.
+
 ## v0.3.1 — 2026-10-02
 
 - **Hosts that don't fill in the plugin's options no longer break the server.**

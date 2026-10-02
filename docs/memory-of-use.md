@@ -69,7 +69,9 @@ session happened** — automatically, with nothing for you to name or configure:
   you supply** — being asked to name it would make capture non-ambient.
 - **`repo`** — the `origin` URL, read straight out of `.git/config`. The librarian
   never runs `git` (no subprocess) and never contacts the remote (no network); the
-  URL is just a string it found in a file.
+  URL is just a string it found in a file. Any token or password written into the
+  URL (`https://<token>@host/…`) and any `?query` are removed before it is stored,
+  so a credential in your git config is never copied into your notes.
 
 Everything about this is best-effort and never blocks a capture:
 
