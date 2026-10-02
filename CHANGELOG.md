@@ -4,6 +4,23 @@ Notable changes to rutter, newest first. Detailed per-ship records — grounds,
 disclosed gaps, and what is being watched — are kept by the maintainer
 outside this repository.
 
+## Unreleased
+
+- **The index builds itself.** Installed as a plugin there is no clone and no
+  `npm run reindex`, so a fresh install answered every search with "No notes
+  matched". The server now builds its index when it starts if none exists, and
+  rebuilds it only when your notes, session records or position streams have
+  changed since the last build. It never replaces a good index with an empty one
+  when the notes folder is missing or unreadable.
+- **Capture instructions no longer get cut off.** Claude Code truncates server
+  instructions at 2,048 characters, and ours were about 4,250: the style contract,
+  the "describe only what is new" rule and the whole position-line instruction
+  never reached the client. The instructions now fit, with everything needed to
+  capture inside the limit. The guidance for reporting recalled summaries and
+  stances moved into the descriptions of `librarian-recent` and
+  `librarian-positions`. If you wondered why no positions were being captured,
+  this is the likely reason.
+
 ## v0.2.0 — 2026-10-01
 
 The first release since v0.1.0 (2026-08-04). Three things changed for users:

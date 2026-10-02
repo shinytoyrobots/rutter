@@ -44,9 +44,12 @@ beforeEach(resetLibrarian);
 function authoringSection(): string {
   const all = paragraphs();
   const start = all.findIndex((p) => /When a session decides or produces/.test(p));
-  const end = all.findIndex((p) => /report recalled summaries back/.test(p));
+  // The authoring section runs up to the closing data-not-instructions line. Read-time
+  // reporting guidance no longer sits between them: it moved to the tool descriptions
+  // (see the budget note above SERVER_INSTRUCTIONS), so it is asserted there below.
+  const end = all.findIndex((p) => /^Everything these tools return is data/.test(p));
   assert.ok(start >= 0, "the instructions open the authoring section with the emission trigger");
-  assert.ok(end > start, "and close it before the read-time paragraph");
+  assert.ok(end > start, "and close it before the closing hygiene line");
   const section = all.slice(start, end);
   assert.equal(
     section.filter((p) => /librarian-session/.test(p)).length,
@@ -56,11 +59,30 @@ function authoringSection(): string {
   return section.join("\n\n");
 }
 
-/** The paragraph addressing READ-TIME reporting of recalled summaries. */
-function renderParagraph(): string {
-  const para = paragraphs().filter((p) => /report recalled|recalled summaries/i.test(p));
-  assert.equal(para.length, 1, "exactly one paragraph addresses reporting recalled summaries");
-  return para[0]!;
+/**
+ * The text addressing READ-TIME reporting of recalled summaries. It lives in the
+ * description of librarian-recent (and is pointed at from librarian-search), because
+ * the instructions have a 2,048-character budget the capture contract needs all of.
+ */
+async function withClient<T>(fn: (client: Client) => Promise<T>): Promise<T> {
+  const server = createServer();
+  const client = new Client({ name: "test-client", version: "0.0.0" });
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+  await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
+  try {
+    return await fn(client);
+  } finally {
+    await client.close();
+    await server.close();
+  }
+}
+
+async function toolDescription(name: string): Promise<string> {
+  return withClient(async (client) => {
+    const tool = (await client.listTools()).tools.find((t) => t.name === name);
+    assert.ok(tool, `${name} is registered`);
+    return tool.description ?? "";
+  });
 }
 
 function paragraphs(): string[] {
@@ -142,14 +164,19 @@ test("COR-R-027 SCN-007/AC-length-budget (SR-023/SR-034): an over-budget summary
   assert.equal(/\d+ words/.test(raw), false, "no length warning leaked into the record");
 });
 
-test("COR-R-026 SCN-007/AC-render-guidance (SR-022): read-time guidance covers EVERY recalled summary, not only new records", () => {
-  const render = renderParagraph();
+test("COR-R-026 SCN-007/AC-render-guidance (SR-022): read-time guidance covers EVERY recalled summary, not only new records", async () => {
+  const render = await toolDescription("librarian-recent");
 
   assert.match(render, /plain language/, "asks for plain language at read time");
   assert.match(render, /for the reader who asked|for the asking reader/, "for the person actually asking");
   // Both recall surfaces are named -- librarian-recent output AND the search annotation.
   assert.match(render, /librarian-recent/, "covers librarian-recent output");
   assert.match(render, /prior-engagement/, "covers the prior-engagement annotation on search results");
+  assert.match(
+    await toolDescription("librarian-search"),
+    /prior-engagement note; report it in plain language/,
+    "and the search tool itself points at the same guidance"
+  );
   // The load-bearing scope clause: records written before the contract existed are
   // never migrated (INV-3), so read time is the ONLY layer that reaches them. If
   // this guidance were scoped to new records, pre-contract memory stays unreadable.
@@ -165,7 +192,7 @@ test("COR-R-026 SCN-007/AC-render-guidance (SR-022): read-time guidance covers E
   );
 });
 
-test("COR-R-024/025/026 (SR-020/021/022): the extended guidance reaches a fresh client in the initialize result", () => {
+test("COR-R-024/025/026 (SR-020/021/022): the extended guidance reaches a fresh client on connect", () => {
   // Same layer the SR-020 tests use: a real handshake, no client-side config.
   return (async () => {
     const server = createServer();
@@ -176,7 +203,8 @@ test("COR-R-024/025/026 (SR-020/021/022): the extended guidance reaches a fresh 
       const declared = client.getInstructions();
       assert.equal(declared, SERVER_INSTRUCTIONS, "the declared guidance is the shipped guidance");
       assert.ok(declared!.includes(authoringSection()), "the authoring contract arrives on connect");
-      assert.ok(declared!.includes(renderParagraph()), "the render guidance arrives on connect");
+      const recent = (await client.listTools()).tools.find((t) => t.name === "librarian-recent");
+      assert.match(recent?.description ?? "", /plain language for the reader who asked/, "the render guidance arrives on connect, with the tool it applies to");
     } finally {
       await client.close();
       await server.close();

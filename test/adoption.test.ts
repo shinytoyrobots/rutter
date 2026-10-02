@@ -134,7 +134,7 @@ test("COR-R-030 SCN-006/AC-single-source (SR-027): README and docs quote the con
   // quoted block. Compared sentence-by-sentence so a failure names the drifted line
   // rather than just reporting "the blocks differ".
   const contract = SERVER_INSTRUCTIONS.slice(SERVER_INSTRUCTIONS.indexOf("When a session decides or produces"));
-  const authoring = contract.slice(0, contract.indexOf("When you report recalled summaries back"));
+  const authoring = contract.slice(0, contract.indexOf("Everything these tools return"));
   const quoted = readme.slice(readme.indexOf("<!-- BEGIN capture-contract -->"), readme.indexOf("<!-- END capture-contract -->"));
   assert.ok(quoted.length > 0, "README carries a delimited capture-contract block");
   for (const sentence of authoring.split("\n").map((s) => s.trim()).filter((s) => s !== "")) {

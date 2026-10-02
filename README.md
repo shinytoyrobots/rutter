@@ -193,18 +193,16 @@ the contract; a test (COR-R-030) fails if this copy drifts from it.
 <!-- BEGIN capture-contract -->
 > When a session decides or produces something worth recalling later, leave a session summary -- emit one directive line, in this form:
 >
-> `<!-- librarian-session {"summary":"<one plain-English line>","refs":["<paths touched, relative to the knowledge base>"]} -->`
+> <!-- librarian-session {"summary":"<one plain-English line>","refs":["<paths touched, relative to the knowledge base>"]} -->
 >
-> Emit a line for each separable thing as you finish it, rather than saving everything for one line at the end; omit trivial work entirely. A capture hook lifts the newest such line after each turn; nothing else is needed, and no tool call records it.
+> Emit a line for each separable thing as you finish it, rather than saving everything for one line at the end; omit trivial work entirely. A capture hook lifts the newest such line after each turn; nothing else is needed, and no tool call records it. A later line describes ONLY what is new since your previous one.
 >
-> If you emit another directive later in the same session, describe ONLY what is new since your previous one -- do not restate or re-summarize earlier lines. A session's lines are stored as its successive steps and shown to the reader together, so restating produces near-identical duplicates.
+> Write each line for a smart reader in a hurry who was not in this session: lead with what was decided or produced, prefer common words to this session's shorthand, and expand or avoid codenames, version tags and abbreviations this session invented (terms the vault itself uses are fine). Aim for about 40 words and stop by 60 -- one line, not a build log; it is stored verbatim.
 >
-> Write each line for a smart reader in a hurry who was not in this session: lead with what was decided or produced, prefer common words to this session's shorthand, and expand or avoid codenames, version tags and abbreviations this session invented (terms the vault itself uses are fine). Aim for about 40 words and stop by 60 -- one line, not a build log; it is stored verbatim, so nothing downstream will clarify it later.
->
-> When you form, change, reaffirm, or retire a stance on a topic, leave a position line too: `<!-- librarian-position POSITION assert|revise|reaffirm|retire <topic-key>: <stance> -->` -- stored separately from session summaries, byte-verbatim, and rare (most sessions emit none).
+> When you form, change, reaffirm, or retire a stance on a topic, leave a position line too: `<!-- librarian-position POSITION assert|revise|reaffirm|retire <topic-key>: <stance> -->` -- stored separately, byte-verbatim, and rare (most sessions emit none).
 <!-- END capture-contract -->
 
-The last paragraph is the **style contract** (see
+The paragraph beginning "Write each line" is the **style contract** (see
 [`docs/memory-of-use.md`](./docs/memory-of-use.md) §2) — the only thing standing between you
 and a directory full of summaries you can't read in six months. The server will not help here:
 it stores what it is given, verbatim, whatever style it is in. An unfilled template is the
@@ -230,6 +228,9 @@ folder of notes to search — and starts the server and the Stop hook on its own
 - **Where it keeps things.** The search index lives in the plugin's own data folder
   (`~/.claude/plugins/data/…`) and survives updates. Session records go in `_librarian/` inside
   your notes folder.
+- **The index looks after itself.** The server builds it the first time it starts, and rebuilds it
+  when it next starts after your notes, session records or position streams have changed. Start a
+  new session to pick up changes made mid-session.
 - **If you already registered the hook by hand** (`npm run install-hook`), remove that entry from
   `~/.claude/settings.json` when you add the plugin, or captures are attempted twice. The duplicate
   is detected and not stored twice, but it is wasted work.
@@ -252,7 +253,7 @@ claude mcp add rutter --scope user -- node "$PWD/dist/stdio.js"
 Without it the server is project-local to this repository — invisible from the
 directories where you actually work.
 
-Then reindex whenever your notes change materially (`npm run reindex`). Ask things like
+The server refreshes its index when it starts, so a new session picks up changes on its own; run `npm run reindex` to refresh without restarting. Ask things like
 *"search my notes for the thing I did about X"* and the client will call `librarian-search`.
 
 ## Project layout
