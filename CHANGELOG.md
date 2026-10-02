@@ -10,6 +10,11 @@ outside this repository.
   marketplace: `/plugin marketplace add shinytoyrobots/rutter`, then
   `/plugin install rutter@rutter`. Claude Code installs the dependencies from the
   lockfile, so there is no build step.
+- **No stray server when you work in this repo.** The plugin's server is declared
+  inside `plugin.json` rather than a root `.mcp.json`. Claude Code also reads a
+  root `.mcp.json` as a project server, where `${CLAUDE_PLUGIN_ROOT}` is never
+  filled in, so opening Claude in a clone showed a second `rutter` failing with
+  `CONNECTION_CLOSED` beside the working one.
 - **The index builds itself.** Installed as a plugin there is no clone and no
   `npm run reindex`, so a fresh install answered every search with "No notes
   matched". The server now builds its index when it starts if none exists, and
