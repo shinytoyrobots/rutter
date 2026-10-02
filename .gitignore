@@ -7,9 +7,11 @@ data/
 .DS_Store
 *.log
 
-# flow working artifacts (spec/, evals/, dissents, shipped/ ARE committed)
-efforts/*/flow-state.yaml
-efforts/*/generations/
+# Flow working artifacts, design notes, and handoffs — not part of the published repo
+efforts/
+evals/
+HANDOFF.md
+DESIGN.md
 .flow-index/
 
 # Memory-of-use lives in the vault's _librarian/ overlay, never in the code repo
@@ -19,6 +21,3 @@ _librarian/
 
 # Agent working state (worktrees, per-agent memory) — never part of the repo
 .claude/
-
-# Local planning notes and handoffs (not part of the repo)
-efforts/.notes/
