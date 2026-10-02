@@ -1,8 +1,8 @@
 # Changelog
 
 Notable changes to rutter, newest first. Detailed per-ship records — grounds,
-disclosed gaps, and what is being watched — live under
-`efforts/<effort>/shipped/<ship>/comms/`.
+disclosed gaps, and what is being watched — are kept by the maintainer
+outside this repository.
 
 ## v0.2.0 — 2026-10-01
 
