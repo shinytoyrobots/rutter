@@ -1,7 +1,7 @@
 {
   "name": "rutter",
   "displayName": "rutter",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A record of what your AI sessions decided, and the receipts behind it. Search your markdown notes and recall what past sessions decided, all on your own machine.",
   "author": {
     "name": "Robin Cannon",

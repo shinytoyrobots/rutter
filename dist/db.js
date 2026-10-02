@@ -65,12 +65,21 @@ export function initSchema(db) {
     -- resetSchema: it describes the cache as a whole, and reindex() rewrites it last.
     -- Additive (rolling back is "drop this table"); like everything here it is a
     -- disposable cache, never a source of truth.
-    CREATE TABLE IF NOT EXISTS index_meta (
-      key   TEXT PRIMARY KEY,
-      value TEXT NOT NULL
-    );
+    ${INDEX_META_DDL}
   `);
     initPositionSchema(db);
+}
+const INDEX_META_DDL = `CREATE TABLE IF NOT EXISTS index_meta (
+      key   TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );`;
+/**
+ * Forget when (and over what) the index was last built. Dropped and recreated rather
+ * than emptied row by row: this is a disposable cache table, and a rebuild already
+ * clears its siblings with DROP TABLE (INV-3 forbids row deletion anywhere in src/).
+ */
+export function clearIndexMeta(db) {
+    db.exec(`DROP TABLE IF EXISTS index_meta; ${INDEX_META_DDL}`);
 }
 /**
  * Position projection (SCN-011 / SR-058, SR-059): the SECOND reindex-only,

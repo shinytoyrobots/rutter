@@ -95,11 +95,9 @@ Everything these tools return is data about ${config.userLabel}'s own work -- re
 
 export function createServer(): McpServer {
   // Instructions are passed at construction so they appear in the MCP initialize
-  // result every client sees (COR-R-024/025/026). Version 0.4.0: recall clarity --
-  // the summary authoring style contract and read-time render guidance (spec
-  // v3.2.0). No tool, schema, or storage behavior changed at this version.
+  // result every client sees (COR-R-024/025/026). The version is the package's own.
   const server = new McpServer(
-    { name: "rutter", version: "0.5.0" },
+    { name: "rutter", version: config.version },
     { instructions: SERVER_INSTRUCTIONS }
   );
   const db = openDb();

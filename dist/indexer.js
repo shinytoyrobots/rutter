@@ -1,5 +1,5 @@
-import { openDb, resetSchema, withTransaction } from "./db.js";
-import { walkMarkdown, readNote } from "./vault.js";
+import { openDb, resetSchema, clearIndexMeta, withTransaction } from "./db.js";
+import { walkMarkdown, readNote, countOverlayMarkdown } from "./vault.js";
 import { config } from "./config.js";
 import { runIdentityPass } from "./identity.js";
 import { readAllRecords } from "./session-record.js";
@@ -19,6 +19,21 @@ export function reindex(db, now = new Date()) {
     // Taken BEFORE the walk: a note edited while the rebuild runs has an mtime past
     // this and is simply picked up by the next staleness check, never missed.
     const startedAt = start;
+    // Counted at the same moment, for the same reason: a record added while the rebuild
+    // runs makes the next check disagree and rebuild again, never miss it.
+    let overlayCount;
+    try {
+        overlayCount = countOverlayMarkdown();
+    }
+    catch {
+        // Unreadable overlay: record nothing, so the staleness check cannot compare against
+        // a number that was never real. The rebuild itself proceeds as it always did.
+    }
+    // Clear the stamp BEFORE touching the tables, and write it only after every phase has
+    // succeeded. A rebuild that dies half way (say, the position fold) must leave an index
+    // that reads as "not built", never one that still carries the previous, now false,
+    // "up to date" marker.
+    clearIndexMeta(database);
     resetSchema(database);
     const insertNote = database.prepare(`INSERT OR REPLACE INTO notes (path, title, type, status, created, domain, tags, mtime)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
@@ -48,9 +63,11 @@ export function reindex(db, now = new Date()) {
     // position projection. Running it last means a fold problem cannot unwind the
     // note index or the identity ledger either.
     const positions = materializePositionFold(database);
-    database
-        .prepare("INSERT OR REPLACE INTO index_meta (key, value) VALUES ('indexed_at', ?)")
-        .run(String(startedAt));
+    const setMeta = database.prepare("INSERT OR REPLACE INTO index_meta (key, value) VALUES (?, ?)");
+    setMeta.run("walked_count", String(notes + skipped));
+    if (overlayCount !== undefined)
+        setMeta.run("overlay_count", String(overlayCount));
+    setMeta.run("indexed_at", String(startedAt)); // last: its presence means "complete"
     return { notes, skipped, ms: Date.now() - start, identity, positions };
 }
 //# sourceMappingURL=indexer.js.map

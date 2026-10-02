@@ -99,11 +99,18 @@ test("new session records or position streams trigger a rebuild", () => {
   assert.equal(afterSession.built, true);
   assert.match(afterSession.reason ?? "", /session or position records/);
 
+  // Settle the index first, so the stream below is the ONLY thing that has changed --
+  // otherwise the session record above could be what triggers the rebuild. (Its mtime
+  // was pushed into the future to force the first rebuild; bring it back to the past.)
+  const past = new Date(Date.now() - 60_000);
+  fs.utimesSync(session, past, past);
+  assert.equal(ensureIndex(db).built, false, "settled again after the session-record rebuild");
   fs.mkdirSync(positionsDir, { recursive: true });
   const stream = path.join(positionsDir, "2026-10.md");
   fs.writeFileSync(stream, "stream\n", "utf8");
   touchAhead(stream, 120);
-  assert.equal(ensureIndex(db).built, true, "a position stream is also an input to the index");
+  const afterStream = ensureIndex(db);
+  assert.equal(afterStream.built, true, "a position stream is also an input to the index");
 });
 
 test("an index built before this check existed counts as never built, and one rebuild fixes it", () => {
@@ -124,4 +131,138 @@ test("reindex records when it started, so staleness has a baseline", () => {
   reindex(db);
   const row = db.prepare("SELECT value FROM index_meta WHERE key = 'indexed_at'").get() as { value: string };
   assert.ok(Number(row.value) >= before - 1 && Number(row.value) <= Date.now());
+});
+
+// ---------------------------------------------------------------------------
+// Review hardening: the check must never act on a partial picture, never read
+// "could not inspect" as "unchanged", and never leave a half-built index looking
+// current.
+// ---------------------------------------------------------------------------
+
+const isRoot = typeof process.getuid === "function" && process.getuid() === 0;
+
+/** Run `fn` with `dir` made unreadable, restoring permissions so teardown can clean up. */
+function withUnreadable<T>(dir: string, fn: () => T): T {
+  fs.chmodSync(dir, 0o000);
+  try {
+    return fn();
+  } finally {
+    fs.chmodSync(dir, 0o755);
+  }
+}
+
+test("a note that arrives with an OLD modified date (a preserving copy) is still noticed", () => {
+  writeNote("Notes/a.md", "# A\nalpha");
+  const db = openDb();
+  ensureIndex(db);
+
+  const copied = writeNote("Notes/copied.md", "# Copied\nrsync preserved my mtime");
+  const longAgo = new Date("2020-01-01T00:00:00Z");
+  fs.utimesSync(copied, longAgo, longAgo);
+
+  const result = ensureIndex(db);
+  assert.equal(result.built, true, "the count changed even though no mtime did");
+  assert.match(result.reason ?? "", /added or removed/);
+  assert.equal(search("rsync preserved", {}, db).length, 1);
+});
+
+test("notes that cannot be parsed do not make every start rebuild", () => {
+  writeNote("Notes/good.md", "# Good\nfine");
+  const db = openDb();
+  // Whatever the indexer skips still counts as walked, so the counts stay comparable.
+  const first = ensureIndex(db);
+  assert.equal(first.built, true);
+  assert.equal(ensureIndex(db).built, false, "an unchanged vault stays unchanged, skipped notes or not");
+});
+
+test("a deleted position stream is noticed, so its stances do not linger in the projection", () => {
+  writeNote("Notes/a.md", "# A\nalpha");
+  fs.mkdirSync(positionsDir, { recursive: true });
+  const stream = path.join(positionsDir, "2026-10.md");
+  fs.writeFileSync(stream, "stream\n", "utf8");
+  const db = openDb();
+  ensureIndex(db);
+  assert.equal(ensureIndex(db).built, false);
+
+  fs.rmSync(stream);
+  const result = ensureIndex(db);
+  assert.equal(result.built, true);
+  assert.match(result.reason ?? "", /records have been added or removed/);
+});
+
+test("a rebuild that dies part-way leaves the index reading as not built, never as current", () => {
+  writeNote("Notes/a.md", "# A\nalpha");
+  const db = openDb();
+  ensureIndex(db);
+  assert.equal(ensureIndex(db).built, false, "starts out current");
+
+  // Fail at the very end -- every phase has run, but the completion stamp is not
+  // written. Whatever dies and whenever, the previous stamp must already be gone.
+  const dying = new Proxy(db, {
+    get(target, prop) {
+      if (prop === "prepare") {
+        return (sql: string) => {
+          if (/INSERT OR REPLACE INTO index_meta/.test(sql)) throw new Error("simulated failure after the phases");
+          return target.prepare(sql);
+        };
+      }
+      const value = Reflect.get(target, prop) as unknown;
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+  assert.throws(() => reindex(dying), /simulated failure/);
+
+  assert.equal(
+    db.prepare("SELECT value FROM index_meta WHERE key = 'indexed_at'").get(),
+    undefined,
+    "the stale 'up to date' marker was cleared before the rebuild began"
+  );
+  assert.deepEqual(indexVerdict(db), { stale: true, reason: "the index has not been built yet" });
+  assert.equal(ensureIndex(db).built, true, "and the next start repairs it");
+});
+
+test("an unreadable session or position directory is an error, not 'nothing changed'", { skip: isRoot }, () => {
+  writeNote("Notes/a.md", "# A\nalpha");
+  fs.mkdirSync(sessionsDir, { recursive: true });
+  const db = openDb();
+  ensureIndex(db);
+
+  withUnreadable(sessionsDir, () => {
+    assert.throws(() => indexVerdict(db), /EACCES|permission/i);
+  });
+});
+
+test("an unreadable folder inside the notes never triggers a rebuild that would drop its notes", { skip: isRoot }, () => {
+  writeNote("Notes/open/a.md", "# A\nalpha stays");
+  writeNote("Notes/locked/b.md", "# B\nbravo is in the locked folder");
+  const db = openDb();
+  ensureIndex(db);
+  assert.equal(search("bravo is in the locked folder", {}, db).length, 1);
+
+  withUnreadable(path.join(vaultRoot, "Notes", "locked"), () => {
+    // Make something else look changed too, so a naive check WOULD rebuild.
+    const changed = path.join(vaultRoot, "Notes", "open", "a.md");
+    touchAhead(changed);
+    const result = ensureIndex(db);
+    assert.equal(result.built, false, "a partial walk is never grounds to rebuild");
+    assert.match(result.warning ?? "", /unreadable/);
+  });
+  assert.equal(search("bravo is in the locked folder", {}, db).length, 1, "the locked folder's notes are still indexed");
+});
+
+test("an empty walk with a newer session record still does not rebuild into an empty index", () => {
+  const only = writeNote("Notes/only.md", "# Only\nkeep me");
+  const db = openDb();
+  ensureIndex(db);
+
+  fs.rmSync(only); // the notes folder 'disappears'...
+  fs.mkdirSync(sessionsDir, { recursive: true });
+  const session = path.join(sessionsDir, "2026-10-02.md");
+  fs.writeFileSync(session, "- 10:00:00 - captured meanwhile\n", "utf8");
+  touchAhead(session); // ...while a session record gets newer, which used to force a rebuild
+
+  const result = ensureIndex(db);
+  assert.equal(result.built, false);
+  assert.match(result.warning ?? "", /no notes found/);
+  assert.equal(search("keep me", {}, db).length, 1);
 });

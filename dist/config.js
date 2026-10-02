@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -12,6 +13,20 @@ function expandHome(p) {
 // NOT from process.cwd(). This keeps the index path stable no matter which
 // directory Claude Code launches the server from.
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+// The release version, read from package.json so the server reports the same number
+// the plugin manifest and the CHANGELOG do. It used to be a literal in server.ts that
+// followed its own numbering (0.5.0 against a package at 0.2.0); one source means a
+// release bump cannot leave the server announcing a different version. Falls back to
+// "0.0.0" rather than throwing: a version string must never stop the server starting.
+function readVersion() {
+    try {
+        const pkg = JSON.parse(fs.readFileSync(path.join(projectRoot, "package.json"), "utf8"));
+        return typeof pkg.version === "string" && pkg.version !== "" ? pkg.version : "0.0.0";
+    }
+    catch {
+        return "0.0.0";
+    }
+}
 const vaultPath = expandHome(process.env.LIBRARIAN_VAULT_PATH ?? "~/Documents/knowledge-vault");
 const dbPath = expandHome(process.env.LIBRARIAN_DB_PATH ?? path.join(projectRoot, "data", "librarian.db"));
 // Memory-of-use lives in `_librarian/` INSIDE the vault (storage layer 2). It resolves relative to the configured vault path — not cwd — so
@@ -26,6 +41,8 @@ const librarianDir = path.join(vaultPath, "_librarian");
 // the value is a bare name or noun phrase, never already-possessive.
 const userLabel = process.env.LIBRARIAN_USER_LABEL?.trim() || "the user";
 export const config = {
+    /** Release version, from package.json (the single source; see readVersion). */
+    version: readVersion(),
     /** Absolute path to the Obsidian vault (the source of truth). */
     vaultPath,
     /** Absolute path to the derived SQLite index (a regenerable cache). */

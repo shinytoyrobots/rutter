@@ -82,6 +82,10 @@ Stated here rather than discovered later:
   contract produces summaries the server will faithfully store anyway.
 - **Single-user by design.** Nothing here addresses shared records, ratification, or whose version
   of a decision wins. Those are the hard problems at team scale and none of them are solved here.
+- **A rebuild can briefly overlap another session.** The server rebuilds its index when it starts
+  and finds changes, which drops and recreates the tables for about a second per few thousand notes.
+  A search from another open session at that instant can come back empty. It is rare, because an
+  unchanged index is never rebuilt, and it clears on the next call.
 - **Semantic search is stubbed.** `embeddings.ts` is a port with no implementation; retrieval is
   full-text only.
 - **Under active evaluation.** The stateful behavior is behind a usage gate — the project measures
@@ -264,6 +268,7 @@ src/
   vault.ts           markdown walk + frontmatter parse
   db.ts              node:sqlite open + FTS5 schema
   indexer.ts         full reindex (notes -> cache)
+  startup-index.ts   build the index at start if missing, rebuild only if notes or records changed
   search.ts          FTS5 query + get-note
   embeddings.ts      stubbed port (not implemented)
   server.ts          MCP tool registration (search, get-note, recent, positions) + server instructions
@@ -290,6 +295,10 @@ src/
   reindex.ts / search-cli.ts / recent-cli.ts / gate-cli.ts / capture-cli.ts / identity-confirm-cli.ts   CLIs
 hooks/
   librarian-stop.sh  Claude Code / Grok / Codex Stop hook -> capture-cli
+  hooks.json         registers that hook when installed as a Claude plugin
+.claude-plugin/      plugin manifest (name, version, notes-folder option, listing links)
+.mcp.json            how the plugin starts the server
+dist/                committed build, so the plugin runs straight from a clone
 spec/                the executable spec — scenarios, requirements, conformance mapping
 test/                node:test suite (temp fixture directories; never touches your real notes)
 ```
