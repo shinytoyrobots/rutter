@@ -61,7 +61,7 @@ session happened** — automatically, with nothing for you to name or configure:
     repo: https://github.com/you/rutter.git
 ```
 
-- **`cwd`** — the session's working directory, exactly as Claude Code reported it
+- **`cwd`** — the session's working directory, exactly as the host reported it
   on the Stop event.
 - **`project`** — derived from that directory: the name of the enclosing git
   working tree, or the directory's own name when it isn't in a repo. A session run
