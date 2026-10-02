@@ -10,5 +10,14 @@
 # stdout (Codex 0.160.0 accepts that; verified against a real turn).
 set -uo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Installed as a plugin, the host passes the notes folder and data dir as plugin
+# options rather than LIBRARIAN_* variables; map them across, never overriding a
+# value the user set explicitly.
+if [ -z "${LIBRARIAN_VAULT_PATH:-}" ] && [ -n "${CLAUDE_PLUGIN_OPTION_VAULT_PATH:-}" ]; then
+  export LIBRARIAN_VAULT_PATH="$CLAUDE_PLUGIN_OPTION_VAULT_PATH"
+fi
+if [ -z "${LIBRARIAN_DB_PATH:-}" ] && [ -n "${CLAUDE_PLUGIN_DATA:-}" ]; then
+  export LIBRARIAN_DB_PATH="$CLAUDE_PLUGIN_DATA/librarian.db"
+fi
 node "$DIR/dist/capture-cli.js" || true
 exit 0

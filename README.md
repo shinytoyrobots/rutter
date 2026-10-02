@@ -218,6 +218,25 @@ setup either.
 `~/.claude/CLAUDE.md` as a standing rule. That is belt-and-braces, not a required step — and if
 you need it, that is a bug worth reporting, because the server is meant to carry this on its own.
 
+## Install as a Claude plugin
+
+The plugin bundles the server and the capture hook, so there is nothing to build, register or
+edit by hand. Once the repository is installed as a plugin, Claude Code asks for one thing — the
+folder of notes to search — and starts the server and the Stop hook on its own.
+
+- **What it runs.** A local MCP server (`node dist/stdio.js`) and a Stop hook
+  (`hooks/librarian-stop.sh`). Both are plain Node and shell that you can read in this repository;
+  `dist/` is the committed TypeScript build, so the code that runs is the code on GitHub.
+- **Where it keeps things.** The search index lives in the plugin's own data folder
+  (`~/.claude/plugins/data/…`) and survives updates. Session records go in `_librarian/` inside
+  your notes folder.
+- **If you already registered the hook by hand** (`npm run install-hook`), remove that entry from
+  `~/.claude/settings.json` when you add the plugin, or captures are attempted twice. The duplicate
+  is detected and not stored twice, but it is wasted work.
+- **Grok and Codex** are not covered by the plugin. They still use `npm run install-hook`, below.
+- **Maintainers:** `dist/` is committed so the plugin works straight from a clone. Run
+  `npm run build` and commit the result whenever `src/` changes.
+
 ## Wire it into Claude Code
 
 New to the project? [`docs/getting-started.md`](./docs/getting-started.md) walks from
@@ -282,6 +301,39 @@ amendment records what was rejected and why.
 
 If you want to understand a decision here, that file is the honest account. This README is the
 summary; the spec is the receipts.
+
+## Privacy Policy
+
+rutter runs entirely on your machine. This section is the whole policy.
+
+**What it collects.** Nothing is collected by the author or by any third party. The server reads
+the notes folder you point it at, and never changes your notes. It writes three kinds of local
+file, all of which you can open and read:
+
+- A search index (a SQLite file) built from your notes, so searches are fast. It is a cache and can
+  be deleted and rebuilt at any time.
+- Session records in `_librarian/sessions/` inside your notes folder: the one-line summaries and
+  stance lines your AI client writes at the end of a session, stored word for word, together with
+  the paths of the notes it cited, the working directory, the project name derived from it, the
+  session ID, and the git remote URL of that directory if it has one (read from `.git/config`;
+  never contacted).
+- A usage log (`_librarian/stateful-use.jsonl`) recording when you used the recall tools, so you can
+  tell whether they are worth keeping.
+
+**How it is used and stored.** Only to answer your own searches and recall questions, on your own
+computer. Nothing is sent anywhere: the code makes no network requests, runs no other programs, and
+has no analytics or telemetry. The AI client you use (for example Claude) sees whatever the tools
+return to it, under that client's own privacy terms, which rutter does not control.
+
+**Third-party sharing.** None.
+
+**Retention.** For as long as you keep the files. Session records and the usage log are append-only
+by design; to remove them, delete the `_librarian/` folder in your notes folder. To remove the
+index, delete the plugin's data folder (uninstalling the plugin does this) or the `data/` folder of
+a clone. Nothing is held anywhere else.
+
+**Contact.** Questions or concerns: [open an issue](https://github.com/shinytoyrobots/rutter/issues)
+or email robin@shinytoyrobots.com.
 
 ## License
 
