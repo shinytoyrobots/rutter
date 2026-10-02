@@ -45,7 +45,6 @@ queryable
 rebuildable
 reframes
 stdout
-ks-kb
 CEL
 nomic
 Graph-RAG
