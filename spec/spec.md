@@ -6,6 +6,8 @@ effort:
   - decision-graph         # active (v3.8.0 Phase 0 shipped; v3.12.0 Phase A drafted; v4.0.0 panel amendments; v5.0.0 SR-056 baseline correction; v6.0.0 wire-format ratification; v7.0.0 Phase B drafted; v8.0.0 retired-stub content pinned; v9.0.0 fold timing pinned; v10.0.0 response envelope pinned; v11.0.0 incremental-clause dropped; v12.0.0 attribution semantics pinned; v13.0.0 dormancy/retirement exemption pinned; v14.0.0 not-found shape + match scope pinned)
 last-amended: 2026-08-13
 mapping-pending: true      # SR-104 (bound pending gen-1 calibration) + SCN-010/SR-047..057 (Phase A) + SCN-011/SR-058..065 (Phase B) — entirely unmapped, evals/ owned by flow-eval
+# NOTE: the per-version snapshots named in the 'History:' pointers below (spec/history/) are kept
+#   locally and are not part of the published repository; earlier commits still contain them.
 pending-amendment: true    # code is ahead of this spec (rutter v0.3.0); see PENDING AMENDMENT below. No version bump until /flow-spec runs.
 # PENDING AMENDMENT -- noted 2026-10-02, NOT ratified; fold in with /flow-spec.
 #   Shipped in v0.3.0 (PRs #45-#47) without an amendment. Tests were updated to match;
