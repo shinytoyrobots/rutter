@@ -6,6 +6,30 @@ effort:
   - decision-graph         # active (v3.8.0 Phase 0 shipped; v3.12.0 Phase A drafted; v4.0.0 panel amendments; v5.0.0 SR-056 baseline correction; v6.0.0 wire-format ratification; v7.0.0 Phase B drafted; v8.0.0 retired-stub content pinned; v9.0.0 fold timing pinned; v10.0.0 response envelope pinned; v11.0.0 incremental-clause dropped; v12.0.0 attribution semantics pinned; v13.0.0 dormancy/retirement exemption pinned; v14.0.0 not-found shape + match scope pinned)
 last-amended: 2026-08-13
 mapping-pending: true      # SR-104 (bound pending gen-1 calibration) + SCN-010/SR-047..057 (Phase A) + SCN-011/SR-058..065 (Phase B) — entirely unmapped, evals/ owned by flow-eval
+pending-amendment: true    # code is ahead of this spec (rutter v0.3.0); see PENDING AMENDMENT below. No version bump until /flow-spec runs.
+# PENDING AMENDMENT -- noted 2026-10-02, NOT ratified; fold in with /flow-spec.
+#   Shipped in v0.3.0 (PRs #45-#47) without an amendment. Tests were updated to match;
+#   the spec text below has not been.
+#   1. Read-time guidance moved. SR-020/021/022 and SR-062 place read-time reporting
+#      guidance (plain language, one account per session, stance attribution) in
+#      SERVER_INSTRUCTIONS. It now lives in the librarian-recent and librarian-positions
+#      tool descriptions. Why: Claude Code truncates server instructions at 2,048
+#      characters (debug log: "truncated from 4260 to 2048 chars"); ours had reached
+#      4,245, so everything after ~char 2,048 -- including the position-line instruction
+#      (SR-056), which began at 2,937 -- never reached any client. SERVER_INSTRUCTIONS is
+#      now ~1,940 chars, held by test/instructions-budget.test.ts. SR-056's size
+#      baseline (v5.0.0) and the instruction-budget decision should be restated as a
+#      TOTAL cap with the client limit as the reason. Likely also explains zero positions
+#      captured since the 2026-08-13 ship (see the 2026-12-20 check-in).
+#   2. New behavior with no scenario or requirement: the server builds and refreshes its
+#      own index at start (src/startup-index.ts; index_meta table). It only ever calls
+#      reindex(), so SR-058 (reindex is the position fold's only trigger) still holds; the
+#      "disclosed lag" wording around SR-058/SR-063 should mention it. Needs its own
+#      scenario: first start builds; unchanged start does not rebuild; never rebuild from a
+#      partial vault walk (missing/unreadable folder keeps the existing index); a failed
+#      rebuild cannot leave a stale "up to date" stamp.
+#   3. The server's reported version is read from package.json (single source), kept in
+#      step with the plugin manifest and CHANGELOG by test/version.test.ts. Non-functional.
 # v14.0.0 (major — effort decision-graph, panel-2026-08-13-phase-b-reprobe.md
 # follow-up): closes Divergence 1 (the last of that re-probe's four routed
 # divergences) plus its single-reader match-scope flag, both on SR-061. v10.0.0
