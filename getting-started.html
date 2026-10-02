@@ -75,6 +75,8 @@ npm run reindex</code></pre>
 
 <p><em>Output shape verified against code; your paths, dates, and counts will differ.</em></p>
 
+<p>You can skip this step in day-to-day use: the server builds its index the first time it starts and refreshes it whenever it next starts after your notes have changed. Running it by hand is the quickest way to confirm your path is right.</p>
+
 <div class="callout">
   <span class="label">Stop and check</span>
   <p>If it says <code>0 notes indexed</code>, stop here and fix the path. An unreadable notes directory is not an error — you get a successful-looking reindex over nothing. Everything downstream will install cleanly and then recall nothing at all. Check the <code>vault:</code> line against where your notes actually are, re-export, and reindex again.</p>
@@ -280,13 +282,13 @@ refs:
 
 <p>The project also measures whether any of this actually gets used. <code>npm run gate</code> shows the per-ISO-week count; <a href="memory-of-use.html#the-gate">the gate section</a> explains what it is for.</p>
 
-<p>One habit to keep: re-run <code>npm run reindex</code> when your notes change materially. The index is a disposable cache — your files stay the source of truth.</p>
+<p>The server refreshes its index each time it starts, so a new session picks up changes to your notes on its own. Run <code>npm run reindex</code> when you want a refresh without restarting. The index is a disposable cache — your files stay the source of truth.</p>
 
 </main>
 
 <footer class="site">
   <div class="footer-inner">
-    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source and receipts on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/974d400">main@974d400</a> · <a href="sources.json">source hashes</a>.</p>
+    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source and receipts on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/974d400">main@2e087f4</a> · <a href="sources.json">source hashes</a>.</p>
   </div>
 </footer>
 </body>
