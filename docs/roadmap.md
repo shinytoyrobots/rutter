@@ -51,7 +51,7 @@ authorize the next build.
 - Either restart the wish log or accept that it already answered. It stopped 07-27 with
   six entries, **none** of them asking for belief-lifecycle — all six were capture/recall
   plumbing defects.
-- Write the verdict against **memory-of-use**, which is what HANDOFF.md's thesis
+- Write the verdict against **memory-of-use**, which is what the project's thesis
   already says the tool is, rather than against H2 (belief-lifecycle) from the
   validate-plan. The validate-plan itself flagged H2's value as "inferred, not
   observed"; two weeks of real use have not changed that.

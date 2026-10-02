@@ -21,8 +21,7 @@ const dbPath = expandHome(
   process.env.LIBRARIAN_DB_PATH ?? path.join(projectRoot, "data", "librarian.db")
 );
 
-// Memory-of-use lives in `_librarian/` INSIDE the vault (storage layer 2 in
-// DESIGN.md). It resolves relative to the configured vault path — not cwd — so
+// Memory-of-use lives in `_librarian/` INSIDE the vault (storage layer 2). It resolves relative to the configured vault path — not cwd — so
 // the same records are found no matter where Claude Code launches the server.
 // `_librarian/` is already excluded from the S1 FTS index (see `ignoreDirs`).
 const librarianDir = path.join(vaultPath, "_librarian");

@@ -127,7 +127,7 @@ works, then [`docs/memory-of-use.md`](./docs/memory-of-use.md) for the capture /
 enrichment / gate behaviors in depth. The same docs are published readable at
 [shinytoyrobots.github.io/rutter](https://shinytoyrobots.github.io/rutter/) —
 `npm run site-drift` reports when that site has drifted from these files. [`docs/roadmap.md`](./docs/roadmap.md) is the current
-sequencing, and [`DESIGN.md`](./DESIGN.md) the longer-range storage model.
+sequencing.
 [`docs/decision-graph.md`](./docs/decision-graph.md) is the design behind positions — why a position is a
 projection over the append-only event log rather than a second thing you maintain — and
 [`docs/decision-graph-plan.md`](./docs/decision-graph-plan.md) is the build plan that split it into phases.
@@ -245,7 +245,7 @@ src/
   db.ts              node:sqlite open + FTS5 schema
   indexer.ts         full reindex (notes -> cache)
   search.ts          FTS5 query + get-note
-  embeddings.ts      stubbed port (not implemented — see DESIGN.md)
+  embeddings.ts      stubbed port (not implemented)
   server.ts          MCP tool registration (search, get-note, recent, positions) + server instructions
   stdio.ts           stdio entry point (local Claude Code)
   # memory-of-use:
