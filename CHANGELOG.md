@@ -4,6 +4,18 @@ Notable changes to rutter, newest first. Detailed per-ship records — grounds,
 disclosed gaps, and what is being watched — are kept by the maintainer
 outside this repository.
 
+## v0.3.3 — 2026-10-02
+
+- **The privacy policy now lists everything rutter writes.** It said three kinds of
+  file and put stance lines in the session records. The server actually writes five:
+  session records, position records (`_librarian/positions/`), the note-identity
+  ledger (`_librarian/note-identity.md`), the usage log, and the search index. It
+  also said rutter "runs no other programs", which left out the capture hook; it now
+  says exactly what runs. No behavior change.
+- **No binary-looking source file.** `src/identity.ts` held a literal NUL byte as a
+  key separator, so git and grep treated the whole file as binary. It is now the
+  escape `\u0000`, which behaves identically.
+
 ## v0.3.2 — 2026-10-02
 
 - **A credential in your git remote is no longer copied into your notes.** Each

@@ -339,30 +339,40 @@ summary; the spec is the receipts.
 rutter runs entirely on your machine. This section is the whole policy.
 
 **What it collects.** Nothing is collected by the author or by any third party. The server reads
-the notes folder you point it at, and never changes your notes. It writes three kinds of local
-file, all of which you can open and read:
+the notes folder you point it at, and never changes your notes. It writes five kinds of local
+file, all of which you can open and read. Four live in a `_librarian/` folder inside your notes
+folder; the fifth lives with the plugin:
 
-- A search index (a SQLite file) built from your notes, so searches are fast. It is a cache and can
-  be deleted and rebuilt at any time.
-- Session records in `_librarian/sessions/` inside your notes folder: the one-line summaries and
-  stance lines your AI client writes at the end of a session, stored word for word, together with
-  the paths of the notes it cited, the working directory, the project name derived from it, the
+- **Session records** in `_librarian/sessions/`: the one-line summaries your AI client writes as a
+  session decides or produces something, stored word for word, together with the paths and content
+  hashes of the notes it cited, the working directory, the project name derived from it, the
   session ID, and the git remote URL of that directory if it has one (read from `.git/config`;
   never contacted, and any token, password or query string in it is removed before it is stored).
-- A usage log (`_librarian/stateful-use.jsonl`) recording when you used the recall tools, so you can
-  tell whether they are worth keeping.
+- **Position records** in `_librarian/positions/`: the stances your client records on a topic, when
+  you form, change or retire one, stored word for word with their dates.
+- **A note-identity ledger** (`_librarian/note-identity.md`): when a note you referenced has been
+  renamed, which path the reference now points to, as the old and new paths with a content hash.
+  It is written when the index is rebuilt or when you confirm a match.
+- **A usage log** (`_librarian/stateful-use.jsonl`): a timestamp and the name of the recall tool
+  each time you used one, so you can tell whether they are worth keeping.
+- **A search index** (a SQLite file in the plugin's own data folder, or `data/` in a clone), built
+  from your notes and the records above so searches are fast. It is a cache and can be deleted and
+  rebuilt at any time.
 
 **How it is used and stored.** Only to answer your own searches and recall questions, on your own
-computer. Nothing is sent anywhere: the code makes no network requests, runs no other programs, and
-has no analytics or telemetry. The AI client you use (for example Claude) sees whatever the tools
-return to it, under that client's own privacy terms, which rutter does not control.
+computer. Nothing is sent anywhere: the code makes no network requests and has no analytics or
+telemetry. Two things of rutter's own run: the local server, which spawns no other programs, and a
+capture hook, `hooks/librarian-stop.sh`, which runs the local `dist/capture-cli.js` after each
+turn to write the records above. Neither reads credentials or API keys. The AI client you use (for
+example Claude) sees whatever the tools return to it, under that client's own privacy terms, which
+rutter does not control.
 
 **Third-party sharing.** None.
 
-**Retention.** For as long as you keep the files. Session records and the usage log are append-only
-by design; to remove them, delete the `_librarian/` folder in your notes folder. To remove the
-index, delete the plugin's data folder (uninstalling the plugin does this) or the `data/` folder of
-a clone. Nothing is held anywhere else.
+**Retention.** For as long as you keep the files. Session records, position records, the identity
+ledger and the usage log are append-only by design; to remove them, delete the `_librarian/` folder
+in your notes folder. To remove the index, delete the plugin's data folder (uninstalling the plugin
+does this) or the `data/` folder of a clone. Nothing is held anywhere else.
 
 **Contact.** Questions or concerns: [open an issue](https://github.com/shinytoyrobots/rutter/issues)
 or email robin@shinytoyrobots.com.
