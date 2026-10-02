@@ -95,7 +95,7 @@ Stated here rather than discovered later:
 - Claude Code, Grok, or Codex, for ambient capture. The MCP tools work with any MCP client; the Stop
   hook is fired by all three after each turn. Claude Code and Grok read it from
   `~/.claude/settings.json`, Codex from `~/.codex/hooks.json` (`npm run install-hook -- --client codex`,
-  then trust it with `/hooks`). Claude Code lifts the directive from the transcript; Grok and Codex
+  then trust it with `/hooks`; export `LIBRARIAN_VAULT_PATH` where Codex launches, since its hooks ignore `settings.json`). Claude Code lifts the directive from the transcript; Grok and Codex
   from the Stop event's final assistant message, so with Codex the directive must be in the final reply.
 
 ## Setup

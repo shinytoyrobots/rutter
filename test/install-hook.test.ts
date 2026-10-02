@@ -44,6 +44,7 @@ t("codex: creates hooks.json with the shared hook, timeout, and a trust-review m
   assert.equal(cfg.hooks.Stop[0].hooks[0].type, "command");
   assert.match(res.stderr, /\/hooks/);
   assert.match(res.stderr, /did NOT grant trust/);
+  assert.match(res.stderr, /LIBRARIAN_VAULT_PATH/, "tells the user how the hook finds the vault");
   assert.equal(fs.existsSync(path.join(sb.home, ".claude", "settings.json")), false, "Claude config untouched");
 });
 

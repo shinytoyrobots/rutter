@@ -108,6 +108,21 @@ directive syntax existed *only* in a hand-installed `~/.claude/CLAUDE.md` rule,
 which meant ambient capture worked for exactly one person: whoever had installed
 that rule.
 
+**Host differences.** All three hosts fire the same hook after each turn and store
+the same records. They differ in where the hook looks for the directive:
+
+- **Claude Code** reads the whole transcript, so a directive anywhere in the
+  session is found.
+- **Grok** reads the Stop event's final assistant message. Grok clips that message
+  at 32,768 characters, so a long turn can drop a trailing directive.
+- **Codex** reads the Stop event's final assistant message and nothing earlier. A
+  directive left in mid-turn commentary is not captured, so the client must put it
+  in the final reply. Codex hooks also see only the environment Codex was launched
+  with, so `LIBRARIAN_VAULT_PATH` must be exported where Codex starts.
+
+On every host, each firing keeps at most one session summary and one position —
+the last of each in the text it reads.
+
 **How the summary is produced (no AI in the server).** The librarian server never
 summarizes anything — that would be inference, which it does not do. Instead your
 client (Claude) writes the one-line summary *during* the session as a directive,

@@ -55,8 +55,8 @@ That sentence is the design. Everything that follows is what it costs.
 Two halves, and neither of them contains a model.
 
 **Writing.** As a session finishes something worth recalling, your client emits one line about it —
-a short summary, plus the paths it touched. In Claude Code, a Stop hook lifts the newest such line
-out of the transcript. It appends that line to a dated file inside your notes directory. Each path
+a short summary, plus the paths it touched. A Stop hook lifts the newest such line: from the
+transcript in Claude Code, from the final assistant message in Grok and Codex. It appends that line to a dated file inside your notes directory. Each path
 is stored with the sha256 of that file's bytes. The server reads the file and computes that hash
 itself, rather than accepting one from the client, so a client cannot assert provenance it never
 had. Each entry also records the working directory the session ran in, and the git remote when
