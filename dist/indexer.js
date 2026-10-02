@@ -16,6 +16,9 @@ import { materializePositionFold } from "./position-fold.js";
 export function reindex(db, now = new Date()) {
     const database = db ?? openDb();
     const start = Date.now();
+    // Taken BEFORE the walk: a note edited while the rebuild runs has an mtime past
+    // this and is simply picked up by the next staleness check, never missed.
+    const startedAt = start;
     resetSchema(database);
     const insertNote = database.prepare(`INSERT OR REPLACE INTO notes (path, title, type, status, created, domain, tags, mtime)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
@@ -45,6 +48,9 @@ export function reindex(db, now = new Date()) {
     // position projection. Running it last means a fold problem cannot unwind the
     // note index or the identity ledger either.
     const positions = materializePositionFold(database);
+    database
+        .prepare("INSERT OR REPLACE INTO index_meta (key, value) VALUES ('indexed_at', ?)")
+        .run(String(startedAt));
     return { notes, skipped, ms: Date.now() - start, identity, positions };
 }
 //# sourceMappingURL=indexer.js.map

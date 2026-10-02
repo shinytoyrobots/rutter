@@ -65,6 +65,15 @@ export function initSchema(db: DB): void {
       detected_to  TEXT NOT NULL,
       PRIMARY KEY (from_path, hash)
     );
+    -- When the last full reindex STARTED (epoch ms), so a server can tell whether
+    -- anything it indexes from has changed since. Deliberately NOT dropped by
+    -- resetSchema: it describes the cache as a whole, and reindex() rewrites it last.
+    -- Additive (rolling back is "drop this table"); like everything here it is a
+    -- disposable cache, never a source of truth.
+    CREATE TABLE IF NOT EXISTS index_meta (
+      key   TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
   `);
   initPositionSchema(db);
 }
