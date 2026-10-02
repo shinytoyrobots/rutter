@@ -6,6 +6,10 @@ outside this repository.
 
 ## v0.3.0 — 2026-10-02
 
+- **Installable from GitHub.** The repository is now its own Claude Code plugin
+  marketplace: `/plugin marketplace add shinytoyrobots/rutter`, then
+  `/plugin install rutter@rutter`. Claude Code installs the dependencies from the
+  lockfile, so there is no build step.
 - **The index builds itself.** Installed as a plugin there is no clone and no
   `npm run reindex`, so a fresh install answered every search with "No notes
   matched". The server now builds its index when it starts if none exists, and

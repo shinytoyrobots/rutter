@@ -226,6 +226,17 @@ The plugin bundles the server and the capture hook, so there is nothing to build
 edit by hand. Once the repository is installed as a plugin, Claude Code asks for one thing — the
 folder of notes to search — and starts the server and the Stop hook on its own.
 
+In Claude Code, install it straight from this repository:
+
+```
+/plugin marketplace add shinytoyrobots/rutter
+/plugin install rutter@rutter
+```
+
+Choose your notes folder when asked, then run `/reload-plugins`. If you install from a shell
+instead (`claude plugin install rutter@rutter`), pass `--config vault_path=/path/to/notes` or run
+`/plugin configure rutter@rutter` afterwards; without a notes folder the server has nothing to read.
+
 - **What it runs.** A local MCP server (`node dist/stdio.js`) and a Stop hook
   (`hooks/librarian-stop.sh`). Both are plain Node and shell that you can read in this repository;
   `dist/` is the committed TypeScript build, so the code that runs is the code on GitHub.

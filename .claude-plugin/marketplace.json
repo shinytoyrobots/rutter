@@ -1,0 +1,17 @@
+{
+  "name": "rutter",
+  "owner": {
+    "name": "Robin Cannon",
+    "url": "https://github.com/shinytoyrobots"
+  },
+  "description": "rutter: a record of what your AI sessions decided, and the receipts behind it.",
+  "plugins": [
+    {
+      "name": "rutter",
+      "source": ".",
+      "description": "Search your markdown notes and recall what past AI sessions decided, all on your own machine.",
+      "category": "memory",
+      "tags": ["memory", "notes", "obsidian", "markdown", "recall"]
+    }
+  ]
+}
