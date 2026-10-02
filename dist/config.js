@@ -27,8 +27,30 @@ function readVersion() {
         return "0.0.0";
     }
 }
-const vaultPath = expandHome(process.env.LIBRARIAN_VAULT_PATH ?? "~/Documents/knowledge-vault");
-const dbPath = expandHome(process.env.LIBRARIAN_DB_PATH ?? path.join(projectRoot, "data", "librarian.db"));
+/**
+ * Read a LIBRARIAN_* setting, ignoring a value the launching host failed to fill in.
+ *
+ * The plugin declares its settings as `${user_config.vault_path}` and friends. Claude
+ * Code substitutes them; Grok fills in `${CLAUDE_PLUGIN_ROOT}` and `${CLAUDE_PLUGIN_DATA}`
+ * but not these, and Codex fills in none of them. Left alone, the server would search a
+ * folder literally named `${user_config.vault_path}` (finding nothing, with no error) and
+ * tell the client it was reading "${user_config.user_label}'s work". An empty value is
+ * treated the same way. Either way the default applies, and the stderr line says why, so
+ * the cause is visible rather than a silent "No notes matched".
+ */
+export function readSetting(name, source = process.env) {
+    const raw = source[name]?.trim();
+    if (!raw)
+        return undefined;
+    if (/\$\{[^}]*\}/.test(raw)) {
+        console.error(`[rutter] ${name} arrived unresolved ("${raw}"): this host did not fill in the plugin option. ` +
+            `Using the default instead; set ${name} in the environment the host is launched from to override it.`);
+        return undefined;
+    }
+    return raw;
+}
+const vaultPath = expandHome(readSetting("LIBRARIAN_VAULT_PATH") ?? "~/Documents/knowledge-vault");
+const dbPath = expandHome(readSetting("LIBRARIAN_DB_PATH") ?? path.join(projectRoot, "data", "librarian.db"));
 // Memory-of-use lives in `_librarian/` INSIDE the vault (storage layer 2). It resolves relative to the configured vault path — not cwd — so
 // the same records are found no matter where Claude Code launches the server.
 // `_librarian/` is already excluded from the S1 FTS index (see `ignoreDirs`).
@@ -39,7 +61,7 @@ const librarianDir = path.join(vaultPath, "_librarian");
 // instructions say "Robin's work", which reads more naturally to a model that then
 // knows whose collection it is looking at. Used possessively (`<label>'s work`), so
 // the value is a bare name or noun phrase, never already-possessive.
-const userLabel = process.env.LIBRARIAN_USER_LABEL?.trim() || "the user";
+const userLabel = readSetting("LIBRARIAN_USER_LABEL") ?? "the user";
 export const config = {
     /** Release version, from package.json (the single source; see readVersion). */
     version: readVersion(),
