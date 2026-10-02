@@ -1,0 +1,32 @@
+{
+  "name": "rutter",
+  "displayName": "rutter",
+  "version": "0.2.0",
+  "description": "A record of what your AI sessions decided, and the receipts behind it. Search your markdown notes and recall what past sessions decided, all on your own machine.",
+  "author": {
+    "name": "Robin Cannon",
+    "url": "https://github.com/shinytoyrobots"
+  },
+  "homepage": "https://shinytoyrobots.github.io/rutter/",
+  "repository": "https://github.com/shinytoyrobots/rutter",
+  "license": "MIT",
+  "keywords": ["memory", "notes", "obsidian", "markdown", "recall", "mcp"],
+  "icon": "./assets/icon.png",
+  "documentationUrl": "https://shinytoyrobots.github.io/rutter/",
+  "supportUrl": "https://github.com/shinytoyrobots/rutter/issues",
+  "privacyPolicyUrl": "https://github.com/shinytoyrobots/rutter#privacy-policy",
+  "userConfig": {
+    "vault_path": {
+      "type": "directory",
+      "title": "Notes folder",
+      "description": "The folder of markdown notes rutter should search (an Obsidian vault works). rutter reads it, and keeps its session records in a _librarian/ folder inside it.",
+      "required": true
+    },
+    "user_label": {
+      "type": "string",
+      "title": "Your name (optional)",
+      "description": "How rutter refers to whose work this is when it talks to Claude, for example \"Sam\". Leave as is if you prefer a neutral wording.",
+      "default": "the user"
+    }
+  }
+}
