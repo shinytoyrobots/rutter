@@ -173,9 +173,27 @@ function parseOriginUrl(text) {
             continue;
         const url = INI_URL.exec(line)?.[1]?.trim();
         if (url)
-            return url;
+            return redactRemoteUrl(url);
     }
     return undefined;
+}
+/**
+ * Remove anything in a remote URL that could be a secret before it is stored.
+ *
+ * A remote is sometimes set up as `https://<token>@host/org/repo` or
+ * `https://user:<password>@host/...`, and a query string can carry one too. The URL is
+ * written to a session record, a plain markdown file in the user's notes that may be
+ * synced or committed, so a credential there would outlive the credential helper it
+ * came from. Only the host and path are provenance, so the user-info part of a
+ * scheme-style URL and any `?query` or `#fragment` are dropped.
+ *
+ * An scp-style remote (`git@github.com:org/repo.git`) is left alone: its user is a
+ * login name by convention (`git`), not a secret, and there is nothing to strip.
+ */
+export function redactRemoteUrl(url) {
+    return url
+        .replace(/^([a-z][a-z0-9+.-]*:\/\/)[^/?#]*@/i, "$1")
+        .replace(/[?#].*$/, "");
 }
 /** Read a small text file, or `undefined` for absent/unreadable/oversized. */
 function readSmall(abs) {

@@ -348,7 +348,7 @@ file, all of which you can open and read:
   stance lines your AI client writes at the end of a session, stored word for word, together with
   the paths of the notes it cited, the working directory, the project name derived from it, the
   session ID, and the git remote URL of that directory if it has one (read from `.git/config`;
-  never contacted).
+  never contacted, and any token, password or query string in it is removed before it is stored).
 - A usage log (`_librarian/stateful-use.jsonl`) recording when you used the recall tools, so you can
   tell whether they are worth keeping.
 
