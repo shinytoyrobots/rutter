@@ -72,7 +72,7 @@
 <ul>
   <li><strong><code>cwd</code></strong> — the session's working directory, exactly as the host reported it on the Stop event.</li>
   <li><strong><code>project</code></strong> — derived from that directory: the name of the enclosing git working tree, or the directory's own name when it isn't in a repo. A session run from <code>rutter/src</code> is still project <code>rutter</code>. It is <strong>never something you supply</strong> — being asked to name it would make capture non-ambient.</li>
-  <li><strong><code>repo</code></strong> — the <code>origin</code> URL, read straight out of <code>.git/config</code>. The librarian never runs <code>git</code> (no subprocess) and never contacts the remote (no network); the URL is just a string it found in a file.</li>
+  <li><strong><code>repo</code></strong> — the <code>origin</code> URL, read straight out of <code>.git/config</code>. The librarian never runs <code>git</code> (no subprocess) and never contacts the remote (no network); the URL is just a string it found in a file. Any token or password written into the URL (<code>https://&lt;token&gt;@host/…</code>) and any <code>?query</code> are removed before it is stored, so a credential in your git config is never copied into your notes.</li>
 </ul>
 
 <p>Everything about this is best-effort and never blocks a capture:</p>
@@ -294,7 +294,7 @@ npm run gate 2026-07-13 2026-07-26 # counts within a date range</code></pre>
 
 <footer class="site">
   <div class="footer-inner">
-    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source and receipts on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/974d400">main@419b5b9</a> · <a href="sources.json">source hashes</a>.</p>
+    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source and receipts on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/974d400">main@f44a712</a> · <a href="sources.json">source hashes</a>.</p>
   </div>
 </footer>
 </body>
