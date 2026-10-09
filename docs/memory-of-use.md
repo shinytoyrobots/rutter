@@ -141,18 +141,24 @@ failure can never break your session.
 All four hosts fire the same hook after each turn and store the same records, in the same notes
 folder. That shared folder is how a decision captured in one tool is recalled in another. Each
 record carries a `client` label naming the host that wrote it (see [Which client wrote
-it](#which-client-wrote-it)). The hosts differ in where the hook looks for the directive:
+it](#which-client-wrote-it)). The hosts differ in what text the hook reads. On every host the rule
+from [The directive](#the-directive) holds: each firing keeps the last session directive and the
+last position in the text it reads, and two directives in that text collapse to the last.
 
-- **Claude Code** reads the whole transcript, so a directive anywhere in the session is found.
+- **Claude Code** reads the whole transcript. Each firing still keeps only the last directive in
+  it. A line that is no longer last survives only if an earlier firing already captured it, so two
+  directives written in one turn leave only the second.
 - **Grok** reads the Stop event's final assistant message. Grok clips that message at 32,768
-  characters, so a long turn can drop a trailing directive.
+  characters, so a long turn can drop a trailing directive. Two directives in the final message
+  collapse to the last.
 - **Codex** reads the Stop event's final assistant message and nothing earlier. A directive left in
-  mid-turn commentary is not captured, so the client must put it in the final reply. Codex hooks
+  mid-turn commentary is not captured, so the client must put it in the final reply. Two directives
+  there collapse to the last. Codex hooks
   also see only the environment Codex was launched with, so `LIBRARIAN_VAULT_PATH` must be exported
   where Codex starts (see [Getting started, Step 2](./getting-started.md#make-the-path-stick)).
 - **Antigravity** (`agy`) sends a Stop event with no reply text. The hook reads the transcript file
   the event points to and takes the assistant messages from the current turn, which is everything
-  after your last message. A directive anywhere in the turn is found, and an earlier turn's
+  after your last message. The last directive in those messages is kept, and an earlier turn's
   directive is never read again. A turn that ended in an error captures nothing.
 - **Antigravity needs a rule file.** `agy` does not put MCP server instructions in the prompt. It
   saves them as a file the model may never read. So the installer also writes an always-on rule
