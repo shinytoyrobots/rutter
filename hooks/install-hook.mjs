@@ -90,6 +90,9 @@ async function installAntigravity() {
   const db = process.env.LIBRARIAN_DB_PATH ?? path.join(import.meta.dirname, "..", "data", "librarian.db");
   const command = `LIBRARIAN_VAULT_PATH="\${LIBRARIAN_VAULT_PATH:-${vault}}" ${hookCommand}`;
 
+  // Quote for a copy-pasted shell line: a path with a space or other metacharacter must stay one argument.
+  const sq = (v) => (/[^A-Za-z0-9_@%+=:,./-]/.test(v) ? `'${v.replaceAll("'", "'\\''")}'` : v);
+
   const mentionsHook = (cfg) =>
     Object.values(cfg ?? {}).some(
       (v) =>
@@ -113,6 +116,26 @@ async function installAntigravity() {
   const hookRegistered = mentionsHook(cfg);
   if (!hookRegistered && name in cfg) {
     fail(`${settingsPath} already has a hook named "${name}" that is not this one -- rename it, then re-run (nothing was changed).`);
+  }
+  // A registration under ANOTHER name is left alone, but if it bakes in a different vault it would keep
+  // capturing there while the MCP entry printed below reads from this one -- the mismatch this installer
+  // exists to prevent. Refuse before changing anything (the rule included); its owner updates or removes it.
+  const foreign = Object.entries(cfg).find(
+    ([k, v]) =>
+      k !== name &&
+      Array.isArray(v?.Stop) &&
+      v.Stop.some((h) => typeof h?.command === "string" && (h.command.includes(hookPath) || h.command.includes(hookCommand)))
+  );
+  if (foreign) {
+    const cmd = foreign[1].Stop.find((h) => typeof h?.command === "string" && h.command.includes(hookPath)).command;
+    const m = cmd.match(/LIBRARIAN_VAULT_PATH="\$\{LIBRARIAN_VAULT_PATH:-([^}"]*)\}"/) ?? cmd.match(/LIBRARIAN_VAULT_PATH=("?)([^"\s]+)\1(?:\s|$)/);
+    const theirs = m ? path.resolve(expandHome((m[2] ?? m[1]).trim())) : null;
+    if (theirs !== null && theirs !== vault) {
+      fail(
+        `${settingsPath} already registers this hook as "${foreign[0]}" with vault ${theirs}, but you chose ${vault}. ` +
+          `Update or remove that entry (or pass --vault ${theirs}), then re-run (nothing was changed).`
+      );
+    }
   }
   const ruleStatus = await installAntigravityRule();
 
@@ -151,7 +174,9 @@ async function installAntigravity() {
   console.error("[install-hook] Writes (the hook) now default to that vault no matter which shell launches agy; an exported");
   console.error("[install-hook] LIBRARIAN_VAULT_PATH still overrides it, and each capture's stderr line names the vault it wrote to.");
   console.error("[install-hook] Reads (the MCP server) use the vault in its own env block. Register it with the SAME value:");
-  console.error(`[install-hook]     agy mcp add --env LIBRARIAN_VAULT_PATH=${vault} --env LIBRARIAN_DB_PATH=${db} rutter ${process.execPath} ${stdio}`);
+  console.error(
+    `[install-hook]     agy mcp add --env ${sq(`LIBRARIAN_VAULT_PATH=${vault}`)} --env ${sq(`LIBRARIAN_DB_PATH=${db}`)} rutter ${sq(process.execPath)} ${sq(stdio)}`
+  );
   console.error("[install-hook]   or put this in ~/.gemini/config/mcp_config.json (literal values; substitution there is undocumented):");
   console.error(
     JSON.stringify(

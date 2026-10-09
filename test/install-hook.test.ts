@@ -186,7 +186,7 @@ t("antigravity: --vault is baked into the hook AND the MCP snippet, so reads and
   assert.ok(agyCommand(sb.home).includes(`:-${vault}}"`), "hook default is the chosen vault (path with a space survives)");
   assert.ok(res.stderr.includes(`VAULT for capture AND reads: ${vault}`));
   assert.ok(res.stderr.includes(`"LIBRARIAN_VAULT_PATH": "${vault}"`), "MCP snippet carries the same vault");
-  assert.ok(res.stderr.includes(`--env LIBRARIAN_VAULT_PATH=${vault}`), "agy mcp add line carries the same vault");
+  assert.ok(res.stderr.includes(`--env 'LIBRARIAN_VAULT_PATH=${vault}'`), "agy mcp add line carries the same vault, shell-quoted so a space stays one argument");
   assert.match(res.stderr, /from --vault/);
 });
 
@@ -220,6 +220,29 @@ t("antigravity: re-running with a different --vault moves the hook; the same vau
   assert.match(moved.stderr, /updated the Stop hook/);
   assert.ok(agyCommand(sb.home).includes(`:-${b}}"`));
   assert.equal(JSON.parse(fs.readFileSync(agyHooks(sb.home), "utf8"))["librarian-capture"].Stop.length, 1, "replaced, not stacked");
+});
+
+t("antigravity: a foreign registration baking in a DIFFERENT vault is refused before anything is changed; a matching or env-driven one is accepted", () => {
+  const sb = sandbox();
+  fs.mkdirSync(path.dirname(agyHooks(sb.home)), { recursive: true });
+  const other = path.join(sb.home, "other-vault");
+  const chosen = path.join(sb.home, "chosen-vault");
+  const baked = (v: string): string => JSON.stringify({ mine: { Stop: [{ type: "command", command: `LIBRARIAN_VAULT_PATH="\${LIBRARIAN_VAULT_PATH:-${v}}" ${hookPath}` }] } });
+  fs.writeFileSync(agyHooks(sb.home), baked(other), "utf8");
+  const res = install(sb, "--client", "antigravity", "--vault", chosen);
+  assert.equal(res.status, 1);
+  assert.match(res.stderr, /already registers this hook as "mine" with vault/);
+  assert.equal(fs.readFileSync(agyHooks(sb.home), "utf8"), baked(other), "hooks.json untouched");
+  assert.equal(fs.existsSync(agyRule(sb.home)), false, "rule not written");
+  assert.doesNotMatch(res.stderr, /agy mcp add/, "no MCP guidance printed for a vault the hook will not use");
+
+  fs.writeFileSync(agyHooks(sb.home), baked(chosen), "utf8");
+  const ok = install(sb, "--client", "antigravity", "--vault", chosen);
+  assert.equal(ok.status, 0, ok.stderr);
+  assert.match(ok.stderr, /already registered under another name/);
+
+  fs.writeFileSync(agyHooks(sb.home), JSON.stringify({ mine: { Stop: [{ type: "command", command: hookPath }] } }), "utf8");
+  assert.equal(install(sb, "--client", "antigravity", "--vault", chosen).status, 0, "no embedded vault: it follows the environment, so it is accepted");
 });
 
 t("antigravity: a vault path that would change the shell command is refused; --vault is refused for other clients", () => {
