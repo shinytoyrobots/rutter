@@ -63,9 +63,15 @@ Using another client, or want the manual route? Continue with the steps below.
 
 - **Node 22 or newer.** Check with `node -v`. npm warns at install time on an older Node — heed it, because the built-in `node:sqlite` this depends on will simply be missing. Verified on Node 26.
 - **npm and git.**
-- **Claude Code, Grok, Codex, or Antigravity.** The four MCP tools work with any MCP client; the Stop hook that powers ambient capture runs in all four of these. Claude Code and Grok read it from `~/.claude/settings.json`; Codex reads it from `~/.codex/hooks.json` (or `$CODEX_HOME/hooks.json`); Antigravity reads it from `~/.gemini/config/hooks.json`.
+- **Claude Code, Grok, Codex, or Antigravity.** The four MCP tools work with any MCP client; the Stop hook that powers ambient capture runs in all four of these. Where each finds the hook: Claude Code runs the plugin's hook or one registered in `~/.claude/settings.json`, and Grok runs those same Claude Code hooks; Codex reads `~/.codex/hooks.json` (or `$CODEX_HOME/hooks.json`); Antigravity reads `~/.gemini/config/hooks.json`. Where each finds your notes folder is a separate question, answered in [Make the path stick](#make-the-path-stick): Grok and Codex take it from the shell that launched them, not from `~/.claude/settings.json`.
 - **A directory of markdown notes.** Obsidian is what rutter was built against — it understands wikilinks and frontmatter — but nothing requires Obsidian itself.
 - **No compiler toolchain.** There are zero native dependencies. The index is Node's built-in SQLite, so there is nothing to build and no database to install.
+
+**Using Grok? It rides on the Claude Code install.** Grok picks up the rutter plugin from your Claude Code install, server and hook included, so there is no separate Grok registration step:
+
+1. Install the Claude Code plugin first ([fast path](#fast-path-for-claude-code)).
+2. Grok does not fill in the plugin's notes-folder option. If your notes are not in the default `~/Documents/knowledge-vault`, export `LIBRARIAN_VAULT_PATH` in the shell profile that launches Grok, and re-source it. A line on stderr says when the default folder was used for that reason.
+3. Expect the summary line at the end of Grok's final reply. The hook reads only the final assistant message, and Grok clips that message at 32,768 characters, so on a very long turn a trailing directive can be cut off and lost.
 
 **Using Codex? It takes a few extra steps.** Codex cannot use rutter's one-command plugin install (the [Claude Code fast path](#fast-path-for-claude-code)): it fills in none of a plugin's variables and installs no hook. So you set it up by hand from this clone, and the differences are easy to miss:
 
@@ -80,7 +86,7 @@ Verified with Codex 0.160.0 (October 2026).
 
 1. Build, then register the server with `agy mcp add`, passing your notes path at registration (Step 5).
 2. Install the Stop hook and a capture rule file with `npm run install-hook -- --client antigravity --vault /path/to/your/notes` (Step 6). Use the same notes path as in the first step. The rule file is needed: `agy` does not put the server's instructions in the prompt, and without the rule its model did not leave summaries on its own.
-3. Expect `agy` to leave the summary line anywhere in the current turn. The hook reads the turn from `agy`'s transcript file.
+3. Expect `agy` to leave the summary line anywhere in the current turn. The hook reads the turn from `agy`'s transcript file. If the turn holds two summary lines, only the last is kept.
 
 Verified with `agy` 1.3.2 (October 2026).
 
@@ -409,7 +415,7 @@ Each entry starts with what you see, then the usual cause, then the fix.
 
 **Antigravity leaves no summaries.** The rule file `~/.gemini/config/rules/rutter-capture.md` should exist, and the model may never read the server's instructions without it. Re-run the installer from Step 6 if it is missing. A turn that ended in an error captures nothing.
 
-**A long Grok turn loses its summary.** Grok clips its final message at 32,768 characters, so a directive near the end of a very long turn can be dropped.
+**A long Grok turn loses its summary.** Grok clips its final message at 32,768 characters, so a directive near the end of a very long turn can be dropped. See [Using Grok](#before-you-start) for the full Grok setup.
 
 **Every capture appears to be attempted twice.** You have both the plugin's hook and a hand-registered one. Remove the `npm run install-hook` entry from `~/.claude/settings.json`. The duplicate is detected and stored once, but it is wasted work.
 
