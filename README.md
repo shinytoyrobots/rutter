@@ -194,8 +194,10 @@ npm run identity-confirm -- Notes/old-name.md Notes/new-name.md
 
 There is **nothing to add to your `CLAUDE.md`.** The whole capture contract — that a summary
 should be left, the exact syntax, and how to write it — ships inside the server as MCP
-instructions and reaches every client on connect. Register the hook, restart, done. (Full detail
-in [`docs/memory-of-use.md`](./docs/memory-of-use.md).)
+instructions, which the server sends to every client on connect. Register the hook, restart, done.
+Antigravity is the exception: it saves those instructions as a file instead of putting them in the
+prompt, so its installer also writes a rule file. (Full detail in
+[`docs/memory-of-use.md`](./docs/memory-of-use.md).)
 
 **1. Register the Stop hook.** Either run:
 

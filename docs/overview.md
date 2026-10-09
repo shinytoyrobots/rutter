@@ -106,8 +106,9 @@ standard way an AI client connects to an outside source of data:
   itself the next time it starts.
 
 The Stop hook runs in Claude Code, Grok, Codex, and Antigravity. The tools work with any MCP client. The
-server also carries its own usage guidance to every client that connects. There is nothing to
-configure per project.
+server also sends its own usage guidance to every client that connects. Antigravity saves that
+guidance as a file instead of putting it in the prompt, so its installer also writes a rule file.
+There is nothing to configure per project.
 
 Records live in `<notes>/_librarian/`, inside your own notes directory. They are plain markdown,
 sitting beside the notes they describe — greppable in a terminal, committable to the same git

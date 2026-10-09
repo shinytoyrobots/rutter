@@ -235,7 +235,7 @@ npm run install-hook -- --client antigravity --vault /path/to/your/notes
 
 This adds a `librarian-capture` hook to `~/.gemini/config/hooks.json` and writes `~/.gemini/config/rules/rutter-capture.md`. The installer prints which notes folder it chose and where that came from. The hook uses that folder as its default no matter which shell launches `agy`; an exported `LIBRARIAN_VAULT_PATH` still overrides it. Re-running with a different `--vault` updates the hook in place. It refuses to overwrite a rule file it did not write. Use the same notes path you gave `agy mcp add` in Step 5. Run `/hooks` in `agy` to review the hook. Each capture prints the vault it wrote to in `agy`'s log, under `~/.gemini/antigravity-cli/log/`.
 
-**There is nothing to add to your `CLAUDE.md`.** The whole capture contract ships inside the server as MCP instructions, and reaches every client on connect. That contract covers when to leave a summary, its exact syntax, and how to write it. Setup is the hook, and that is all.
+**There is nothing to add to your `CLAUDE.md`.** The whole capture contract ships inside the server as MCP instructions, and the server sends it to every client on connect. Antigravity does not put those instructions in the model's prompt, which is why its installer writes a rule file. That contract covers when to leave a summary, its exact syntax, and how to write it. Setup is the hook, and that is all.
 
 ## Step 7 — Restart, and let a real session record itself
 

@@ -106,8 +106,10 @@ untrusted hook never runs. For Antigravity, build and run
 `npm run install-hook -- --client antigravity --vault <your notes folder>`, then run the
 `agy mcp add` line it prints. There is nothing to add to your `CLAUDE.md`. From v3.4.0 the whole
 capture contract lives in `SERVER_INSTRUCTIONS` in `src/server.ts` — the single
-source, quoted rather than restated everywhere else — and reaches every client on
-connect as MCP server instructions. Before v3.4.0 the emission trigger and the
+source, quoted rather than restated everywhere else — and the server sends it to
+every client on connect as MCP server instructions. Antigravity does not put those
+instructions in the model's prompt, so its installer also writes a rule file (see
+*Host differences*). Before v3.4.0 the emission trigger and the
 directive syntax existed *only* in a hand-installed `~/.claude/CLAUDE.md` rule,
 which meant ambient capture worked for exactly one person: whoever had installed
 that rule.
