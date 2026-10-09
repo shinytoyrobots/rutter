@@ -67,8 +67,10 @@ carry file-level provenance. Supply-chain provenance formats hash content proper
 built for auditors rather than for your next working session. So decisions drift quietly away from
 the code that produced them, and nothing announces it.
 
-Here, every reference carries the content hash of the note as it stood when the line was captured. Drift becomes visible
-instead of silent.
+Here, every reference carries the content hash of the note as it stood when the line was captured. A renamed note
+is followed by exact hash match, and a note that cannot be placed is shown as unresolved instead of
+silently dropped. The stored hash also lets you compare a file against what it was then. Reporting a note
+that changed in place is not built yet.
 
 Two smaller things follow from the design. The store is yours — markdown in your own notes
 directory, not a vendor's account or a tool's private folder, so it stays portable, greppable,
@@ -124,6 +126,12 @@ Stated here rather than discovered later:
   and finds changes, which drops and recreates the tables for about a second per few thousand notes.
   A search from another open session at that instant can come back empty. It is rare, because an
   unchanged index is never rebuilt, and it clears on the next call.
+- **A reference shows what was captured, not what was read.** The client chooses which paths to
+  list, and the hash is taken when capture runs, after the turn. rutter cannot establish that the
+  model read a file, that a file produced the conclusion, that capture is complete, or that a note at
+  an unchanged path has not changed since (that report is not built). Append-only is a rule the
+  server follows, not tamper-proof auditing. See [what rutter can and cannot
+  establish](./docs/memory-of-use.md#7-what-rutter-can-and-cannot-establish).
 - **Semantic search is stubbed.** `embeddings.ts` is a port with no implementation; retrieval is
   full-text only.
 - **Under active evaluation.** The stateful behavior is behind a usage gate — the project measures
