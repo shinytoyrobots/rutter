@@ -42,8 +42,8 @@ markdown:
   one. Nothing is ever overwritten or deleted.
 
 A note reference is stored as a **versioned identity** — the vault-relative path
-plus a content-hash captured as it was read — so the reference still tells you
-*what you saw* even after the note changes later.
+plus a content hash taken when the line was captured — so the reference still records
+what the file contained then, even after the note changes later.
 
 ### Which workspace an entry came from
 
