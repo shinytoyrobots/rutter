@@ -2,6 +2,8 @@
 
 *What rutter is, why it is built the way it is, and what that costs.*
 
+**One memory across Claude Code, Grok, Codex, and Antigravity.** A decision made in one is there when you ask another.
+
 ## What this explains
 
 A folder of markdown notes is a store of knowledge. Hand the same folder to two people and they
