@@ -4,8 +4,14 @@ Notable changes to rutter, newest first. Detailed per-ship records — grounds,
 disclosed gaps, and what is being watched — are kept by the maintainer
 outside this repository.
 
-## Unreleased
+## v0.4.0 — 2026-10-09
 
+- **Antigravity joins Claude Code, Grok, and Codex: one memory across all four.** A decision
+  captured in any of them is recalled in the others, because they all write to the same notes
+  folder and read it through the same server. The README opens with this, with a table of how
+  each client captures and where to set it up, and the overview and tutorials carry it too.
+  Grok, Codex, and the Antigravity CLI now have their own README setup section instead of
+  sitting under the Claude plugin install. Records do not name the client that wrote them.
 - **Antigravity as a capture host.** `npm run install-hook -- --client antigravity` registers
   the Stop hook in `~/.gemini/config/hooks.json` and writes an `always_on` capture rule to
   `~/.gemini/config/rules/rutter-capture.md`, built from the server's own contract text.
