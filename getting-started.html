@@ -342,7 +342,7 @@ refs:
 <p>rutter has no pause switch. A line is captured whenever the hook runs and the model has left one. To stop capture, stop the hook:</p>
 <ul>
 <li><strong>Claude Code plugin:</strong> <code>/plugin disable rutter@rutter</code> turns off the plugin&#39;s server and hook together.</li>
-<li><strong>Grok:</strong> Grok runs the hook from your Claude Code install. Whether Grok honors a plugin disabled in Claude Code has not been checked, so after disabling it, confirm that a Grok session adds no new line.</li>
+<li><strong>Grok:</strong> Grok loads the hook from your Claude Code plugin install, and it does not honor the plugin being disabled in Claude Code. Setting <code>GROK_CLAUDE_HOOKS_ENABLED=false</code> does not reach plugin hooks either. Two things do: turn the hook off in Grok&#39;s <code>/hooks</code> tab (select it and press Space), or uninstall the plugin from Claude Code with <code>/plugin uninstall rutter@rutter</code>, which removes it from Grok as well. The disable and uninstall behavior was checked with <code>grok inspect</code> on Grok 1.0.50; the <code>/hooks</code> toggle is from Grok&#39;s own documentation.</li>
 <li><strong>A hook added by <code>npm run install-hook</code>:</strong> delete its entry from the hook file named in <a href="#before-you-start">Before you start</a>. There is no uninstall command.</li>
 <li><strong>Codex:</strong> remove the entry from <code>~/.codex/hooks.json</code>. A hook you have not trusted in <code>/hooks</code> never runs, so an untrusted hook is already paused.</li>
 <li><strong>Antigravity:</strong> remove the hook entry, and delete <code>~/.gemini/config/rules/rutter-capture.md</code> so the model stops writing lines.</li>
@@ -393,7 +393,7 @@ refs:
 
 <footer class="site">
   <div class="footer-inner">
-    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/4019a82">main@4019a82</a> · <a href="sources.json">source hashes</a>.</p>
+    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/62b0f5f">main@62b0f5f</a> · <a href="sources.json">source hashes</a>.</p>
   </div>
 </footer>
 </body>
