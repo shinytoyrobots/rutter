@@ -6,7 +6,10 @@ import { capturePosition, overStanceWordCeiling, stanceWordCount } from "./posit
 import { parsePositionDirective, findEmptyStancePositionDirective } from "./position-directive.js";
 async function main() {
     const input = await readStdin();
-    const payload = safeParse(input);
+    const parsed = safeParse(input);
+    if (!parsed)
+        return;
+    const payload = isAntigravityPayload(parsed) ? normalizeAntigravity(parsed) : parsed;
     if (!payload)
         return;
     // Read the transcript AT MOST ONCE, lazily -- only if some caller actually
@@ -22,6 +25,17 @@ async function main() {
     };
     runSessionCapture(payload, getTranscriptText);
     runPositionCapture(payload, getTranscriptText);
+}
+/**
+ * Names the vault a capture was written to, and says when that is the DEFAULT because
+ * LIBRARIAN_VAULT_PATH was unset. A hook inherits its vault from the host's launch environment while
+ * the MCP server may carry its own, so the two can disagree; saying where the write went (stderr
+ * only, INV-5) makes that visible instead of silent.
+ */
+function vaultNote() {
+    const raw = process.env.LIBRARIAN_VAULT_PATH?.trim();
+    const unset = !raw || /\$\{[^}]*\}/.test(raw); // unset, empty, or an unfilled plugin placeholder: config fell back
+    return ` in vault ${config.vaultPath}${unset ? " (default: LIBRARIAN_VAULT_PATH was not set for this hook)" : ""}`;
 }
 // ---------------------------------------------------------------------------
 // Session capture (SCN-001/SCN-002/etc.) -- unchanged behavior (SR-055).
@@ -42,7 +56,7 @@ function runSessionCapture(payload, getTranscriptText) {
         // Diagnostics on stderr only, never stdout (INV-5). The project is named when
         // provenance resolved, so a mis-wired hook is visible without opening the record.
         const project = result.entry?.workspace ? ` [${result.entry.workspace.project}]` : "";
-        console.error(`[librarian-capture] captured 1 entry${project} into ${result.day} session record.`);
+        console.error(`[librarian-capture] captured 1 entry${project} into ${result.day} session record${vaultNote()}.`);
         if (result.rejectedRefs.length) {
             console.error(`[librarian-capture] rejected unresolvable refs: ${result.rejectedRefs.join(", ")}`);
         }
@@ -136,7 +150,7 @@ function runPositionCapture(payload, getTranscriptText) {
     });
     if (result.captured) {
         const project = result.event?.workspace ? ` [${result.event.workspace.project}]` : "";
-        console.error(`[librarian-capture] captured 1 position event (${directive.kind} ${directive.topicKey})${project} into ${result.month} positions stream.`);
+        console.error(`[librarian-capture] captured 1 position event (${directive.kind} ${directive.topicKey})${project} into ${result.month} positions stream${vaultNote()}.`);
         if (result.rejectedRefs.length) {
             console.error(`[librarian-capture] rejected unresolvable position refs: ${result.rejectedRefs.join(", ")}`);
         }
@@ -253,6 +267,86 @@ function extractText(record) {
         return "";
     return content
         .map((block) => (typeof block.text === "string" ? block.text : ""))
+        .join("\n");
+}
+// ---------------------------------------------------------------------------
+// Antigravity Stop adapter (antigravity-compatibility.md).
+// ---------------------------------------------------------------------------
+/**
+ * Selected by payload SHAPE, never by a transcript path merely being set (the
+ * Grok lesson): camelCase `conversationId` + `transcriptPath`, and none of the
+ * snake_case keys another host (or a direct caller) would use.
+ */
+function isAntigravityPayload(p) {
+    return (typeof p.conversationId === "string" &&
+        typeof p.transcriptPath === "string" &&
+        p.session_id === undefined &&
+        p.transcript_path === undefined &&
+        p.summary === undefined &&
+        p.position === undefined);
+}
+/**
+ * Maps an Antigravity Stop payload onto the shape the shared paths already read:
+ * `conversationId` becomes the session id, `workspacePaths[0]` the cwd, and the
+ * current turn's assistant text the message fallback. Returns null (nothing
+ * captured) on a non-empty `error`, or when the transcript is unreadable or
+ * unrecognized -- fail closed, one stderr line. No other guard: our hook never
+ * requests continuation, so it cannot cause re-entry.
+ */
+function normalizeAntigravity(p) {
+    if (typeof p.error === "string" && p.error !== "") {
+        console.error("[librarian-capture] antigravity turn ended with an error; nothing captured.");
+        return null;
+    }
+    const text = readAntigravityTurnText(p.transcriptPath);
+    if (text === null) {
+        console.error("[librarian-capture] antigravity transcript unreadable or unrecognized; nothing captured.");
+        return null;
+    }
+    const cwd = Array.isArray(p.workspacePaths) && typeof p.workspacePaths[0] === "string" ? p.workspacePaths[0] : undefined;
+    return { session_id: p.conversationId, cwd, last_assistant_message: text };
+}
+/**
+ * Assistant text of the CURRENT turn from an Antigravity `transcript_full.jsonl`:
+ * `PLANNER_RESPONSE` records after the last `USER_INPUT`. Filtering on `type`, not
+ * `source`: tool results (`GENERIC`) also carry `source: "MODEL"`, and `USER_INPUT`
+ * echoes any directive template the user typed. The transcript accumulates across
+ * turns, so scoping to the last `USER_INPUT` keeps an older turn's directive from
+ * shadowing or duplicating the current one. Returns null when the file is
+ * unreadable or holds no record with a string `type` (unrecognized shape).
+ */
+function readAntigravityTurnText(transcriptPath) {
+    let raw;
+    try {
+        raw = fs.readFileSync(transcriptPath, "utf8");
+    }
+    catch {
+        return null;
+    }
+    const records = [];
+    for (const line of raw.split("\n")) {
+        if (line.trim() === "")
+            continue;
+        try {
+            const rec = JSON.parse(line);
+            if (rec && typeof rec.type === "string")
+                records.push({ type: rec.type, content: rec.content });
+        }
+        catch {
+            /* skip unparseable transcript line */
+        }
+    }
+    if (records.length === 0)
+        return null;
+    let start = 0;
+    records.forEach((r, i) => {
+        if (r.type === "USER_INPUT")
+            start = i + 1;
+    });
+    return records
+        .slice(start)
+        .filter((r) => r.type === "PLANNER_RESPONSE" && typeof r.content === "string")
+        .map((r) => r.content)
         .join("\n");
 }
 function safeParse(input) {

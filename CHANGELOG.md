@@ -4,6 +4,30 @@ Notable changes to rutter, newest first. Detailed per-ship records — grounds,
 disclosed gaps, and what is being watched — are kept by the maintainer
 outside this repository.
 
+## Unreleased
+
+- **Antigravity as a capture host.** `npm run install-hook -- --client antigravity` registers
+  the Stop hook in `~/.gemini/config/hooks.json` and writes an `always_on` capture rule to
+  `~/.gemini/config/rules/rutter-capture.md`, built from the server's own contract text.
+  Antigravity's Stop event carries no reply text, so `capture-cli` reads the current turn's
+  `PLANNER_RESPONSE` records from the transcript (after the last `USER_INPUT`; tool results
+  and echoed prompts are ignored) and skips a turn that ended with an error. The conversation
+  id is the session id and the first workspace path is the working directory.
+- **Why the rule file.** `agy` saves an MCP server's instructions as a file instead of putting
+  them in the prompt, so the model never wrote a summary line from them (nor from `AGENTS.md`).
+  An `always_on` rule is injected every turn; with it Gemini Flash and Pro and Claude Sonnet all
+  wrote the line after a decision and none after a trivial question.
+- **One vault for capture and reads.** The installer now takes the vault once (`--vault`, else
+  `LIBRARIAN_VAULT_PATH`, else the default, and says which) and writes it to both the hook (as a
+  default an exported `LIBRARIAN_VAULT_PATH` can still override) and the printed MCP entry.
+  Before, the hook inherited whatever shell launched `agy` while the MCP server kept its own
+  stored vault, so a capture from a shell without the variable went to the default vault while
+  reads came from another. Re-running with a different `--vault` updates the hook in place.
+  Every capture now names the vault it wrote to on stderr, and flags the default fallback.
+- Verified with `agy` 1.3.2 against a disposable vault: a three-turn conversation captured the
+  decision, skipped a trivial turn, captured the reversal; a replayed payload was a no-op; and a
+  run from a shell with no vault variable wrote to the installed vault, not the default one.
+
 ## v0.3.3 — 2026-10-02
 
 - **The privacy policy now lists everything rutter writes.** It said three kinds of
