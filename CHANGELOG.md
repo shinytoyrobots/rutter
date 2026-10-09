@@ -4,6 +4,21 @@ Notable changes to rutter, newest first. Detailed per-ship records — grounds,
 disclosed gaps, and what is being watched — are kept by the maintainer
 outside this repository.
 
+## v0.4.1 — 2026-10-09
+
+- **A capture never overwrites a record it cannot read.** If a day's session file or a month's
+  position file already exists but fails validation, the append is refused: the file is left
+  byte-identical and the hook reports `FAILED to write ...` on stderr instead of claiming a
+  capture. An absent file still starts fresh. Before, an unreadable file was treated as "no
+  record yet" and rewritten from the one new entry, which deleted the rest of the day.
+- **Session and position capture run independently.** A failure or unexpected error in one no
+  longer skips the other.
+- **Records accept an optional `client` field.** Nothing writes it yet. This release only teaches
+  readers and writers to preserve it, because an older writer drops unknown keys on every append
+  and would erase labels from a day it appends to. Update every writer (the Claude plugin, and the
+  Codex and Antigravity clones: `git pull`, `npm run build`) before the release that starts
+  writing labels. Capture diagnostics now name the build version so a stale writer is visible.
+
 ## v0.4.0 — 2026-10-09
 
 - **Antigravity joins Claude Code, Grok, and Codex: one memory across all four.** A decision
