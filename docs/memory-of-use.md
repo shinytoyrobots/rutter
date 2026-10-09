@@ -593,6 +593,51 @@ the vault and the ledger alone (INV-4).
 
 ---
 
+## 7. What rutter can and cannot establish
+
+A reference is evidence of what a session recorded. It is not proof of what the session read. This
+section puts the boundary in one place.
+
+**What rutter can establish:**
+
+- **Which paths the client listed** in its directive.
+- **The sha256 of each listed file's bytes when capture ran.** The server computes it. A client
+  cannot supply one.
+- **The summary or stance the client wrote,** byte-verbatim.
+- **When and where the line was captured.** That means the time, and the working directory, project,
+  and repo origin when the host reports them. Each record also names the client that wrote it, when
+  that can be established.
+
+**What it cannot establish:**
+
+- **That the model read a listed file.** The client picks the paths. The hash shows that the file
+  had those bytes when capture ran.
+- **That the listed files produced the conclusion.**
+- **That capture is complete.** A line exists only if the client wrote a directive and the hook
+  found it (see the list below).
+- **That a file did not change between the session reading it and capture.** The hash is taken when
+  the hook runs, after the turn. If the session edited a note, the hash is of the edited file.
+- **Whether a note at an unchanged path has changed since.** The hash is stored, so you can compare.
+  rutter does not report it yet.
+
+**What capture depends on.** Each item is stated earlier on this page. They are collected here:
+
+- The hook only lifts a line the model wrote. A client that skips the directive leaves nothing to
+  capture. An empty summary, or one still wrapped in `<angle brackets>`, captures nothing.
+- Each firing keeps one session summary and one position: the last of each in the text the hook reads.
+- Codex reads the final reply only, so a directive in earlier commentary is lost.
+- Grok clips its final message at 32,768 characters, so a long turn can drop a trailing directive.
+- Antigravity captures nothing from a turn that ended in an error, and needs the rule file, or its
+  model may not leave summaries.
+- The style contract is advisory. The server stores a dense or over-long summary as written.
+
+**Append-only is a rule rutter follows, not a tamper-proof log.** The server has no code path that
+rewrites, reorders, or deletes a stored line. But the records are plain markdown in your notes
+folder. Anyone with write access, including you in Obsidian, can edit them, and nothing detects
+it. If you need a history of edits, commit the notes folder to git.
+
+---
+
 ## Guarantees
 
 - **Local-first (INV-1):** no network calls, ever. Repository identity is resolved
