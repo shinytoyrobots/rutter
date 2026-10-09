@@ -1,11 +1,11 @@
 ---
-version: "14.0.0"
+version: "15.0.0"
 status: active
 effort:
   - s1-5-ambient-capture   # converged
   - decision-graph         # active (v3.8.0 Phase 0 shipped; v3.12.0 Phase A drafted; v4.0.0 panel amendments; v5.0.0 SR-056 baseline correction; v6.0.0 wire-format ratification; v7.0.0 Phase B drafted; v8.0.0 retired-stub content pinned; v9.0.0 fold timing pinned; v10.0.0 response envelope pinned; v11.0.0 incremental-clause dropped; v12.0.0 attribution semantics pinned; v13.0.0 dormancy/retirement exemption pinned; v14.0.0 not-found shape + match scope pinned)
 last-amended: 2026-08-13
-mapping-pending: true      # SR-104 (bound pending gen-1 calibration) + SCN-010/SR-047..057 (Phase A) + SCN-011/SR-058..065 (Phase B) — entirely unmapped, evals/ owned by flow-eval
+mapping-pending: true      # SCN-012/SCN-013/SR-066..SR-072 (v15.0.0, client label) + SR-104 (bound pending gen-1 calibration) + SCN-010/SR-047..057 (Phase A) + SCN-011/SR-058..065 (Phase B) — entirely unmapped, evals/ owned by flow-eval
 # NOTE: the per-version snapshots named in the 'History:' pointers below (spec/history/) and the
 #   panel records and proposed amendments in spec/.staging/ are kept locally and are not part of
 #   the published repository; earlier commits still contain them.
@@ -33,16 +33,14 @@ pending-amendment: true    # code is ahead of this spec (rutter v0.3.0); see PEN
 #      rebuild cannot leave a stale "up to date" stamp.
 #   3. The server's reported version is read from package.json (single source), kept in
 #      step with the plugin manifest and CHANGELOG by test/version.test.ts. Non-functional.
-# PENDING AMENDMENT -- client label, noted 2026-10-09, NOT ratified; fold in with /flow-spec.
-#   Implemented per docs/client-label-plan.md (branch feat/client-label). Needs a scenario and
-#   requirements for: an optional, tolerant `client` string on session entries and position events
-#   (schema ids unchanged); excluded from idempotence identity (extend SR-018's and SR-049's lists);
-#   never in summary or stance text; absent on legacy records and on any ambiguity; the host/identity
-#   matrix in src/client.ts, classified from the original envelope before Antigravity normalization;
-#   an append never overwrites an existing record that fails validation, and reports `failed`, not
-#   `captured`; session and position capture run independently; the two-release rollout (readers
-#   tolerant before any writer emits). Amends the 0.4.0 "records do not name the client" statement and
-#   the position-schema field set that dissent-2026-08-13-0004 condition 4 pinned.
+# v15.0.0 (major — client label, docs/client-label-plan.md): adds SCN-012 (a captured record
+# names the host client that wrote it, when established) and SCN-013 (a capture never destroys
+# a record it cannot read), SR-066..SR-072. Amends SR-018 and SR-049 (the label joins the
+# fields excluded from idempotence identity) and deliberately extends the position-event
+# field set that dissent-2026-08-13-0004 condition 4 pinned (test updated, rollout order is
+# that dissent's mixed-version answer). Reverses the 0.4.0 README/CHANGELOG statement that
+# records do not name the client. Per-version snapshots are untracked (see NOTE above), so no
+# spec/history file was written. Mapping for SCN-012/013 pending in evals/ (flow-eval).
 # v14.0.0 (major — effort decision-graph, panel-2026-08-13-phase-b-reprobe.md
 # follow-up): closes Divergence 1 (the last of that re-probe's four routed
 # divergences) plus its single-reader match-scope flag, both on SR-061. v10.0.0
@@ -1380,6 +1378,63 @@ SR-065
 
 ---
 
+### SCN-012: A captured record names the host client that wrote it, when that is established *(v15.0.0, client label)*
+**Given** one notes folder is written by Claude Code, Grok, Codex, and Antigravity
+through the same Stop hook
+**When** the hook captures a session summary or a position directive
+**Then** the entry or event shall carry a `client` label — exactly one of `claude`,
+`grok`, `codex`, `agy` — only where the original envelope's shape and the
+installer-supplied identity agree, and no label otherwise, so a reader can tell which
+client stopped writing summaries without reading logs or guessing.
+
+**Acceptance criteria:**
+- The label names the host client, never the model, and is metadata only: the summary
+  and stance stay byte-verbatim (SR-023, INV-6), and the label is shown in frontmatter,
+  not the human-readable body.
+- The host is classified from the ORIGINAL envelope, before Antigravity normalization
+  rewrites it, by the table in `src/client.ts`: Antigravity shape => `agy`; camelCase
+  `lastAssistantMessage` => `grok`; the installer identity (`--client` or
+  `RUTTER_CLIENT`) supplies the rest. `last_assistant_message` distinguishes nothing.
+- Any case the table cannot settle gets no label: conflicting identity and shape,
+  contradictory shape, a direct capture payload, an unrecognized identity (a typo, a
+  different case, a future client — never treated as absent), two disagreeing identity
+  sources, and Codex with no identity. Entries from hooks registered before the identity
+  existed, and all pre-existing records, show none.
+- The field is **additive-optional** on `session-record@1` and
+  `position-event@1-provisional` (schema ids unchanged). Stored as a plain string: an
+  unfamiliar value is preserved on rewrite and ignored by readers, never an error.
+- The label never participates in idempotence identity.
+- Rollout is two releases: label-preserving readers and writers ship, and every active
+  writer is confirmed on them, before any writer emits a label — an older writer
+  strips unknown keys on every append.
+
+**Derived requirements:** SR-066, SR-067, SR-068, SR-069, SR-070
+
+---
+
+### SCN-013: A capture never destroys a record it cannot read *(v15.0.0, client label)*
+**Given** a day's session file or a month's position file already exists but fails
+validation (hand-edited, truncated, or written by something else)
+**When** a capture targets that file
+**Then** the file shall be left byte-identical, the capture shall report that nothing
+was recorded and why, and the other kind of capture in the same hook run shall still
+proceed.
+
+**Acceptance criteria:**
+- An existing file that fails validation is never rewritten; an absent file still
+  starts a fresh record.
+- The result is `failed` with a reason (`unparseable-record` or `write-error`), never
+  `captured`; stderr names the file and is distinct from "nothing to capture"; the hook
+  still exits 0 (INV-5, a hook failure must never break the session).
+- Session capture and position capture run independently: a failure or unexpected
+  throw in one never skips the other.
+
+**Derived requirements:** SR-071, SR-072
+
+---
+
+---
+
 ## Requirements
 
 EARS notation is mandatory. Scenario-derived SRs name their parent. Non-functional
@@ -1443,10 +1498,11 @@ SRs (SR-100+) have no parent.
 - **SR-017** — Repository-identity resolution shall use only local filesystem reads;
   it shall spawn no subprocess and make no network call. *(ubiquitous)*
   `# ← SCN-005; added v3.1.0; refines INV-1`
-- **SR-018** — Workspace provenance shall not participate in idempotence identity: a
-  capture whose directive content is unchanged per SR-013 shall remain a
-  byte-identical no-op regardless of provenance differences. *(ubiquitous)*
-  `# ← SCN-005; added v3.1.0`
+- **SR-018** — Workspace provenance and the host-client label (SR-066) shall not
+  participate in idempotence identity: a capture whose directive content is unchanged
+  per SR-013 shall remain a byte-identical no-op regardless of provenance or client
+  differences. *(ubiquitous)*
+  `# ← SCN-005; added v3.1.0; amended v15.0.0 (client)`
 - **SR-019** — When `librarian-recent` returns entries, each entry carrying workspace
   provenance shall display its project name; where a project filter is supplied, the
   system shall return only entries whose project name matches case-insensitively,
@@ -1611,7 +1667,8 @@ SRs (SR-100+) have no parent.
   If only the `revises`
   field differs (added, removed, or changed in value) from an otherwise-identical
   prior directive, the two directives are not identical and the later one shall
-  append as a new event. *(unwanted-behavior)*
+  append as a new event. The host-client label (SR-066) is likewise inert: a directive
+  identical but for `client` is a duplicate. *(unwanted-behavior)*
   `# ← SCN-010; added v3.12.0 (decision-graph, Phase A); amended v4.0.0 (flow-panel 2026-08-12, divergence 1: revises is client-authored directive content, not derived metadata like a timestamp — excluding it from identity risked silently dropping a supersession correction the client explicitly typed, contrary to HANDOFF §1's 'never silently' stance); amended v6.0.0 (panel-2026-08-13, divergence 2: pins cross-month scope, closing SG-2 — mirrors session-record.ts's identical cross-day handling for the same reason, a session can straddle the boundary; panel readers split 2-2 on this exact question, only half guessing the shipped answer); SR-013's idempotence pattern applied to the positions stream; a reaffirm differs by kind or session and is a distinct directive; mapping-pending: true`
 - **SR-050** — When a `retire` directive is captured, the system shall append a new
   position event attributed to it and shall never modify, remove, reorder, or compact
@@ -1732,6 +1789,37 @@ SRs (SR-100+) have no parent.
   before/after comparison test. *(ubiquitous)*
   `# ← SCN-011; added v7.0.0 (decision-graph, Phase B); mirrors SR-055's guarantee for Phase A, extended to cover a second new surface (the fold and the new tool) touching the same underlying stream; mapping-pending: true`
 
+- **SR-066** — Session entries and position events shall accept an optional `client`
+  field stored as a plain string, with schema ids unchanged; a stored value this build
+  does not recognize shall be preserved on rewrite and ignored by readers, and shall
+  never cause a record to fail validation. *(ubiquitous)*
+  `# ← SCN-012; added v15.0.0; mapping-pending: true`
+- **SR-067** — When the capture hook receives a Stop envelope, the system shall classify
+  the host client from the original envelope, before any normalization, and shall write
+  `client` only for a (shape, explicit identity) pair the `src/client.ts` table
+  resolves to `claude`, `grok`, `codex`, or `agy`. *(event-driven)*
+  `# ← SCN-012; added v15.0.0; mapping-pending: true`
+- **SR-068** — If the shape and identity conflict, the shape is contradictory, the
+  payload is a direct capture, the explicit identity is unrecognized or its sources
+  disagree, or the host is Codex without an identity, then the system shall omit the
+  `client` field. *(unwanted-behavior)*
+  `# ← SCN-012; added v15.0.0; mapping-pending: true`
+- **SR-069** — The `client` label shall not participate in idempotence identity
+  (SR-013, SR-049) and shall never appear in or alter summary or stance text.
+  *(ubiquitous)* `# ← SCN-012; added v15.0.0; extends SR-018; mapping-pending: true`
+- **SR-070** — No writer shall emit a `client` label until a release that preserves it
+  has shipped and every active writer is confirmed on it, and each capture diagnostic
+  shall name the build version so a stale writer is observable. *(ubiquitous)*
+  `# ← SCN-012; added v15.0.0; process requirement, verified by the mixed-version append probe test; mapping-pending: true`
+- **SR-071** — If the destination session or position file exists and fails
+  validation, then the system shall append nothing, leave it byte-identical, and report
+  `failed` (reason `unparseable-record`, or `write-error` for a failed atomic write)
+  rather than `captured`. *(unwanted-behavior)*
+  `# ← SCN-013; added v15.0.0; refines INV-3; mapping-pending: true`
+- **SR-072** — The system shall run session capture and position capture each in its
+  own guard, so a failure or unexpected error in one never prevents the other.
+  *(ubiquitous)* `# ← SCN-013; added v15.0.0; mirrors SR-055; mapping-pending: true`
+
 ### Non-functional (no scenario parent)
 
 - **SR-100** — Session-record frontmatter shall conform to a typed schema compatible
@@ -1768,6 +1856,8 @@ SRs (SR-100+) have no parent.
 | SCN-005 | auto provenance, local-reads-only, never-blocks, additive-optional, dedupe-unchanged, inert | SR-015, SR-016, SR-017, SR-018 | INV-1, INV-2 | correctness-real-v1, security-adv-v1 | correctness, security |
 | SCN-006 | server instructions, project display, project filter, no-behavior-drift, no-user-authored-contract, single-source, per-outcome-trigger | SR-019, SR-020, SR-025, SR-026, SR-027, SR-028, SR-035 | — | correctness-real-v1 | correctness |
 | SCN-007 | authoring contract in instructions, read-time render guidance, directive-rule deployment, verbatim storage, no retrofit, no-behavior-drift, length-budget | SR-021, SR-022, SR-023, SR-034 | INV-3, INV-6 | correctness-real-v1, correctness-adv-v1 | correctness |
+| SCN-012 | host label, classify-from-original-envelope, absent-beats-wrong, additive-optional/tolerant, not-identity, two-release rollout | SR-066, SR-067, SR-068, SR-069, SR-070 | INV-6 | (pending) | (pending) |
+| SCN-013 | no-overwrite, failed-not-captured, independent captures | SR-071, SR-072 | INV-3, INV-5 | (pending) | (pending) |
 | — | mdbase-compatible frontmatter | SR-100 | — | schema-real-v1 | schema-conformance |
 | — | untrusted-input handling | SR-101 | INV-2 | adversarial-input-v1 | safety |
 | — | repo hygiene | SR-102 | — | repo-hygiene-v1 | safety |
