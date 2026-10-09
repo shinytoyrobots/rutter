@@ -34,6 +34,12 @@ export const SessionEntrySchema = z.object({
     // Where the session happened (SCN-005). Optional in both directions: absent on
     // pre-v3.1.0 entries, and omitted on any capture whose cwd was unavailable.
     workspace: WorkspaceSchema.optional(),
+    // Which host client wrote the entry (client-label plan). A plain string on read,
+    // NOT an enum: a future fifth client or a hand-edited value must never fail
+    // validation, because a failed parse is what makes a day file unreadable. The
+    // canonical values are enforced where the label is produced (client.ts), and
+    // readers preserve and ignore anything else. Metadata only -- never summary text.
+    client: z.string().optional(),
 });
 export const RecordSchema = z.object({
     collection: z.literal(COLLECTION),
@@ -55,20 +61,24 @@ export function readRecord(day) {
     return parseRecordFile(recordPath(day));
 }
 function parseRecordFile(abs) {
+    const state = readRecordState(abs);
+    return state.state === "ok" ? state.record : null;
+}
+function readRecordState(abs) {
     let raw;
     try {
         raw = fs.readFileSync(abs, "utf8");
     }
-    catch {
-        return null;
+    catch (err) {
+        return err?.code === "ENOENT" ? { state: "absent" } : { state: "unparseable" };
     }
     try {
         const parsed = matter(raw);
         const result = RecordSchema.safeParse(parsed.data);
-        return result.success ? result.data : null;
+        return result.success ? { state: "ok", record: result.data } : { state: "unparseable" };
     }
     catch {
-        return null; // malformed YAML -- treat as absent rather than crash
+        return { state: "unparseable" }; // malformed YAML
     }
 }
 /** Every valid record on disk, unordered (recent.ts imposes the ordering). */
@@ -155,7 +165,13 @@ export function isDuplicateEntry(entry) {
  * one appends a fresh entry alongside the untouched earlier ones.
  */
 export function appendSession(day, entry) {
-    const existing = readRecord(day);
+    const abs = recordPath(day);
+    const state = readRecordState(abs);
+    // Never overwrite a file we cannot parse: the append is a full-file rewrite, so
+    // writing "just the new entry" over an unreadable day would destroy it (INV-3).
+    if (state.state === "unparseable")
+        return { written: false, reason: "unparseable-record", path: abs };
+    const existing = state.state === "ok" ? state.record : null;
     const sessions = existing ? [...existing.sessions, entry] : [entry];
     const record = {
         collection: COLLECTION,
@@ -164,7 +180,13 @@ export function appendSession(day, entry) {
         sessions,
         refs: aggregateRefs(sessions),
     };
-    atomicWrite(recordPath(day), serializeRecord(record));
+    try {
+        atomicWrite(abs, serializeRecord(record));
+    }
+    catch {
+        return { written: false, reason: "write-error", path: abs };
+    }
+    return { written: true };
 }
 /**
  * Union of all sessions' refs, de-duplicated by path+hash. Entries are CLONED so

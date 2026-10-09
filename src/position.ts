@@ -32,6 +32,8 @@ export interface PositionCaptureResult {
   captured: boolean;
   /** True when this was a SR-049 idempotent no-op (see positions.ts). */
   deduped?: boolean;
+  /** Set when the write did not happen; see CaptureResult.failed. `captured` is then false. */
+  failed?: { reason: "unparseable-record" | "write-error"; path: string };
   /** `YYYY-MM` the event landed in (only when captured). */
   month?: string;
   event?: PositionEvent;
@@ -76,7 +78,8 @@ export function capturePosition(payload: PositionCapturePayload): PositionCaptur
   }
 
   const month = isoMonth(now);
-  appendPositionEvent(month, event);
+  const written = appendPositionEvent(month, event);
+  if (!written.written) return { captured: false, failed: { reason: written.reason, path: written.path }, rejectedRefs };
   return { captured: true, month, event, rejectedRefs };
 }
 

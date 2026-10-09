@@ -114,12 +114,31 @@ async function main(): Promise<void> {
     return transcriptText;
   };
 
-  runSessionCapture(payload, getTranscriptText);
-  runPositionCapture(payload, getTranscriptText);
+  // The two captures are independent: a failure or an unexpected throw in one must
+  // never skip the other (a corrupt session day file must not cost a position).
+  guarded("session", () => runSessionCapture(payload, getTranscriptText));
+  guarded("position", () => runPositionCapture(payload, getTranscriptText));
+}
+
+function guarded(kind: string, run: () => void): void {
+  try {
+    run();
+  } catch (err) {
+    console.error(`[librarian-capture] ${kind} capture failed unexpectedly; the other capture still runs:`, err);
+  }
+}
+
+/** One stderr line for a write that did not happen (INV-5): distinct from "nothing to capture". */
+function reportFailure(kind: string, failed: { reason: string; path: string }): void {
+  const why =
+    failed.reason === "unparseable-record"
+      ? `the existing file cannot be parsed, so it was left untouched; repair or move it`
+      : `the write failed`;
+  console.error(`[librarian-capture] FAILED to write ${kind}: ${why} (${failed.path}). Nothing was recorded.`);
 }
 
 /**
- * Names the vault a capture was written to, and says when that is the DEFAULT because
+ * Names the build (so an out-of-date manual clone is visible, not assumed) and the vault a capture was written to, and says when that is the DEFAULT because
  * LIBRARIAN_VAULT_PATH was unset. A hook inherits its vault from the host's launch environment while
  * the MCP server may carry its own, so the two can disagree; saying where the write went (stderr
  * only, INV-5) makes that visible instead of silent.
@@ -127,7 +146,7 @@ async function main(): Promise<void> {
 function vaultNote(): string {
   const raw = process.env.LIBRARIAN_VAULT_PATH?.trim();
   const unset = !raw || /\$\{[^}]*\}/.test(raw); // unset, empty, or an unfilled plugin placeholder: config fell back
-  return ` in vault ${config.vaultPath}${unset ? " (default: LIBRARIAN_VAULT_PATH was not set for this hook)" : ""}`;
+  return ` in vault ${config.vaultPath} (rutter ${config.version})${unset ? " (default: LIBRARIAN_VAULT_PATH was not set for this hook)" : ""}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -147,7 +166,9 @@ function runSessionCapture(payload: StopPayload, getTranscriptText: () => string
     sessionId: payload.session_id ?? payload.sessionId,
     cwd: payload.cwd,
   });
-  if (result.captured) {
+  if (result.failed) {
+    reportFailure("session entry", result.failed);
+  } else if (result.captured) {
     // Diagnostics on stderr only, never stdout (INV-5). The project is named when
     // provenance resolved, so a mis-wired hook is visible without opening the record.
     const project = result.entry?.workspace ? ` [${result.entry.workspace.project}]` : "";
@@ -248,7 +269,9 @@ function runPositionCapture(payload: StopPayload, getTranscriptText: () => strin
     cwd: payload.cwd,
   });
 
-  if (result.captured) {
+  if (result.failed) {
+    reportFailure("position event", result.failed);
+  } else if (result.captured) {
     const project = result.event?.workspace ? ` [${result.event.workspace.project}]` : "";
     console.error(
       `[librarian-capture] captured 1 position event (${directive.kind} ${directive.topicKey})${project} into ${result.month} positions stream${vaultNote()}.`

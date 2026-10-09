@@ -37,7 +37,9 @@ export function capturePosition(payload) {
         return { captured: false, deduped: true, rejectedRefs };
     }
     const month = isoMonth(now);
-    appendPositionEvent(month, event);
+    const written = appendPositionEvent(month, event);
+    if (!written.written)
+        return { captured: false, failed: { reason: written.reason, path: written.path }, rejectedRefs };
     return { captured: true, month, event, rejectedRefs };
 }
 /** Words in a stance line, counted identically to a session summary (SR-054 reuses SR-021's numbers). */
