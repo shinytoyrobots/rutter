@@ -460,7 +460,7 @@ The usage count from `npm run gate` measures recall, not capture. It is not a ca
 rutter has no pause switch. A line is captured whenever the hook runs and the model has left one. To stop capture, stop the hook:
 
 - **Claude Code plugin:** `/plugin disable rutter@rutter` turns off the plugin's server and hook together.
-- **Grok:** Grok runs the hook from your Claude Code install. Whether Grok honors a plugin disabled in Claude Code has not been checked, so after disabling it, confirm that a Grok session adds no new line.
+- **Grok:** Grok loads the hook from your Claude Code plugin install, and it does not honor the plugin being disabled in Claude Code. Setting `GROK_CLAUDE_HOOKS_ENABLED=false` does not reach plugin hooks either. Two things do: turn the hook off in Grok's `/hooks` tab (select it and press Space), or uninstall the plugin from Claude Code with `/plugin uninstall rutter@rutter`, which removes it from Grok as well. The disable and uninstall behavior was checked with `grok inspect` on Grok 1.0.50; the `/hooks` toggle is from Grok's own documentation.
 - **A hook added by `npm run install-hook`:** delete its entry from the hook file named in [Before you start](#before-you-start). There is no uninstall command.
 - **Codex:** remove the entry from `~/.codex/hooks.json`. A hook you have not trusted in `/hooks` never runs, so an untrusted hook is already paused.
 - **Antigravity:** remove the hook entry, and delete `~/.gemini/config/rules/rutter-capture.md` so the model stops writing lines.
