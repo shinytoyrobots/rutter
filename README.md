@@ -277,19 +277,33 @@ you need it, that is a bug worth reporting, because the server is meant to carry
 ## Install as a Claude plugin
 
 The plugin bundles the server and the capture hook, so there is nothing to build, register or
-edit by hand. Once the repository is installed as a plugin, Claude Code asks for one thing — the
+edit by hand. Once it is installed as a plugin, Claude Code asks for one thing — the
 folder of notes to search — and starts the server and the Stop hook on its own.
 
-In Claude Code, install it straight from this repository:
+rutter is listed in the Anthropic Directory, for Claude Code and Cowork. Claude Code has the
+directory built in: find rutter under `/plugin` → Discover, or run
+
+```
+/plugin install rutter@anthropic-plugin-directory
+```
+
+The directory serves the version Anthropic last reviewed, which can trail this repository. To
+track the repository directly, install from its own marketplace instead:
 
 ```
 /plugin marketplace add shinytoyrobots/rutter
 /plugin install rutter@rutter
 ```
 
+Pick one route, not both: two installs register two servers and two capture hooks.
+
 Choose your notes folder when asked, then run `/reload-plugins`. If you install from a shell
-instead (`claude plugin install rutter@rutter`), pass `--config vault_path=/path/to/notes` or run
-`/plugin configure rutter@rutter` afterwards; without a notes folder the server has nothing to read.
+instead (`claude plugin install rutter@anthropic-plugin-directory`, or `rutter@rutter` after adding
+the marketplace), pass `--config vault_path=/path/to/notes` or run `/plugin configure` with the same
+plugin name afterwards; without a notes folder the server has nothing to read.
+
+Ambient capture has been checked in Claude Code, Grok, Codex, and Antigravity. The directory also
+lists rutter for Cowork; capture there has not been checked.
 
 - **What it runs.** A local MCP server (`node dist/stdio.js`) and a Stop hook
   (`hooks/librarian-stop.sh`). Both are plain Node and shell that you can read in this repository;
