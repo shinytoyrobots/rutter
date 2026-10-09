@@ -1,15 +1,19 @@
 # rutter
 
-**A record of what your AI sessions decided — and the versioned references behind it.**
+**Recall past decisions and the notes your AI session cited.**
 
-**One memory across Claude Code, Grok, Codex, and Antigravity.** A decision made in one is there when you ask another.
+An MCP (Model Context Protocol) server over a folder of markdown notes. As a session decides
+something, your client leaves one line about it. A hook stores that line, without rewriting it, in a
+dated file inside your notes folder, with the path and a content hash of each note it cited.
 
-An MCP (Model Context Protocol) server over a folder of markdown notes. At the end of each session your client leaves one
-line about what it decided. The server stores that line without rewriting it, alongside
-content-hashed references to the notes it cited.
+Weeks later you ask what you concluded, in the same AI tool or another one you have set up, and get
+the line back with its date and its notes. A note renamed without edits is followed by its hash. A
+reference rutter cannot place is shown as unresolved rather than dropped. A note changed in place is
+not flagged yet.
 
-Weeks later you can ask what you concluded. You can also ask whether the files it rested on have
-moved since.
+It suits people who keep markdown notes and are comfortable configuring an AI client. Start with
+[`docs/getting-started.md`](./docs/getting-started.md); Claude Code users can [install the
+plugin](#install-as-a-claude-plugin) in a few minutes.
 
 There is no model inside it. It is code plus storage, so the reasoning stays in your client.
 
@@ -59,7 +63,7 @@ read them, and a line is not rewritten for style on the way in: only a one-line 
 2,000-character cut apply.
 
 The second difference is the one that matters more. A summary on its own is not a record — it is
-an assertion. A summary plus the versioned state of what it was based on is a record, because it
+an assertion. A summary plus the versioned state of the notes it cited is a record, because it
 can be checked.
 
 Almost nothing does that second part. Architecture decision records capture the *what* and the
