@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>rutter — your notes are the store; this is the memory of using them</title>
-<meta name="description" content="One memory across Claude Code, Grok, Codex, and Antigravity: a record of what your AI sessions decided, and the versioned references behind it. An MCP server over a folder of markdown notes.">
+<title>rutter — recall past decisions and the notes your AI session cited</title>
+<meta name="description" content="Recall past decisions and the notes your AI session cited. rutter keeps dated records in your own markdown notes folder, each with a content hash of the notes it cites. An MCP server for Claude Code, Grok, Codex, and Antigravity; a personal reference implementation.">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -31,20 +31,90 @@
 </header>
 
 <div class="hero">
-  <h1>Your notes are the store. This is the memory of using them.<span class="cursor" aria-hidden="true">▌</span></h1>
+  <h1>Recall past decisions and the notes your AI session cited<span class="cursor" aria-hidden="true">▌</span></h1>
   <p class="dek">What rutter is, why it is built the way it is, and what that costs.</p>
 </div>
 
 <main id="main">
 
-<p><strong>One memory across Claude Code, Grok, Codex, and Antigravity.</strong> A decision made in one is there when you ask another.</p>
+<p>Months after a working session, you want to know what you decided and which notes the session
+cited when it decided it. rutter keeps that. As an AI session decides something, your client
+writes one line about it. rutter stores the line in a dated file inside your own notes folder,
+with each cited note&#39;s path and a hash of its contents at that moment. Later you ask, in the same
+AI tool or another one you have set up, and get the decision back with its date and its notes.</p>
+<p>The mechanism is plain. Records are only appended, so earlier decisions stay alongside later ones.
+Each reference carries the hash taken when the line was captured, so a note renamed without edits
+is followed to its new path, and a reference rutter cannot place is shown to you rather than
+dropped.</p>
+<p>It has limits, stated up front. A line exists only if your client wrote one. A reference shows
+which notes the session listed, not that the model read them. A note that changes in place, at the
+same path, is not flagged today. rutter is one person&#39;s tool, MIT-licensed and published as a
+reference implementation, with no support commitment. It suits someone who keeps markdown notes and
+is comfortable configuring an AI client.</p>
+<p><strong>Try it:</strong> the <a href="getting-started.html#fast-path-for-claude-code">Claude Code fast path</a> takes a few
+minutes; <a href="getting-started.html">getting started</a> covers Grok, Codex, and Antigravity. The rest of
+this page is the argument for the design.</p>
+<h2 id="an-example">An example</h2>
+<p>This is a real run, recorded on 9 October 2026 for this page. The two notes are fictional and say
+so in their text. The sessions, the commands, and the output below are real and unedited.</p>
+<p><strong>A decision, captured in Claude Code.</strong> A notes folder holds two notes: <code>Notes/reader-survey.md</code>,
+the results of a newsletter reader survey, and <code>Notes/publishing-cadence.md</code>, a draft listing three
+publishing options. The prompt in Claude Code was <em>&quot;I&#39;m deciding whether to change my newsletter&#39;s
+publishing cadence. Read Notes/reader-survey.md and Notes/publishing-cadence.md, pick one of the
+options, and treat that as my decision.&quot;</em> The session picked fortnightly issues and, as rutter&#39;s
+instructions ask, ended its reply with one line:</p>
+<pre><code class="language-text">&lt;!-- librarian-session {"summary":"Decided to move the newsletter from weekly to fortnightly, one long essay per issue, based on the autumn reader survey (48% want fewer, longer issues; top request was more depth per topic). Main risk: readers forgetting between issues.","refs":["Notes/reader-survey.md","Notes/publishing-cadence.md"]} --&gt;
+</code></pre>
+<p>The Stop hook stored that line in <code>_librarian/sessions/2026-10-09.md</code>, with the sha256 of each
+cited note as it stood at capture. Nobody typed the line or ran a command to save it.</p>
+<p><strong>A rename, then an edit and a rename.</strong> Next, outside any AI session, the survey note moved to
+<code>Research/reader-survey-autumn.md</code> with its contents untouched, and the folder was reindexed:</p>
+<pre><code class="language-text">[rutter] identity pass: 1 dead ref(s) checked, 1 bound, 0 unresolved, 1 ledger entry appended, 2ms
+</code></pre>
+<p>Then the options note gained one line and was renamed <code>Notes/cadence-decision.md</code>, and the folder
+was reindexed again:</p>
+<pre><code class="language-text">[rutter] identity pass: 2 dead ref(s) checked, 1 bound, 1 unresolved, 0 ledger entries appended, 1ms
+</code></pre>
+<p>Asking for recent work now shows the decision with both references:</p>
+<pre><code class="language-text">$ npm run recent
+2026-10-09 22:16:53 [newsletter-notes] — Decided to move the newsletter from weekly to fortnightly, one long essay per issue, based on the autumn reader survey (48% want fewer, longer issues; top request was more depth per topic). Main risk: readers forgetting between issues.
+   refs: Notes/reader-survey.md@sha256:fa2bbeb8033a613517730bb689d49da31c9a1abf1601be48cd26dae4402cf75f (renamed to Research/reader-survey-autumn.md)
+   refs: Notes/publishing-cadence.md@sha256:e9b42627bcb83a2945080d28cc99ab7ce0248cad5e342fefab45f9f54b2e9dcb [UNRESOLVED -- candidates: none]
+</code></pre>
+<p>The survey note kept its bytes, so exactly one current note had the stored hash, and rutter bound
+the old path to the new one. The options note changed as well as moved, so its old path is gone and
+no note has its hash. rutter shows that reference as unresolved instead of guessing that
+<code>cadence-decision.md</code> is the same note. Several notes sharing one hash would also leave a reference
+unresolved, with each of them listed as a candidate. The stored line itself is never rewritten; the
+rename is resolved only when the line is displayed. What the unresolved reference means is left to
+you: see <a href="#a-dead-reference-is-a-persons-call">A dead reference is a person&#39;s call</a>.</p>
+<p><strong>Recall, in Codex.</strong> Last, in Codex, started in a directory outside the notes folder, the question
+was <em>&quot;What did I decide about my newsletter&#39;s publishing cadence, when, and which notes did that
+decision cite?&quot;</em> Codex called <code>librarian-recent</code> and <code>librarian-positions</code> and answered:</p>
+<pre><code class="language-text">Your recorded decision was to **publish every two weeks, with one long essay per issue, replacing the weekly roundup**—because readers wanted more depth and tended to skim the roundup.
+
+It was recorded on **October 9, 2026**, with no revisions. That decision’s session cited:
+
+- **`Notes/reader-survey.md`**, now renamed `Research/reader-survey-autumn.md`: the October 2 survey favored fewer, longer issues and deeper coverage.
+- **`Notes/publishing-cadence.md`**: this reference is currently unresolved, so I couldn’t verify its contents.
+
+A separate October 5 note, `Notes/cadence-decision.md`, says **“going fortnightly from November.”** It isn’t verified as the missing cited note.
+
+Both readable notes are explicitly labeled fictional demo notes, so this describes the demo’s recorded decision.
+</code></pre>
+<p>Captured with Claude Code 2.1.296 and recalled with Codex 0.162.0, against rutter 0.5.0.</p>
+<p>One boundary this run does not show: had the survey note been edited at the <em>same</em> path, nothing
+above would say so. rutter stores the hash that makes the comparison possible, but it does not
+report same-path changes today. What rutter can and cannot establish is spelled out
+<a href="#what-rutter-can-and-cannot-establish">below</a>.</p>
 <h2 id="the-missing-layer">The missing layer</h2>
 <p>A folder of markdown notes is a store of knowledge. Hand the same folder to two people and they
-do not come away with the same thing. Which notes each of them opened, what each concluded, which
+do not come away with the same thing. What each concluded, which notes each leaned on, which
 question one of them finally stopped reopening — none of that is in the store. It never was.</p>
-<p>rutter keeps that second thing.</p>
-<p>It gives an AI session the memory of how <strong>you</strong> traversed and used a body of knowledge, rather
-than the specifics of the knowledge itself. Same store, two readers, two different memories. The
+<p>rutter keeps a record of part of that second thing: the decisions your sessions wrote down, and the
+notes each one cited.</p>
+<p>It gives an AI session a record of how <strong>you</strong> used a body of knowledge, rather than the specifics
+of the knowledge itself. Same store, two readers, two different memories. The
 store is objective and shareable. The memory of using it is neither.</p>
 <p>Worth being exact about the scope, because the shape of the code invites a wrong guess: this is not
 about coding sessions. A session might be research, drafting, planning, or just reading around a
@@ -60,28 +130,12 @@ notes kept the earlier name. They are all parts of rutter.</p>
 <p>This document is about <em>why</em> it is built this way. If you want to run it, start with
 <a href="getting-started.html"><code>getting-started.md</code></a>. If you want the mechanics of capture, recall and
 identity in full, read <a href="memory-of-use.html"><code>memory-of-use.md</code></a>.</p>
-<h2 id="an-example">An example</h2>
-<p>In August you ask Claude Code whether the ingest path should stay synchronous. You read two notes
-and decide it should. The session leaves one line: <em>&quot;Decided the ingest path stays synchronous;
-async needs the queue design first.&quot;</em> The line cites <code>Notes/ingest-design.md</code>. rutter stores the
-line exactly as written, with a hash of that note&#39;s contents when the line was captured.</p>
-<p>In October you reorganize your notes. <code>ingest-design.md</code> moves to <code>Architecture/ingest.md</code>, contents
-untouched. At the next reindex, rutter sees that the old path is gone and finds exactly one note
-with the same hash. It binds the old path to the new one and records that.</p>
-<p>A week later you open Codex and ask why the ingest path stayed synchronous. Codex searches your
-notes and finds <code>Architecture/ingest.md</code>, with a dated note attached: what you concluded in
-August, and that you did. Codex can tell you what you decided, when, and from which note.</p>
-<p>Had the note been renamed <em>and</em> edited, no hash would match. Asking for recent work would show the
-reference marked unresolved, with every candidate rutter found, and you would decide what it means.</p>
-<p>One thing rutter does not do yet: tell you that a note at the <em>same</em> path has changed since August.
-It holds the original hash, so the comparison is possible. Reporting it is not built. What rutter
-can and cannot establish is spelled out <a href="#what-rutter-can-and-cannot-establish">below</a>.</p>
 <h2 id="one-memory-across-your-tools">One memory across your tools</h2>
 <p>Most memory features live inside one tool. Switch tools and you start again.</p>
 <p>rutter does not belong to a tool. It is a folder of markdown files plus an MCP (Model Context
-Protocol) server. Any MCP client can read the memory. Any tool with a hook that runs after each turn
-can write to it. Four have one today: Claude Code, Grok, Codex, and the Antigravity command-line
-tool (<code>agy</code>).</p>
+Protocol) server. Any MCP client can read the memory. Writing needs a hook that runs after each turn
+and a payload rutter knows how to read. Four clients have a supported hook today: Claude Code, Grok,
+Codex, and the Antigravity command-line tool (<code>agy</code>).</p>
 <p>A session summary captured in any of them is available to all of them straight away. Positions
 appear after the next reindex. The memory belongs to the folder and to you. A tool you add later
 reads the same records.</p>
@@ -95,17 +149,19 @@ a short summary, plus the paths it touched. A Stop hook lifts the newest such li
 transcript in Claude Code and Antigravity, from the final assistant message in Grok and Codex. It appends that line to a dated file inside your notes directory. Each path
 is stored with the sha256 of that file&#39;s bytes. The server reads the file and computes that hash
 itself, rather than accepting one from the client, so a client cannot hand it a hash for a file
-that was not on disk. The client still chooses which paths to list. The hash says what the file
-contained at capture, not that the session read it. Each entry also records the working directory
+that was not on disk. The client still chooses which paths to list. The hash identifies the file&#39;s
+bytes at capture; rutter keeps no copy of them, and the hash does not show that the session read the
+file. Each entry also records the working directory
 the session ran in, and the git remote when there is one. A day spread across three efforts still
 reads cleanly.</p>
 <p>One line per separable outcome, not one per session. A working session usually leaves three or
-four. Because your client writes while its context is still loaded, capture costs no extra
-inference and no network call.</p>
+four. Because your client writes while its context is still loaded, capture needs no second model
+call and no network call. The line is extra text in the turn the client was already writing.</p>
 <p>That line carries a style contract. Lead with what was decided. Prefer common words to the
 session&#39;s own shorthand. Aim for about 40 words and stop by 60. The contract is advisory. The
-server stores whatever it is handed, byte-verbatim — it never rewrites, shortens, annotates, or
-rejects a line. It cannot. Judging prose is inference, and there is no model in there to do it.</p>
+server does not rewrite a line for style, because judging prose is inference and there is no model
+in there to do it. It does normalize each line to sit in the record as one line, and it cuts a line
+past 2,000 characters. The <a href="memory-of-use.html#the-style-contract">mechanics page</a> has the detail.</p>
 <p><strong>Reading.</strong> The server exposes four read-only tools over MCP (Model Context Protocol), the
 standard way an AI client connects to an outside source of data:</p>
 <ul>
@@ -135,7 +191,9 @@ of truth; the index is a convenience.</p>
 the style contract, plus workspace provenance, prior-engagement annotations on search results,
 references that survive renames, instrumentation on its own use, position capture and recall, and
 a label on each record naming the host client that wrote it. The one stub is embeddings and
-semantic search.</p>
+semantic search. The limits are collected in <a href="#what-rutter-can-and-cannot-establish">What rutter can and cannot
+establish</a>, and every mechanism is described in full in
+<a href="memory-of-use.html"><code>memory-of-use.md</code></a>.</p>
 <p>The client does the thinking. The server only keeps.</p>
 <h2 id="why-it-is-different">Why it is different</h2>
 <p>Your harness almost certainly does a version of this already. Claude Code writes session recaps and
@@ -149,16 +207,19 @@ think now. The sequence of positions you moved through is exactly what consolida
 flatten.</p>
 <p>The second problem is the one that matters more. A summary on its own is not a record. It is an
 assertion. &quot;Decided the ingest path stays synchronous&quot; tells you what a session claimed. It tells
-you nothing about whether the notes that argument rested on still say what they said. Files get
+you nothing about which notes the session cited, or whether those files have changed since. Files get
 rewritten. Notes get renamed. The summary keeps its confident tone the whole time, and nothing
 announces the gap.</p>
-<p>A summary plus the hash of the files it cited is a record, because you can check it.</p>
-<p>That sentence is the design. Everything that follows is what it costs.</p>
+<p>A summary plus the hash of the files it cited is a record, because it gives you a fingerprint to
+compare against.</p>
+<p>That sentence is the design. The next section takes each bet the design makes and what that bet
+costs. The trust boundary, and what rutter deliberately is not, come after the bets.</p>
 <h2 id="the-bets-and-what-each-one-costs">The bets, and what each one costs</h2>
-<h3 id="append-only-and-byte-verbatim">Append-only, and byte-verbatim</h3>
+<h3 id="append-only-and-not-rewritten">Append-only, and not rewritten</h3>
 <p>A stored line is never rewritten. New lines are appended, and grouping happens when you read them
-back. What comes out is what went in. Where a consolidating memory folder converges on one current
-answer, this keeps every answer you gave, in order, with the wrong ones intact.</p>
+back. A line is not rewritten for style on the way in either; only a one-line normalization and a
+2,000-character cut apply (<a href="memory-of-use.html#the-style-contract">detail</a>). Where a consolidating
+memory folder converges on one current answer, this keeps each recorded line, in order, with the wrong ones intact.</p>
 <p>The cost is real, and already visible. The record only grows. Entries written before the style
 contract existed are exactly as dense as the day they were captured. Nothing retrofits them.
 Rewriting your own past record to look tidier would be a worse failure than the density. Some early
@@ -168,12 +229,11 @@ stays the record; what you are told is the answer.</p>
 <p>Append-only is a rule rutter follows. It is not a tamper-proof log, and the records are plain files
 you can edit.</p>
 <h3 id="references-that-carry-a-hash">References that carry a hash</h3>
-<p>Every reference is a path plus the content hash of what was there when the line was captured. Weeks
-later you can ask what you concluded, and ask whether the files that conclusion rested on have
-moved. A renamed note is followed by exact hash match. A note rutter cannot place is shown as
-unresolved, with its candidates. The stored hash also gives you something to compare a file against
-later. The report that a note at the same path has changed is not built yet.</p>
-<p>Almost nothing else pairs those two. Architecture decision records capture the what and the why
+<p>Every reference is a path plus the content hash of what was there when the line was captured. That
+pair is what let the example follow one note and decline to guess about the other. The stored hash
+also gives you something to compare a file against later. A note that changes at the same path
+keeps its old hash in the record, and the change is not reported yet.</p>
+<p>Neighboring approaches each do part of this. Architecture decision records capture the what and the why
 without pinning the version they applied to. Event-sourced logs timestamp events but rarely carry
 file-level provenance. Supply-chain provenance formats hash content properly, but they are built
 for auditors rather than for your next working session. One near neighbor, Kage, does carry
@@ -181,41 +241,35 @@ provenance of this kind — and then treats stale memories differently, which is
 <p>The cost: a hash is a statement about bytes, not about meaning. Reformat a note, fix a typo, and the
 hash says it changed. The signal is honest but blunt, and deliberately so. A fuzzier comparison
 would need a model, and a model in the server is the thing this design refuses.</p>
-<h3 id="show-what-you-can39t-place-and-don39t-withhold-the-answer">Show what you can&#39;t place, and don&#39;t withhold the answer</h3>
+<h3 id="show-what-you-cant-place-and-dont-withhold-the-answer">Show what you can&#39;t place, and don&#39;t withhold the answer</h3>
 <p>This is a crowded space, and the nearest neighbors each take half of this position. Recall does
-append-only session capture, without hashing what a memory rested on. Kage checks its memories
+append-only session capture, without hashing the files a memory cites. Kage checks its memories
 against the live code, and withholds the ones that have gone stale. Withholding is a defensible
 choice. rutter makes a different one. A reference it cannot place is still shown, marked
 unresolved, with every candidate it found. You are better placed than the tool to decide what a
 missing or changed note means for what you concluded.</p>
-<p>Changed content is the part not built. If a note stays at the same path and its bytes change,
-rutter does not flag it today. The design is the same rule applied there: show the change, name
-it, and let you decide. It waits on observed use, like the rest of the unbuilt design at the end of
-this page.</p>
-<p>So the claim is only the combination: append-only verbatim lines, references carrying content
-hashes, and references the tool cannot place shown to you instead of silently resolved or dropped.
-Each of those exists elsewhere. The square where all three meet appears to be unoccupied, and it is
-the only claim made here.</p>
-<h3 id="a-dead-reference-is-a-person39s-call">A dead reference is a person&#39;s call</h3>
-<p>Rename a referenced note without touching its content, and the next reindex rebinds the old
-reference to its new path. No heuristics, no similarity scoring, just an exact content-hash match.
-Both read surfaces then resolve through that binding quietly.</p>
-<p>When rutter cannot tell, it says so. Two cases defeat the match. The note was renamed <em>and</em> edited,
-so no current note&#39;s hash matches; or several notes share the same hash. Either way the reference
-renders explicitly as unresolved, with every candidate it found. It never picks one. Confirming a
-binding is a local terminal command (<code>npm run identity-confirm</code>), never an MCP tool. That is a firm
-line: a model must not be able to decide what a dead reference means. A confirmed binding is
-sticky afterwards. Suppose the vault later changes so that automatic matching would point somewhere
-else. The disagreement is rendered and left for you: <em>confirmed X; the hash now matches Y</em>.</p>
+<p>Changed content at the same path is not built: rutter does not flag it today. The design would
+apply the same rule there, and it waits on observed use, like the rest of the unbuilt design at the
+end of this page.</p>
+<p>The design choice is the combination: append-only lines not rewritten for style, references
+carrying content hashes, and references the tool cannot place shown to you instead of silently
+resolved or dropped. Each of those exists elsewhere.</p>
+<h3 id="a-dead-reference-is-a-persons-call">A dead reference is a person&#39;s call</h3>
+<p>When an exact hash match cannot settle a reference, as with the edited note in the example, rutter
+leaves the call to you. Confirming a binding is a local terminal command,
+<code>npm run identity-confirm</code>, never an MCP tool. That is a firm line: a model must not be able to
+decide what a dead reference means. A confirmed binding is sticky afterwards. Suppose the vault later changes so
+that automatic matching would point somewhere else. The disagreement is rendered and left for you:
+<em>confirmed X; the hash now matches Y</em>.</p>
 <p>The cost is friction. Some references sit unresolved until you get round to them, and only you can
-clear them. That is the intended price of not letting a model quietly rewrite your provenance.</p>
+clear them. That is the intended price of not letting a model quietly decide what your references point to.</p>
 <h2 id="what-rutter-can-and-cannot-establish">What rutter can and cannot establish</h2>
 <p>A reference is evidence of what a session recorded. It is not proof of what the session read.</p>
 <p><strong>It can establish:</strong></p>
 <ul>
 <li>which paths the client listed;</li>
 <li>the hash of each file&#39;s contents when capture ran, computed by the server;</li>
-<li>the conclusion the client wrote, byte-verbatim;</li>
+<li>the conclusion the client wrote, not rewritten for style;</li>
 <li>when and where the line was captured, and which client wrote it when that can be established.</li>
 </ul>
 <p><strong>It cannot establish:</strong></p>
@@ -258,17 +312,17 @@ and an optional backfill of positions from records that predate capture. Both wa
 <h2 id="try-it">Try it</h2>
 <p>If you use Claude Code, install the plugin and you can be recalling in a few minutes: see the
 <a href="getting-started.html#fast-path-for-claude-code">fast path</a>. Everyone else:
-<a href="getting-started.html"><code>getting-started.md</code></a> takes you from clone to first recall in eight verified
-steps.</p>
+<a href="getting-started.html"><code>getting-started.md</code></a> has a setup path for Grok, Codex, and Antigravity, and a
+step-by-step manual route, each ending in a capture check and a recall check.</p>
 <h2 id="further-reading">Further reading</h2>
 <ul>
-<li><a href="getting-started.html"><code>getting-started.md</code></a> — clone to first recall, in eight verified steps.</li>
+<li><a href="getting-started.html"><code>getting-started.md</code></a> — a setup path for each client, from install to first recall.</li>
 <li><a href="memory-of-use.html"><code>memory-of-use.md</code></a> — capture, recall, enrichment, note identity, positions,
 the trust boundary, and the usage gate, in full mechanical detail.</li>
 <li><a href="https://github.com/shinytoyrobots/rutter/blob/main/docs/roadmap.md"><code>roadmap.md</code></a> — current sequencing, and what is deliberately not being built.</li>
 <li><a href="https://github.com/shinytoyrobots/rutter/blob/main/spec/spec.md"><code>../spec/spec.md</code></a> — the executable spec: Given-When-Then scenarios, the
 requirements derived from them, the tests that grade each one, and what every amendment rejected.
-This document is the argument; that file is the receipts.</li>
+This document is the argument; that file is the detail.</li>
 <li><a href="https://github.com/shinytoyrobots/rutter#readme"><code>../README.md</code></a> — what it does today, setup, and the limitations stated up front.</li>
 <li><a href="https://github.com/raiyanyahya/recall">Recall</a> — the nearest neighbor on append-only session
 capture. If that half of the position is the part you want, start there.</li>
@@ -289,7 +343,7 @@ why every reference here carries a hash.</li>
 
 <footer class="site">
   <div class="footer-inner">
-    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source and receipts on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/3412b6a">main@3412b6a</a> · <a href="sources.json">source hashes</a>.</p>
+    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/4019a82">main@4019a82</a> · <a href="sources.json">source hashes</a>.</p>
   </div>
 </footer>
 </body>
