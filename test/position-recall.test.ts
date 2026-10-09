@@ -684,10 +684,14 @@ test("dissent-2026-08-13-0004 condition 4: Phase B adds no field to PositionEven
   // The read path is a consumer of the SCN-010 schema, never an extender of it:
   // a field entering PositionEventSchema after the first real event exists is
   // this dissent's own reactivation condition, and SR-059/SR-063 forbid a stored
-  // dormancy field besides.
+  // dormancy field besides. The client-label change (docs/client-label-plan.md)
+  // is the one deliberate amendment: `client` is a tolerant optional string, the
+  // schema id is unchanged, and the plan's two-release rollout (readers tolerate
+  // the field before any writer emits it) is how this dissent's mixed-version
+  // erasure hazard is answered. Any OTHER field still fails this test.
   assert.deepEqual(
     Object.keys(PositionEventSchema.shape).sort(),
-    ["id", "kind", "refs", "revises", "session_id", "stance", "time", "topic_key", "workspace"],
-    "position-event@1-provisional's field set is exactly what Phase A shipped"
+    ["client", "id", "kind", "refs", "revises", "session_id", "stance", "time", "topic_key", "workspace"],
+    "position-event@1-provisional's field set is what Phase A shipped plus the client label"
   );
 });

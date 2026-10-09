@@ -47,6 +47,8 @@ export const PositionEventSchema = z.object({
     revises: z.string().optional(), // explicit supersession pointer (SR-052), stored verbatim
     refs: z.array(RefSchema),
     workspace: WorkspaceSchema.optional(),
+    // Host client label; tolerant string, see SessionEntrySchema.client.
+    client: z.string().optional(),
 });
 export const PositionStreamSchema = z.object({
     collection: z.literal(COLLECTION),
@@ -73,20 +75,24 @@ export function readPositionStream(month) {
     return parseStreamFile(positionsPath(month));
 }
 function parseStreamFile(abs) {
+    const state = readStreamState(abs);
+    return state.state === "ok" ? state.stream : null;
+}
+function readStreamState(abs) {
     let raw;
     try {
         raw = fs.readFileSync(abs, "utf8");
     }
-    catch {
-        return null;
+    catch (err) {
+        return err?.code === "ENOENT" ? { state: "absent" } : { state: "unparseable" };
     }
     try {
         const parsed = matter(raw);
         const result = PositionStreamSchema.safeParse(parsed.data);
-        return result.success ? result.data : null;
+        return result.success ? { state: "ok", stream: result.data } : { state: "unparseable" };
     }
     catch {
-        return null; // malformed YAML -- treat as absent rather than crash
+        return { state: "unparseable" }; // malformed YAML
     }
 }
 /** Every valid month's stream on disk, unordered. */
@@ -162,7 +168,12 @@ export function isDuplicatePositionEvent(event) {
  * position.ts) before this is reached, exactly mirroring session-record's split.
  */
 export function appendPositionEvent(month, event) {
-    const existing = readPositionStream(month);
+    const abs = positionsPath(month);
+    const state = readStreamState(abs);
+    // Never overwrite an existing stream we cannot parse (see session-record.appendSession).
+    if (state.state === "unparseable")
+        return { written: false, reason: "unparseable-record", path: abs };
+    const existing = state.state === "ok" ? state.stream : null;
     const events = existing ? [...existing.events, event] : [event];
     const stream = {
         collection: COLLECTION,
@@ -171,7 +182,13 @@ export function appendPositionEvent(month, event) {
         events,
         refs: aggregateRefs(events),
     };
-    atomicWrite(positionsPath(month), serializeStream(stream));
+    try {
+        atomicWrite(abs, serializeStream(stream));
+    }
+    catch {
+        return { written: false, reason: "write-error", path: abs };
+    }
+    return { written: true };
 }
 /** Union of all events' refs, de-duplicated by path+hash (mirrors session-record's aggregateRefs). */
 function aggregateRefs(events) {

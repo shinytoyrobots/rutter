@@ -6,6 +6,7 @@ import { config } from "./config.js";
 import { atomicWrite } from "./fs-safe.js";
 import { RefSchema, type VersionedRef } from "./refs.js";
 import { WorkspaceSchema } from "./workspace.js";
+import type { AppendResult } from "./session-record.js";
 import { PositionKindSchema } from "./position-directive.js";
 
 /**
@@ -50,6 +51,8 @@ export const PositionEventSchema = z.object({
   revises: z.string().optional(), // explicit supersession pointer (SR-052), stored verbatim
   refs: z.array(RefSchema),
   workspace: WorkspaceSchema.optional(),
+  // Host client label; tolerant string, see SessionEntrySchema.client.
+  client: z.string().optional(),
 });
 export type PositionEvent = z.infer<typeof PositionEventSchema>;
 
@@ -83,18 +86,26 @@ export function readPositionStream(month: string): PositionStream | null {
 }
 
 function parseStreamFile(abs: string): PositionStream | null {
+  const state = readStreamState(abs);
+  return state.state === "ok" ? state.stream : null;
+}
+
+/** Absent / unparseable / valid; same writer-side distinction as session-record's RecordState. */
+type StreamState = { state: "absent" } | { state: "unparseable" } | { state: "ok"; stream: PositionStream };
+
+function readStreamState(abs: string): StreamState {
   let raw: string;
   try {
     raw = fs.readFileSync(abs, "utf8");
-  } catch {
-    return null;
+  } catch (err) {
+    return (err as NodeJS.ErrnoException)?.code === "ENOENT" ? { state: "absent" } : { state: "unparseable" };
   }
   try {
     const parsed = matter(raw);
     const result = PositionStreamSchema.safeParse(parsed.data);
-    return result.success ? result.data : null;
+    return result.success ? { state: "ok", stream: result.data } : { state: "unparseable" };
   } catch {
-    return null; // malformed YAML -- treat as absent rather than crash
+    return { state: "unparseable" }; // malformed YAML
   }
 }
 
@@ -178,8 +189,12 @@ export function isDuplicatePositionEvent(event: PositionEvent): boolean {
  * every other kind). Idempotence (SR-049) is decided by the caller (see
  * position.ts) before this is reached, exactly mirroring session-record's split.
  */
-export function appendPositionEvent(month: string, event: PositionEvent): void {
-  const existing = readPositionStream(month);
+export function appendPositionEvent(month: string, event: PositionEvent): AppendResult {
+  const abs = positionsPath(month);
+  const state = readStreamState(abs);
+  // Never overwrite an existing stream we cannot parse (see session-record.appendSession).
+  if (state.state === "unparseable") return { written: false, reason: "unparseable-record", path: abs };
+  const existing = state.state === "ok" ? state.stream : null;
   const events = existing ? [...existing.events, event] : [event];
   const stream: PositionStream = {
     collection: COLLECTION,
@@ -188,7 +203,12 @@ export function appendPositionEvent(month: string, event: PositionEvent): void {
     events,
     refs: aggregateRefs(events),
   };
-  atomicWrite(positionsPath(month), serializeStream(stream));
+  try {
+    atomicWrite(abs, serializeStream(stream));
+  } catch {
+    return { written: false, reason: "write-error", path: abs };
+  }
+  return { written: true };
 }
 
 /** Union of all events' refs, de-duplicated by path+hash (mirrors session-record's aggregateRefs). */

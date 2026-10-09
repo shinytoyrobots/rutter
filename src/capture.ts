@@ -36,6 +36,12 @@ export interface CaptureResult {
    * where `deduped` is false.
    */
   deduped?: boolean;
+  /**
+   * Set when the write did not happen (an existing record that cannot be parsed
+   * is left untouched, or the atomic write failed). `captured` is then false and
+   * no entry is claimed -- distinct from a no-op, which sets neither.
+   */
+  failed?: { reason: "unparseable-record" | "write-error"; path: string };
   /** `YYYY-MM-DD` the entry landed in (only when captured). */
   day?: string;
   entry?: SessionEntry;
@@ -105,7 +111,8 @@ export function captureSession(payload: CapturePayload): CaptureResult {
     return { captured: false, deduped: true, rejectedRefs };
   }
 
-  appendSession(isoDay(now), entry);
+  const written = appendSession(isoDay(now), entry);
+  if (!written.written) return { captured: false, failed: { reason: written.reason, path: written.path }, rejectedRefs };
   return { captured: true, day: isoDay(now), entry, rejectedRefs };
 }
 

@@ -57,9 +57,13 @@ test("SEC-A-006 symlink: a write does not follow a symlink out of _librarian/", 
   fs.writeFileSync(external, "TOP SECRET", "utf8");
   fs.mkdirSync(sessionsDir, { recursive: true });
   fs.symlinkSync(external, path.join(sessionsDir, `${DAY}.md`)); // pre-plant a symlink target
-  captureSession({ summary: "attempt to write through the link", now: NOON });
+  const result = captureSession({ summary: "attempt to write through the link", now: NOON });
   assert.equal(fs.readFileSync(external, "utf8"), "TOP SECRET", "the store file is untouched");
-  assert.ok(!fs.lstatSync(path.join(sessionsDir, `${DAY}.md`)).isSymbolicLink(), "link replaced by a real record");
+  // The link's target is not a valid record, so the no-overwrite guard refuses the
+  // write and reports it rather than replacing a file it cannot read.
+  assert.equal(result.captured, false);
+  assert.equal(result.failed?.reason, "unparseable-record");
+  assert.ok(fs.lstatSync(path.join(sessionsDir, `${DAY}.md`)).isSymbolicLink(), "the planted link is left as found");
 });
 
 test("SEC-A-007 control-char: an embedded NUL is stripped, not truncating the entry", () => {

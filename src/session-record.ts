@@ -19,6 +19,15 @@ import { WorkspaceSchema } from "./workspace.js";
  */
 
 export const COLLECTION = "librarian.sessions";
+
+/**
+ * Outcome of an append. A refusal is a value, not a throw: the capture hook must
+ * report it without aborting the other capture, and must never claim a write that
+ * did not happen.
+ */
+export type AppendResult =
+  | { written: true }
+  | { written: false; reason: "unparseable-record" | "write-error"; path: string };
 /**
  * The record format version. It stays at `@1` across spec v3.1.0: `workspace` is
  * an ADDITIVE-OPTIONAL field, so every record written before v3.1.0 still
@@ -37,6 +46,12 @@ export const SessionEntrySchema = z.object({
   // Where the session happened (SCN-005). Optional in both directions: absent on
   // pre-v3.1.0 entries, and omitted on any capture whose cwd was unavailable.
   workspace: WorkspaceSchema.optional(),
+  // Which host client wrote the entry (client-label plan). A plain string on read,
+  // NOT an enum: a future fifth client or a hand-edited value must never fail
+  // validation, because a failed parse is what makes a day file unreadable. The
+  // canonical values are enforced where the label is produced (client.ts), and
+  // readers preserve and ignore anything else. Metadata only -- never summary text.
+  client: z.string().optional(),
 });
 export type SessionEntry = z.infer<typeof SessionEntrySchema>;
 
@@ -64,18 +79,32 @@ export function readRecord(day: string): SessionRecord | null {
 }
 
 function parseRecordFile(abs: string): SessionRecord | null {
+  const state = readRecordState(abs);
+  return state.state === "ok" ? state.record : null;
+}
+
+/**
+ * Three-way read of a record file: absent (ENOENT -- the legitimate "start fresh"
+ * case), valid, or unparseable. Readers collapse the last two non-valid states to
+ * null, but a WRITER must tell them apart: an existing file that fails validation
+ * is not "no record yet", and rewriting it from the one new entry would delete the
+ * day. Any read error other than ENOENT counts as unparseable (refuse, never clobber).
+ */
+export type RecordState = { state: "absent" } | { state: "unparseable" } | { state: "ok"; record: SessionRecord };
+
+function readRecordState(abs: string): RecordState {
   let raw: string;
   try {
     raw = fs.readFileSync(abs, "utf8");
-  } catch {
-    return null;
+  } catch (err) {
+    return (err as NodeJS.ErrnoException)?.code === "ENOENT" ? { state: "absent" } : { state: "unparseable" };
   }
   try {
     const parsed = matter(raw);
     const result = RecordSchema.safeParse(parsed.data);
-    return result.success ? result.data : null;
+    return result.success ? { state: "ok", record: result.data } : { state: "unparseable" };
   } catch {
-    return null; // malformed YAML -- treat as absent rather than crash
+    return { state: "unparseable" }; // malformed YAML
   }
 }
 
@@ -161,8 +190,13 @@ export function isDuplicateEntry(entry: SessionEntry): boolean {
  * reached (see capture.ts): an unchanged directive never gets here, a changed
  * one appends a fresh entry alongside the untouched earlier ones.
  */
-export function appendSession(day: string, entry: SessionEntry): void {
-  const existing = readRecord(day);
+export function appendSession(day: string, entry: SessionEntry): AppendResult {
+  const abs = recordPath(day);
+  const state = readRecordState(abs);
+  // Never overwrite a file we cannot parse: the append is a full-file rewrite, so
+  // writing "just the new entry" over an unreadable day would destroy it (INV-3).
+  if (state.state === "unparseable") return { written: false, reason: "unparseable-record", path: abs };
+  const existing = state.state === "ok" ? state.record : null;
   const sessions = existing ? [...existing.sessions, entry] : [entry];
   const record: SessionRecord = {
     collection: COLLECTION,
@@ -171,7 +205,12 @@ export function appendSession(day: string, entry: SessionEntry): void {
     sessions,
     refs: aggregateRefs(sessions),
   };
-  atomicWrite(recordPath(day), serializeRecord(record));
+  try {
+    atomicWrite(abs, serializeRecord(record));
+  } catch {
+    return { written: false, reason: "write-error", path: abs };
+  }
+  return { written: true };
 }
 
 /**

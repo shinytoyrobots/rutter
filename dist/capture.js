@@ -61,7 +61,9 @@ export function captureSession(payload) {
     if (isDuplicateEntry(entry)) {
         return { captured: false, deduped: true, rejectedRefs };
     }
-    appendSession(isoDay(now), entry);
+    const written = appendSession(isoDay(now), entry);
+    if (!written.written)
+        return { captured: false, failed: { reason: written.reason, path: written.path }, rejectedRefs };
     return { captured: true, day: isoDay(now), entry, rejectedRefs };
 }
 /**
