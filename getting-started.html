@@ -83,11 +83,15 @@
 <p>Every path ends in two checks, kept separate on purpose. <strong>Capture:</strong> a new line landed in today&#39;s file under <code>_librarian/sessions/</code>. <strong>Recall:</strong> your client can answer from it. A record written by hand (<a href="#step-3">Step 3</a>) shows that storage and recall work. It does not show ambient capture, which needs a real session and a hook.</p>
 <h2 id="fast-path-for-claude-code">Fast path for Claude Code</h2>
 <p>If you use Claude Code, the plugin is the shortest route. It bundles the server and the capture hook, so you skip Steps 1 to 6 below. Steps 2 to 4 also use <code>npm run</code> scripts from a clone you will not have. Running those steps on top of the plugin registers a second server and a second hook.</p>
-<p><strong>1. Install.</strong> In Claude Code:</p>
+<p><strong>1. Install.</strong> rutter is listed in the Anthropic Directory, which Claude Code has built in. In Claude Code, find it under <code>/plugin</code> → Discover, or run:</p>
+<pre><code class="language-text">/plugin install rutter@anthropic-plugin-directory
+</code></pre>
+<p>The directory serves the version Anthropic last reviewed, which can trail this repository. To track the repository directly, install from its own marketplace instead:</p>
 <pre><code class="language-text">/plugin marketplace add shinytoyrobots/rutter
 /plugin install rutter@rutter
 </code></pre>
-<p>Choose your notes folder when asked, then run <code>/reload-plugins</code>. If you install from a shell (<code>claude plugin install rutter@rutter</code>), pass <code>--config vault_path=/path/to/notes</code> or run <code>/plugin configure rutter@rutter</code> afterward. Without a notes folder the server has nothing to read.</p>
+<p>Pick one route, not both. Two installs register two servers and two capture hooks. The rest of this lesson writes <code>rutter@rutter</code>; if you installed from the directory, use <code>rutter@anthropic-plugin-directory</code> wherever a command names the plugin.</p>
+<p>Choose your notes folder when asked, then run <code>/reload-plugins</code>. If you install from a shell (<code>claude plugin install rutter@anthropic-plugin-directory</code>, or <code>rutter@rutter</code> after adding the marketplace), pass <code>--config vault_path=/path/to/notes</code> or run <code>/plugin configure</code> with the same plugin name afterward. Without a notes folder the server has nothing to read.</p>
 <p><strong>2. Check the server.</strong> Run this in Claude Code:</p>
 <pre><code class="language-text">/mcp
 </code></pre>
@@ -393,7 +397,7 @@ refs:
 
 <footer class="site">
   <div class="footer-inner">
-    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/62b0f5f">main@62b0f5f</a> · <a href="sources.json">source hashes</a>.</p>
+    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/6364ccd">main@6364ccd</a> · <a href="sources.json">source hashes</a>.</p>
   </div>
 </footer>
 </body>
