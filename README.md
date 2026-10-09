@@ -66,7 +66,7 @@ The second difference is the one that matters more. A summary on its own is not 
 an assertion. A summary plus the versioned state of the notes it cited is a record, because it
 can be checked.
 
-Almost nothing does that second part. Architecture decision records capture the *what* and the
+Neighboring approaches each do part of that second part. Architecture decision records capture the *what* and the
 *why* without pinning the version they applied to. Event-sourced logs timestamp events but rarely
 carry file-level provenance. Supply-chain provenance formats hash content properly, but they are
 built for auditors rather than for your next working session. So decisions drift quietly away from

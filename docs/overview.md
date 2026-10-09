@@ -23,6 +23,80 @@ is comfortable configuring an AI client.
 minutes; [getting started](./getting-started.md) covers Grok, Codex, and Antigravity. The rest of
 this page is the argument for the design.
 
+## An example
+
+This is a real run, recorded on 9 October 2026 for this page. The two notes are fictional and say
+so in their text. The sessions, the commands, and the output below are real and unedited.
+
+**A decision, captured in Claude Code.** A notes folder holds two notes: `Notes/reader-survey.md`,
+the results of a newsletter reader survey, and `Notes/publishing-cadence.md`, a draft listing three
+publishing options. The prompt in Claude Code was *"I'm deciding whether to change my newsletter's
+publishing cadence. Read Notes/reader-survey.md and Notes/publishing-cadence.md, pick one of the
+options, and treat that as my decision."* The session picked fortnightly issues and, as rutter's
+instructions ask, ended its reply with one line:
+
+```text
+<!-- librarian-session {"summary":"Decided to move the newsletter from weekly to fortnightly, one long essay per issue, based on the autumn reader survey (48% want fewer, longer issues; top request was more depth per topic). Main risk: readers forgetting between issues.","refs":["Notes/reader-survey.md","Notes/publishing-cadence.md"]} -->
+```
+
+The Stop hook stored that line in `_librarian/sessions/2026-10-09.md`, with the sha256 of each
+cited note as it stood at capture. Nobody typed the line or ran a command to save it.
+
+**A rename, then an edit and a rename.** Next, outside any AI session, the survey note moved to
+`Research/reader-survey-autumn.md` with its contents untouched, and the folder was reindexed:
+
+```text
+[rutter] identity pass: 1 dead ref(s) checked, 1 bound, 0 unresolved, 1 ledger entry appended, 2ms
+```
+
+Then the options note gained one line and was renamed `Notes/cadence-decision.md`, and the folder
+was reindexed again:
+
+```text
+[rutter] identity pass: 2 dead ref(s) checked, 1 bound, 1 unresolved, 0 ledger entries appended, 1ms
+```
+
+Asking for recent work now shows the decision with both references:
+
+```text
+$ npm run recent
+2026-10-09 22:16:53 [newsletter-notes] — Decided to move the newsletter from weekly to fortnightly, one long essay per issue, based on the autumn reader survey (48% want fewer, longer issues; top request was more depth per topic). Main risk: readers forgetting between issues.
+   refs: Notes/reader-survey.md@sha256:fa2bbeb8033a613517730bb689d49da31c9a1abf1601be48cd26dae4402cf75f (renamed to Research/reader-survey-autumn.md)
+   refs: Notes/publishing-cadence.md@sha256:e9b42627bcb83a2945080d28cc99ab7ce0248cad5e342fefab45f9f54b2e9dcb [UNRESOLVED -- candidates: none]
+```
+
+The survey note kept its bytes, so exactly one current note had the stored hash, and rutter bound
+the old path to the new one. The options note changed as well as moved, so its old path is gone and
+no note has its hash. rutter shows that reference as unresolved instead of guessing that
+`cadence-decision.md` is the same note. Several notes sharing one hash would also leave a reference
+unresolved, with each of them listed as a candidate. The stored line itself is never rewritten; the
+rename is resolved only when the line is displayed. What the unresolved reference means is left to
+you: see [A dead reference is a person's call](#a-dead-reference-is-a-persons-call).
+
+**Recall, in Codex.** Last, in Codex, started in a directory outside the notes folder, the question
+was *"What did I decide about my newsletter's publishing cadence, when, and which notes did that
+decision cite?"* Codex called `librarian-recent` and `librarian-positions` and answered:
+
+```text
+Your recorded decision was to **publish every two weeks, with one long essay per issue, replacing the weekly roundup**—because readers wanted more depth and tended to skim the roundup.
+
+It was recorded on **October 9, 2026**, with no revisions. That decision’s session cited:
+
+- **`Notes/reader-survey.md`**, now renamed `Research/reader-survey-autumn.md`: the October 2 survey favored fewer, longer issues and deeper coverage.
+- **`Notes/publishing-cadence.md`**: this reference is currently unresolved, so I couldn’t verify its contents.
+
+A separate October 5 note, `Notes/cadence-decision.md`, says **“going fortnightly from November.”** It isn’t verified as the missing cited note.
+
+Both readable notes are explicitly labeled fictional demo notes, so this describes the demo’s recorded decision.
+```
+
+Captured with Claude Code 2.1.296 and recalled with Codex 0.162.0, against rutter 0.5.0.
+
+One boundary this run does not show: had the survey note been edited at the *same* path, nothing
+above would say so. rutter stores the hash that makes the comparison possible, but it does not
+report same-path changes today. What rutter can and cannot establish is spelled out
+[below](#what-rutter-can-and-cannot-establish).
+
 ## The missing layer
 
 A folder of markdown notes is a store of knowledge. Hand the same folder to two people and they
@@ -51,28 +125,6 @@ notes kept the earlier name. They are all parts of rutter.
 This document is about *why* it is built this way. If you want to run it, start with
 [`getting-started.md`](./getting-started.md). If you want the mechanics of capture, recall and
 identity in full, read [`memory-of-use.md`](./memory-of-use.md).
-
-## An example
-
-In August you ask Claude Code whether the ingest path should stay synchronous. You read two notes
-and decide it should. The session leaves one line: *"Decided the ingest path stays synchronous;
-async needs the queue design first."* The line cites `Notes/ingest-design.md`. rutter stores the
-line without rewriting it, with a hash of that note's contents when the line was captured.
-
-In October you reorganize your notes. `ingest-design.md` moves to `Architecture/ingest.md`, contents
-untouched. At the next reindex, rutter sees that the old path is gone and finds exactly one note
-with the same hash. It binds the old path to the new one and records that.
-
-A week later you open Codex and ask why the ingest path stayed synchronous. Codex searches your
-notes and finds `Architecture/ingest.md`, with a dated note attached: what you concluded in
-August, and that you did. Codex can tell you what you decided, when, and from which note.
-
-Had the note been renamed *and* edited, no hash would match. Asking for recent work would show the
-reference marked unresolved, with every candidate rutter found, and you would decide what it means.
-
-One thing rutter does not do yet: tell you that a note at the *same* path has changed since August.
-It holds the original hash, so the comparison is possible. Reporting it is not built. What rutter
-can and cannot establish is spelled out [below](#what-rutter-can-and-cannot-establish).
 
 ## One memory across your tools
 
@@ -146,7 +198,9 @@ Everything the current spec describes has shipped. That is full-text search, amb
 the style contract, plus workspace provenance, prior-engagement annotations on search results,
 references that survive renames, instrumentation on its own use, position capture and recall, and
 a label on each record naming the host client that wrote it. The one stub is embeddings and
-semantic search.
+semantic search. The limits are collected in [What rutter can and cannot
+establish](#what-rutter-can-and-cannot-establish), and every mechanism is described in full in
+[`memory-of-use.md`](./memory-of-use.md).
 
 The client does the thinking. The server only keeps.
 
@@ -195,13 +249,12 @@ you can edit.
 
 ### References that carry a hash
 
-Every reference is a path plus the content hash of what was there when the line was captured. Weeks
-later you can ask what you concluded, and ask whether the notes the session cited have
-moved. A renamed note is followed by exact hash match. A note rutter cannot place is shown as
-unresolved, with its candidates. The stored hash also gives you something to compare a file against
-later. The report that a note at the same path has changed is not built yet.
+Every reference is a path plus the content hash of what was there when the line was captured. That
+pair is what let the example follow one note and decline to guess about the other. The stored hash
+also gives you something to compare a file against later. A note that changes at the same path
+keeps its old hash in the record, and the change is not reported yet.
 
-Almost nothing else pairs those two. Architecture decision records capture the what and the why
+Neighboring approaches each do part of this. Architecture decision records capture the what and the why
 without pinning the version they applied to. Event-sourced logs timestamp events but rarely carry
 file-level provenance. Supply-chain provenance formats hash content properly, but they are built
 for auditors rather than for your next working session. One near neighbor, Kage, does carry
@@ -220,29 +273,22 @@ choice. rutter makes a different one. A reference it cannot place is still shown
 unresolved, with every candidate it found. You are better placed than the tool to decide what a
 missing or changed note means for what you concluded.
 
-Changed content is the part not built. If a note stays at the same path and its bytes change,
-rutter does not flag it today. The design is the same rule applied there: show the change, name
-it, and let you decide. It waits on observed use, like the rest of the unbuilt design at the end of
-this page.
+Changed content at the same path is not built: rutter does not flag it today. The design would
+apply the same rule there, and it waits on observed use, like the rest of the unbuilt design at the
+end of this page.
 
-So the claim is only the combination: append-only lines not rewritten for style, references carrying content
-hashes, and references the tool cannot place shown to you instead of silently resolved or dropped.
-Each of those exists elsewhere. The square where all three meet appears to be unoccupied, and it is
-the only claim made here.
+The design choice is the combination: append-only lines not rewritten for style, references
+carrying content hashes, and references the tool cannot place shown to you instead of silently
+resolved or dropped. Each of those exists elsewhere.
 
 ### A dead reference is a person's call
 
-Rename a referenced note without touching its content, and the next reindex rebinds the old
-reference to its new path. No heuristics, no similarity scoring, just an exact content-hash match.
-Both read surfaces then resolve through that binding quietly.
-
-When rutter cannot tell, it says so. Two cases defeat the match. The note was renamed *and* edited,
-so no current note's hash matches; or several notes share the same hash. Either way the reference
-renders explicitly as unresolved, with every candidate it found. It never picks one. Confirming a
-binding is a local terminal command (`npm run identity-confirm`), never an MCP tool. That is a firm
-line: a model must not be able to decide what a dead reference means. A confirmed binding is
-sticky afterwards. Suppose the vault later changes so that automatic matching would point somewhere
-else. The disagreement is rendered and left for you: *confirmed X; the hash now matches Y*.
+When an exact hash match cannot settle a reference, as with the edited note in the example, rutter
+leaves the call to you. Confirming a binding is a local terminal command,
+`npm run identity-confirm`, never an MCP tool. That is a firm line: a model must not be able to
+decide what a dead reference means. A confirmed binding is sticky afterwards. Suppose the vault later changes so
+that automatic matching would point somewhere else. The disagreement is rendered and left for you:
+*confirmed X; the hash now matches Y*.
 
 The cost is friction. Some references sit unresolved until you get round to them, and only you can
 clear them. That is the intended price of not letting a model quietly decide what your references point to.
