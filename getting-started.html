@@ -37,7 +37,7 @@
 
 <main id="main">
 
-<p>By the end of this lesson your notes will answer <em>"what was I working on lately?"</em> The answer comes from records your AI coding sessions (Claude Code, Grok, or Codex) leave behind on their own, unasked.</p>
+<p>By the end of this lesson your notes will answer <em>"what was I working on lately?"</em> The answer comes from records your AI coding sessions (Claude Code, Grok, Codex, or Antigravity) leave behind on their own, unasked. Every tool you set up writes to the same records, so each one can recall what the others decided.</p>
 
 <p>We will install rutter, index your notes, and write one memory by hand so you see a result in the first few minutes. Then we will turn on ambient capture and watch a real working session record itself.</p>
 
@@ -46,7 +46,7 @@
 <ul>
   <li><strong>Node 22 or newer.</strong> Check with <code>node -v</code>. npm warns at install time on an older Node — heed it, because the built-in <code>node:sqlite</code> this depends on will simply be missing. Verified on Node 26.</li>
   <li><strong>npm and git.</strong></li>
-  <li><strong>Claude Code, Grok, or Codex.</strong> The four MCP (Model Context Protocol) tools work with any MCP client; the Stop hook that powers ambient capture runs in Claude Code, Grok, and Codex. Claude Code and Grok read it from <code>~/.claude/settings.json</code>; Codex reads it from <code>~/.codex/hooks.json</code> (or <code>$CODEX_HOME/hooks.json</code>).</li>
+  <li><strong>Claude Code, Grok, Codex, or Antigravity.</strong> The four MCP (Model Context Protocol) tools work with any MCP client; the Stop hook that powers ambient capture runs in all four of these. Claude Code and Grok read it from <code>~/.claude/settings.json</code>; Codex reads it from <code>~/.codex/hooks.json</code> (or <code>$CODEX_HOME/hooks.json</code>); Antigravity reads it from <code>~/.gemini/config/hooks.json</code>.</li>
   <li><strong>A directory of markdown notes.</strong> Obsidian is what rutter was built against — it understands wikilinks and frontmatter — but nothing requires Obsidian itself.</li>
   <li><strong>No compiler toolchain.</strong> There are zero native dependencies. The index is Node's built-in SQLite, so there is nothing to build and no database to install.</li>
 </ul>
@@ -61,6 +61,17 @@
     <li>Expect the summary line in Codex's final reply, since that is where its hook looks for it.</li>
   </ol>
   <p>Verified with Codex 0.160.0 (October 2026).</p>
+</div>
+
+<div class="callout">
+  <span class="label">Using Antigravity (agy)? It also takes a few extra steps</span>
+  <p>This covers the <code>agy</code> command-line tool, not the Antigravity IDE. It has no one-command plugin install either, so you set it up by hand from this clone:</p>
+  <ol>
+    <li>Build, then register the server with <code>agy mcp add</code>, passing your notes path at registration (<a href="#step-5">Step 5</a>).</li>
+    <li>Install the Stop hook and a capture rule file with <code>npm run install-hook -- --client antigravity --vault /path/to/your/notes</code> (<a href="#step-6">Step 6</a>). Use the same notes path as in the first step. The rule file is needed: <code>agy</code> does not put the server's instructions in the prompt, and without the rule its model did not leave summaries on its own.</li>
+    <li>Expect <code>agy</code> to leave the summary line anywhere in the current turn. The hook reads the turn from <code>agy</code>'s transcript file.</li>
+  </ol>
+  <p>Verified with <code>agy</code> 1.3.2 (October 2026).</p>
 </div>
 
 <h2 id="step-1">Step 1 — Clone and install</h2>
@@ -98,7 +109,7 @@ npm run reindex</code></pre>
 
 <p>Two things later in this lesson run outside this terminal: the MCP server that your client launches, and the capture hook. Both read <code>LIBRARIAN_VAULT_PATH</code>, and neither sees an <code>export</code> you typed in one shell session.</p>
 
-<p>Set it once for every Claude Code or Grok session, in <code>~/.claude/settings.json</code> (Codex is different; see below). Merge this into the file, keeping whatever is already there:</p>
+<p>Set it once for every Claude Code session, in <code>~/.claude/settings.json</code>. Grok and Codex are different; see below. Merge this into the file, keeping whatever is already there:</p>
 
 <pre><code>{ "env": { "LIBRARIAN_VAULT_PATH": "/Users/you/path/to/your/notes" } }</code></pre>
 
@@ -106,7 +117,11 @@ npm run reindex</code></pre>
 
 <p>A shell-profile <code>export</code> also works, but only when <code>claude</code> launches from a shell that re-sourced the edited profile.</p>
 
+<p><strong>Grok does not fill in the plugin's notes-folder option.</strong> If your notes are not in the default <code>~/Documents/knowledge-vault</code>, export <code>LIBRARIAN_VAULT_PATH</code> in the shell profile that launches Grok.</p>
+
 <p><strong>Codex does not read that file.</strong> A Codex hook inherits only the environment Codex itself was launched with; a <code>shell_environment_policy</code> entry in <code>~/.codex/config.toml</code> does not reach it. If your notes are not in the default <code>~/Documents/knowledge-vault</code>, export <code>LIBRARIAN_VAULT_PATH</code> in the shell profile that launches Codex (and re-source it), or the hook will quietly write captures to the default location instead.</p>
+
+<p><strong>Antigravity needs neither.</strong> Its installer takes <code>--vault</code> and builds that path into the hook as a default (<a href="#step-6">Step 6</a>). The server gets the same path from the <code>agy mcp add</code> line (<a href="#step-5">Step 5</a>).</p>
 
 <p>Two other variables are optional. <code>LIBRARIAN_DB_PATH</code> moves the index, which defaults to <code>data/librarian.db</code> inside the repository and is resolved from the module's own location rather than your working directory. <code>LIBRARIAN_USER_LABEL</code> is a bare noun — <code>Robin</code>, not <code>Robin's</code> — used as "&lt;label&gt;'s work" in the descriptions your client receives.</p>
 
@@ -152,7 +167,7 @@ npm run recent -- --project rutter   # one project, case-insensitive</code></pre
 
 <h2 id="step-5">Step 5 — Build and register the MCP server</h2>
 
-<p>Compile the TypeScript, then register the server with your client. Run both from the repository root. The commands below are for Claude Code; Codex has its own, shown after.</p>
+<p>Compile the TypeScript, then register the server with your client. Run these from the repository root. The first commands are for Claude Code. Codex and Antigravity have their own, each in a labeled paragraph.</p>
 
 <pre><code>npm run build
 claude mcp add rutter --scope user -- node "$PWD/dist/stdio.js"</code></pre>
@@ -172,9 +187,16 @@ codex mcp add rutter --env LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes" -- no
 
 <p>Check it with <code>codex mcp list</code>: <code>rutter</code> should appear as <code>enabled</code>. An <code>Auth</code> column reading <code>Unsupported</code> is normal for a local stdio server. This sets the path for the server only; the Codex Stop hook in Step 6 reads it from Codex's own launch environment.</p>
 
+<p><strong>Antigravity.</strong> Register the server with <code>agy mcp add</code>. Flags go before the server name, and the vault path is passed at registration:</p>
+
+<pre><code>npm run build
+agy mcp add --env LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes" --env LIBRARIAN_DB_PATH="$PWD/data/librarian.db" rutter "$(which node)" "$PWD/dist/stdio.js"</code></pre>
+
+<p>Check it with <code>agy mcp list</code>: <code>rutter</code> should appear as <code>enabled</code>. The <code>LIBRARIAN_DB_PATH</code> value is where the index lives, and any writable path works. The Stop hook in <a href="#step-6">Step 6</a> needs the same notes path. If the two differ, captures go to one folder and reads come from another. The <a href="#step-6">Step 6</a> installer prints this same command, so you can compare.</p>
+
 <p>Any other MCP client works too: register <code>node "$PWD/dist/stdio.js"</code> as a stdio server and give it <code>LIBRARIAN_VAULT_PATH</code>.</p>
 
-<p><strong>Verify.</strong> In Claude Code, start a fresh session and run (for Codex, use <code>codex mcp list</code> as above) <code>/mcp</code>. You should see <code>rutter</code> listed with four tools: <code>librarian-search</code>, <code>librarian-get-note</code>, <code>librarian-recent</code>, and <code>librarian-positions</code>.</p>
+<p><strong>Verify.</strong> In Claude Code, start a fresh session and run <code>/mcp</code>. For Codex use <code>codex mcp list</code> instead, and for Antigravity use <code>agy mcp list</code>. You should see <code>rutter</code> listed with four tools: <code>librarian-search</code>, <code>librarian-get-note</code>, <code>librarian-recent</code>, and <code>librarian-positions</code>.</p>
 
 <h2 id="step-6">Step 6 — Install the Stop hook</h2>
 
@@ -205,9 +227,15 @@ codex mcp add rutter --env LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes" -- no
 
 <p>This merges into <code>~/.codex/hooks.json</code> (or <code>$CODEX_HOME/hooks.json</code>). The hook finds your notes through <code>LIBRARIAN_VAULT_PATH</code> in Codex's own environment (see Step 2), so export it before launching Codex. Codex will not run a new hook until you trust it: start Codex, run <code>/hooks</code>, review the Librarian Stop hook, and trust it. The installer does not grant trust. If an equivalent hook is already registered inline in <code>~/.codex/config.toml</code>, the installer stops and tells you rather than stacking a second one. Codex hands the hook only the final assistant message of each turn, so a directive left in earlier commentary is not captured; the server's instructions teach the client to put it in the final reply.</p>
 
+<p><strong>Antigravity.</strong> Install the hook and the capture rule in one command, passing your notes folder:</p>
+
+<pre><code>npm run install-hook -- --client antigravity --vault /path/to/your/notes</code></pre>
+
+<p>This adds a <code>librarian-capture</code> hook to <code>~/.gemini/config/hooks.json</code> and writes <code>~/.gemini/config/rules/rutter-capture.md</code>. The installer prints which notes folder it chose and where that came from. The hook uses that folder as its default no matter which shell launches <code>agy</code>; an exported <code>LIBRARIAN_VAULT_PATH</code> still overrides it. Re-running with a different <code>--vault</code> updates the hook in place. It refuses to overwrite a rule file it did not write. Use the same notes path you gave <code>agy mcp add</code> in <a href="#step-5">Step 5</a>. Run <code>/hooks</code> in <code>agy</code> to review the hook. Each capture prints the vault it wrote to in <code>agy</code>'s log, under <code>~/.gemini/antigravity-cli/log/</code>.</p>
+
 <div class="callout">
   <span class="label">Nothing goes in CLAUDE.md</span>
-  <p>The whole capture contract ships inside the server as MCP instructions, and reaches every client on connect. That contract covers when to leave a summary, its exact syntax, and how to write it. Setup is the hook, and that is all.</p>
+  <p>The whole capture contract ships inside the server as MCP instructions, and the server sends it to every client on connect. Antigravity does not put those instructions in the model's prompt, which is why its installer writes a rule file. That contract covers when to leave a summary, its exact syntax, and how to write it. Setup is the hook, and that is all.</p>
 </div>
 
 <h2 id="step-7">Step 7 — Restart, and let a real session record itself</h2>
@@ -236,7 +264,7 @@ codex mcp add rutter --env LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes" -- no
 
 <h2 id="step-8">Step 8 — Recall again, and read the record</h2>
 
-<p>This time, ask your client rather than the CLI. In Claude Code, Grok, or Codex:</p>
+<p>This time, ask your client rather than the CLI. In Claude Code, Grok, Codex, or Antigravity:</p>
 
 <blockquote><p>What was I working on lately?</p></blockquote>
 
@@ -300,7 +328,7 @@ refs:
 
 <footer class="site">
   <div class="footer-inner">
-    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source and receipts on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/974d400">main@f44a712</a> · <a href="sources.json">source hashes</a>.</p>
+    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source and receipts on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/ed8c59d">main@ed8c59d</a> · <a href="sources.json">source hashes</a>.</p>
   </div>
 </footer>
 </body>
