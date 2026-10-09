@@ -76,8 +76,9 @@ Two halves, and neither of them contains a model.
 a short summary, plus the paths it touched. A Stop hook lifts the newest such line: from the
 transcript in Claude Code and Antigravity, from the final assistant message in Grok and Codex. It appends that line to a dated file inside your notes directory. Each path
 is stored with the sha256 of that file's bytes. The server reads the file and computes that hash
-itself, rather than accepting one from the client, so a client cannot assert provenance it never
-had. Each entry also records the working directory the session ran in, and the git remote when
+itself, rather than accepting one from the client, so a client cannot hand it a hash for a file
+that was not on disk. The client still chooses which paths to list. The hash says what the file
+contained at capture, not that the session read it. Each entry also records the working directory the session ran in, and the git remote when
 there is one. A day spread across three efforts still reads cleanly.
 
 One line per separable outcome, not one per session. A working session usually leaves three or
@@ -116,11 +117,11 @@ history. They are never written into the code repo. The SQLite FTS5 index is a d
 delete it, reindex, and it rebuilds from the notes and those records alone. The notes are the source
 of truth; the index is a convenience.
 
-As of spec v14.0.0, all eleven of the spec's scenarios — SCN-001 through SCN-011 — have shipped.
-That is full-text search, ambient capture and the style contract, plus workspace provenance,
-prior-engagement annotations on search results, references that survive renames, and
-instrumentation on its own use. The most recent additions are position capture and position
-recall. Embeddings and semantic search are a stub.
+Everything the current spec describes has shipped. That is full-text search, ambient capture and
+the style contract, plus workspace provenance, prior-engagement annotations on search results,
+references that survive renames, instrumentation on its own use, position capture and recall, and
+a label on each record naming the host client that wrote it. The one stub is embeddings and
+semantic search.
 
 The client does the thinking. The server only keeps.
 
@@ -142,7 +143,7 @@ stays the record; what you are told is the answer.
 
 ### References that carry a hash
 
-Every reference is a path plus the content hash of what was there when it was read. Weeks later you
+Every reference is a path plus the content hash of what was there when the line was captured. Weeks later you
 can ask what you concluded, and separately ask whether the files that conclusion rested on have
 moved or changed since. Drift becomes visible instead of silent.
 

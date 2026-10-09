@@ -6,6 +6,57 @@ We will install rutter, index your notes, and write one memory by hand so you se
 
 Eight steps. Each one ends with something you can check.
 
+## Fast path for Claude Code
+
+If you use Claude Code, the plugin is the shortest route. It bundles the server and the capture hook, so you skip Steps 1 to 6 below. Steps 2 to 4 also use `npm run` scripts from a clone you will not have. Running those steps on top of the plugin registers a second server and a second hook.
+
+**1. Install.** In Claude Code:
+
+```text
+/plugin marketplace add shinytoyrobots/rutter
+/plugin install rutter@rutter
+```
+
+Choose your notes folder when asked, then run `/reload-plugins`. If you install from a shell (`claude plugin install rutter@rutter`), pass `--config vault_path=/path/to/notes` or run `/plugin configure rutter@rutter` afterward. Without a notes folder the server has nothing to read.
+
+**2. Check the server.** Run this in Claude Code:
+
+```text
+/mcp
+```
+
+You should see `rutter` listed with four tools: `librarian-search`, `librarian-get-note`, `librarian-recent`, and `librarian-positions`.
+
+**3. Do one small real task.** Open a project directory you work in and make one decision or one small change. A "hello" leaves nothing worth recalling. As the work finishes, your client leaves a one-line summary on its own. You never write it yourself.
+
+**4. Confirm it was captured.** A file for today's UTC day should now exist in your notes folder:
+
+```bash
+ls "/path/to/your/notes/_librarian/sessions/"
+```
+
+```text
+2026-08-05.md
+```
+
+*Output shape verified against code; your date will differ.*
+
+**5. Recall it.** Ask your client:
+
+> What was I working on lately?
+
+Your client calls `librarian-recent` and reports the session you just finished, in plain language. The stored line looks like this:
+
+```text
+2026-08-05 14:22:33 [notes-cleanup] — Renamed the archive folder and updated the two notes that linked to it.
+```
+
+*Output shape verified against code; your date, project name, and wording will differ.*
+
+**If you ever ran `npm run install-hook` by hand,** remove that Stop hook entry from `~/.claude/settings.json` when you add the plugin. Otherwise capture is attempted twice. The duplicate is detected and stored once, but it is wasted work. To see the hooks Claude Code has active, run `/hooks`.
+
+Using another client, or want the manual route? Continue with the steps below.
+
 ## Before you start
 
 - **Node 22 or newer.** Check with `node -v`. npm warns at install time on an older Node — heed it, because the built-in `node:sqlite` this depends on will simply be missing. Verified on Node 26.
@@ -14,7 +65,7 @@ Eight steps. Each one ends with something you can check.
 - **A directory of markdown notes.** Obsidian is what rutter was built against — it understands wikilinks and frontmatter — but nothing requires Obsidian itself.
 - **No compiler toolchain.** There are zero native dependencies. The index is Node's built-in SQLite, so there is nothing to build and no database to install.
 
-**Using Codex? It takes a few extra steps.** Codex cannot use rutter's one-command plugin install: it fills in none of a plugin's variables and installs no hook. So you set it up by hand from this clone, and the differences are easy to miss:
+**Using Codex? It takes a few extra steps.** Codex cannot use rutter's one-command plugin install (the [Claude Code fast path](#fast-path-for-claude-code)): it fills in none of a plugin's variables and installs no hook. So you set it up by hand from this clone, and the differences are easy to miss:
 
 1. Register the server with `codex mcp add`, passing your notes path at registration (Step 5).
 2. Install the Stop hook with `npm run install-hook -- --client codex`, then trust it with `/hooks` (Step 6). Installing does not grant trust, and an untrusted hook never runs.
@@ -23,7 +74,7 @@ Eight steps. Each one ends with something you can check.
 
 Verified with Codex 0.160.0 (October 2026).
 
-**Using Antigravity (`agy`)? It also takes a few extra steps.** This covers the `agy` command-line tool, not the Antigravity IDE. It has no one-command plugin install either, so you set it up by hand from this clone:
+**Using Antigravity (`agy`)? It also takes a few extra steps.** This covers the `agy` command-line tool, not the Antigravity IDE. It has no one-command plugin install either (the [Claude Code fast path](#fast-path-for-claude-code) is Claude Code only), so you set it up by hand from this clone:
 
 1. Build, then register the server with `agy mcp add`, passing your notes path at registration (Step 5).
 2. Install the Stop hook and a capture rule file with `npm run install-hook -- --client antigravity --vault /path/to/your/notes` (Step 6). Use the same notes path as in the first step. The rule file is needed: `agy` does not put the server's instructions in the prompt, and without the rule its model did not leave summaries on its own.
@@ -69,7 +120,7 @@ You can skip this step in day-to-day use: the server builds its index the first 
 
 Two things later in this lesson run outside this terminal: the MCP server that your client launches, and the capture hook. Both read `LIBRARIAN_VAULT_PATH`, and neither sees an `export` you typed in one shell session.
 
-Set it once for every Claude Code session, in `~/.claude/settings.json`. Grok and Codex are different; see below. Merge this into the file, keeping whatever is already there:
+Set it once for every Claude Code session, in `~/.claude/settings.json`. Grok and Codex are different; the bold paragraphs for each follow the example. Merge this into the file, keeping whatever is already there:
 
 ```json
 { "env": { "LIBRARIAN_VAULT_PATH": "/Users/you/path/to/your/notes" } }
@@ -314,7 +365,7 @@ refs:
 
 *Output shape verified against code; hashes are trimmed here, and your paths, dates, and project names will differ.*
 
-The frontmatter is the source of truth. The regenerated body of the file is for human eyes, and is rewritten each time the day's record grows. Each reference records the note's path *and* its content hash as it was read, which is what lets a rename be followed later.
+The frontmatter is the source of truth. The regenerated body of the file is for human eyes, and is rewritten each time the day's record grows. Each reference records the note's path *and* its content hash as the file stood when capture ran, which is what lets a rename be followed later.
 
 If your notes directory is a git repository, `_librarian/` will be tracked and committed along with everything else. That is intended: the memory is durable, plain markdown, and travels with your notes.
 
