@@ -41,6 +41,35 @@
 
 <p>We will install rutter, index your notes, and write one memory by hand so you see a result in the first few minutes. Then we will turn on ambient capture and watch a real working session record itself.</p>
 
+<h2 id="fast-path-for-claude-code">Fast path for Claude Code</h2>
+<p>If you use Claude Code, the plugin is the shortest route. It bundles the server and the capture hook, so you skip Steps 1 to 6 below. Steps 2 to 4 also use <code>npm run</code> scripts from a clone you will not have. Running those steps on top of the plugin registers a second server and a second hook.</p>
+<p><strong>1. Install.</strong> In Claude Code:</p>
+<pre><code class="language-text">/plugin marketplace add shinytoyrobots/rutter
+/plugin install rutter@rutter
+</code></pre>
+<p>Choose your notes folder when asked, then run <code>/reload-plugins</code>. If you install from a shell (<code>claude plugin install rutter@rutter</code>), pass <code>--config vault_path=/path/to/notes</code> or run <code>/plugin configure rutter@rutter</code> afterward. Without a notes folder the server has nothing to read.</p>
+<p><strong>2. Check the server.</strong> Run this in Claude Code:</p>
+<pre><code class="language-text">/mcp
+</code></pre>
+<p>You should see <code>rutter</code> listed with four tools: <code>librarian-search</code>, <code>librarian-get-note</code>, <code>librarian-recent</code>, and <code>librarian-positions</code>.</p>
+<p><strong>3. Do one small real task.</strong> Open a project directory you work in and make one decision or one small change. A &quot;hello&quot; leaves nothing worth recalling. As the work finishes, your client leaves a one-line summary on its own. You never write it yourself.</p>
+<p><strong>4. Confirm it was captured.</strong> A file for today&#39;s UTC day should now exist in your notes folder:</p>
+<pre><code class="language-bash">ls "/path/to/your/notes/_librarian/sessions/"
+</code></pre>
+<pre><code class="language-text">2026-08-05.md
+</code></pre>
+<p><em>Output shape verified against code; your date will differ.</em></p>
+<p><strong>5. Recall it.</strong> Ask your client:</p>
+<blockquote>
+<p>What was I working on lately?</p>
+</blockquote>
+<p>Your client calls <code>librarian-recent</code> and reports the session you just finished, in plain language. The stored line looks like this:</p>
+<pre><code class="language-text">2026-08-05 14:22:33 [notes-cleanup] — Renamed the archive folder and updated the two notes that linked to it.
+</code></pre>
+<p><em>Output shape verified against code; your date, project name, and wording will differ.</em></p>
+<p><strong>If you ever ran <code>npm run install-hook</code> by hand,</strong> remove that Stop hook entry from <code>~/.claude/settings.json</code> when you add the plugin. Otherwise capture is attempted twice. The duplicate is detected and stored once, but it is wasted work. To see the hooks Claude Code has active, run <code>/hooks</code>.</p>
+<p>Using another client, or want the manual route? Continue with the steps below.</p>
+
 <h2 id="before-you-start">Before you start</h2>
 
 <ul>
@@ -53,7 +82,7 @@
 
 <div class="callout">
   <span class="label">Using Codex? It takes a few extra steps</span>
-  <p>Codex cannot use rutter's one-command plugin install: it fills in none of a plugin's variables and installs no hook. So you set it up by hand from this clone, and the differences are easy to miss:</p>
+  <p>Codex cannot use rutter's one-command plugin install (the <a href="#fast-path-for-claude-code">Claude Code fast path</a>): it fills in none of a plugin's variables and installs no hook. So you set it up by hand from this clone, and the differences are easy to miss:</p>
   <ol>
     <li>Register the server with <code>codex mcp add</code>, passing your notes path at registration (<a href="#step-5">Step 5</a>).</li>
     <li>Install the Stop hook with <code>npm run install-hook -- --client codex</code>, then trust it with <code>/hooks</code> (<a href="#step-6">Step 6</a>). Installing does not grant trust, and an untrusted hook never runs.</li>
@@ -65,7 +94,7 @@
 
 <div class="callout">
   <span class="label">Using Antigravity (agy)? It also takes a few extra steps</span>
-  <p>This covers the <code>agy</code> command-line tool, not the Antigravity IDE. It has no one-command plugin install either, so you set it up by hand from this clone:</p>
+  <p>This covers the <code>agy</code> command-line tool, not the Antigravity IDE. It has no one-command plugin install either (the <a href="#fast-path-for-claude-code">Claude Code fast path</a> is Claude Code only), so you set it up by hand from this clone:</p>
   <ol>
     <li>Build, then register the server with <code>agy mcp add</code>, passing your notes path at registration (<a href="#step-5">Step 5</a>).</li>
     <li>Install the Stop hook and a capture rule file with <code>npm run install-hook -- --client antigravity --vault /path/to/your/notes</code> (<a href="#step-6">Step 6</a>). Use the same notes path as in the first step. The rule file is needed: <code>agy</code> does not put the server's instructions in the prompt, and without the rule its model did not leave summaries on its own.</li>
@@ -76,7 +105,7 @@
 
 <h2 id="step-1">Step 1 — Clone and install</h2>
 
-<pre><code>git clone https://github.com/shinytoyrobots/rutter.git
+<pre><code class="language-text">git clone https://github.com/shinytoyrobots/rutter.git
 cd rutter
 npm install</code></pre>
 
@@ -86,12 +115,12 @@ npm install</code></pre>
 
 <p>rutter reads one directory of markdown notes. Configure the path to yours right away — before the first index, and before anything else depends on it. Set it, then index:</p>
 
-<pre><code>export LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes"
+<pre><code class="language-text">export LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes"
 npm run reindex</code></pre>
 
 <p>You should see your real note count:</p>
 
-<pre><code>[rutter] reindex complete: 1284 notes indexed, 0 skipped, 912ms
+<pre><code class="language-bash">[rutter] reindex complete: 1284 notes indexed, 0 skipped, 912ms
   vault: /Users/you/Documents/notes
   index: /Users/you/rutter/data/librarian.db
 [rutter] identity pass: 0 dead ref(s) checked, 0 bound, 0 unresolved, 0 ledger entries appended, 3ms</code></pre>
@@ -109,9 +138,9 @@ npm run reindex</code></pre>
 
 <p>Two things later in this lesson run outside this terminal: the MCP server that your client launches, and the capture hook. Both read <code>LIBRARIAN_VAULT_PATH</code>, and neither sees an <code>export</code> you typed in one shell session.</p>
 
-<p>Set it once for every Claude Code session, in <code>~/.claude/settings.json</code>. Grok and Codex are different; see below. Merge this into the file, keeping whatever is already there:</p>
+<p>Set it once for every Claude Code session, in <code>~/.claude/settings.json</code>. Grok and Codex are different; the bold paragraphs for each follow the example. Merge this into the file, keeping whatever is already there:</p>
 
-<pre><code>{ "env": { "LIBRARIAN_VAULT_PATH": "/Users/you/path/to/your/notes" } }</code></pre>
+<pre><code class="language-text">{ "env": { "LIBRARIAN_VAULT_PATH": "/Users/you/path/to/your/notes" } }</code></pre>
 
 <p>The top-level <code>env</code> object sets environment variables for Claude Code sessions. It covers the MCP server and the Stop hook together, however you launch Claude Code — from the GUI, Raycast, an IDE terminal, or tmux. You will meet this same file again in Step 6, where the hook installer writes to it.</p>
 
@@ -131,17 +160,17 @@ npm run reindex</code></pre>
 
 <p>First confirm you are starting from nothing:</p>
 
-<pre><code>npm run recent</code></pre>
+<pre><code class="language-text">npm run recent</code></pre>
 
-<pre><code>No recent sessions recorded yet.</code></pre>
+<pre><code class="language-bash">No recent sessions recorded yet.</code></pre>
 
 <p>Now write one record:</p>
 
-<pre><code>echo '{"summary":"Set up rutter and captured this first memory by hand.","refs":[]}' | npm run capture</code></pre>
+<pre><code class="language-bash">echo '{"summary":"Set up rutter and captured this first memory by hand.","refs":[]}' | npm run capture</code></pre>
 
 <p>You should see:</p>
 
-<pre><code>[librarian-capture] captured 1 entry into 2026-08-05 session record.</code></pre>
+<pre><code class="language-text">[librarian-capture] captured 1 entry into 2026-08-05 session record.</code></pre>
 
 <p><em>Output shape verified against code; your date will differ.</em></p>
 
@@ -149,9 +178,9 @@ npm run reindex</code></pre>
 
 <h2 id="step-4">Step 4 — Recall it</h2>
 
-<pre><code>npm run recent</code></pre>
+<pre><code class="language-json">npm run recent</code></pre>
 
-<pre><code>2026-08-05 10:15:00 — Set up rutter and captured this first memory by hand.</code></pre>
+<pre><code class="language-bash">2026-08-05 10:15:00 — Set up rutter and captured this first memory by hand.</code></pre>
 
 <p><em>Output shape verified against code; your date and time will differ.</em></p>
 
@@ -161,7 +190,7 @@ npm run reindex</code></pre>
 
 <p>Three flags are worth knowing now:</p>
 
-<pre><code>npm run recent -- 3            # the three most recent sessions
+<pre><code class="language-text">npm run recent -- 3            # the three most recent sessions
 npm run recent -- --days 7     # just the last week
 npm run recent -- --project rutter   # one project, case-insensitive</code></pre>
 
@@ -169,27 +198,27 @@ npm run recent -- --project rutter   # one project, case-insensitive</code></pre
 
 <p>Compile the TypeScript, then register the server with your client. Run these from the repository root. The first commands are for Claude Code. Codex and Antigravity have their own, each in a labeled paragraph.</p>
 
-<pre><code>npm run build
+<pre><code class="language-bash">npm run build
 claude mcp add rutter --scope user -- node "$PWD/dist/stdio.js"</code></pre>
 
 <p>Use <code>--scope user</code> and an absolute path. Without the flag the server registers project-local to the repository, which leaves it invisible from the directories where you actually work.</p>
 
 <p>The <code>env</code> block from Step 2 already hands the server your vault path. To scope that to this one server instead, pass it at registration:</p>
 
-<pre><code>claude mcp add rutter --scope user -e LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes" -- node "$PWD/dist/stdio.js"</code></pre>
+<pre><code class="language-text">claude mcp add rutter --scope user -e LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes" -- node "$PWD/dist/stdio.js"</code></pre>
 
 <p>That covers the server alone. The Stop hook in Step 6 still reads the <code>env</code> block, so most people want Step 2's route.</p>
 
 <p><strong>Codex.</strong> Register the server with Codex instead, passing the vault path at registration (Codex does not read the <code>env</code> block from <code>~/.claude/settings.json</code>):</p>
 
-<pre><code>npm run build
+<pre><code class="language-bash">npm run build
 codex mcp add rutter --env LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes" -- node "$PWD/dist/stdio.js"</code></pre>
 
 <p>Check it with <code>codex mcp list</code>: <code>rutter</code> should appear as <code>enabled</code>. An <code>Auth</code> column reading <code>Unsupported</code> is normal for a local stdio server. This sets the path for the server only; the Codex Stop hook in Step 6 reads it from Codex's own launch environment.</p>
 
 <p><strong>Antigravity.</strong> Register the server with <code>agy mcp add</code>. Flags go before the server name, and the vault path is passed at registration:</p>
 
-<pre><code>npm run build
+<pre><code class="language-text">npm run build
 agy mcp add --env LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes" --env LIBRARIAN_DB_PATH="$PWD/data/librarian.db" rutter "$(which node)" "$PWD/dist/stdio.js"</code></pre>
 
 <p>Check it with <code>agy mcp list</code>: <code>rutter</code> should appear as <code>enabled</code>. The <code>LIBRARIAN_DB_PATH</code> value is where the index lives, and any writable path works. The Stop hook in <a href="#step-6">Step 6</a> needs the same notes path. If the two differ, captures go to one folder and reads come from another. The <a href="#step-6">Step 6</a> installer prints this same command, so you can compare.</p>
@@ -202,34 +231,34 @@ agy mcp add --env LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes" --env LIBRARIA
 
 <p>The hook is the one piece that cannot ship inside the server: MCP has no way to install a client hook.</p>
 
-<pre><code>npm run install-hook</code></pre>
+<pre><code class="language-bash">npm run install-hook</code></pre>
 
 <p>You should see:</p>
 
-<pre><code>[install-hook] registered the Stop hook in /Users/you/.claude/settings.json.
+<pre><code class="language-bash">[install-hook] registered the Stop hook in /Users/you/.claude/settings.json.
 [install-hook] restart Claude Code, then check &lt;vault&gt;/_librarian/sessions/ after your next session.</code></pre>
 
 <p>That message is your verification. If you instead see this, the build from Step 5 did not run:</p>
 
-<pre><code>[install-hook] dist/capture-cli.js is missing -- run `npm run build` first.</code></pre>
+<pre><code class="language-bash">[install-hook] dist/capture-cli.js is missing -- run `npm run build` first.</code></pre>
 
 <p>The installer refuses rather than register a hook that would fail on every event. Run <code>npm run build</code>, then try again.</p>
 
 <p>The installer is deliberately cautious. It merges into <code>~/.claude/settings.json</code> rather than replacing it, and never touches your other Stop hooks. It writes via a temp file and rename, so an interrupted run cannot truncate your client config. Re-running it is safe:</p>
 
-<pre><code>[install-hook] already registered in /Users/you/.claude/settings.json; nothing to do.</code></pre>
+<pre><code class="language-bash">[install-hook] already registered in /Users/you/.claude/settings.json; nothing to do.</code></pre>
 
 <p>The registered script always exits 0, so a failure inside capture can never break one of your sessions.</p>
 
 <p><strong>Codex.</strong> Codex reads hooks from its own config, so install there explicitly:</p>
 
-<pre><code>npm run install-hook -- --client codex</code></pre>
+<pre><code class="language-bash">npm run install-hook -- --client codex</code></pre>
 
 <p>This merges into <code>~/.codex/hooks.json</code> (or <code>$CODEX_HOME/hooks.json</code>). The hook finds your notes through <code>LIBRARIAN_VAULT_PATH</code> in Codex's own environment (see Step 2), so export it before launching Codex. Codex will not run a new hook until you trust it: start Codex, run <code>/hooks</code>, review the Librarian Stop hook, and trust it. The installer does not grant trust. If an equivalent hook is already registered inline in <code>~/.codex/config.toml</code>, the installer stops and tells you rather than stacking a second one. Codex hands the hook only the final assistant message of each turn, so a directive left in earlier commentary is not captured; the server's instructions teach the client to put it in the final reply.</p>
 
 <p><strong>Antigravity.</strong> Install the hook and the capture rule in one command, passing your notes folder:</p>
 
-<pre><code>npm run install-hook -- --client antigravity --vault /path/to/your/notes</code></pre>
+<pre><code class="language-bash">npm run install-hook -- --client antigravity --vault /path/to/your/notes</code></pre>
 
 <p>This adds a <code>librarian-capture</code> hook to <code>~/.gemini/config/hooks.json</code> and writes <code>~/.gemini/config/rules/rutter-capture.md</code>. The installer prints which notes folder it chose and where that came from. The hook uses that folder as its default no matter which shell launches <code>agy</code>; an exported <code>LIBRARIAN_VAULT_PATH</code> still overrides it. Re-running with a different <code>--vault</code> updates the hook in place. It refuses to overwrite a rule file it did not write. Use the same notes path you gave <code>agy mcp add</code> in <a href="#step-5">Step 5</a>. Run <code>/hooks</code> in <code>agy</code> to review the hook. Each capture prints the vault it wrote to in <code>agy</code>'s log, under <code>~/.gemini/antigravity-cli/log/</code>.</p>
 
@@ -246,7 +275,7 @@ agy mcp add --env LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes" --env LIBRARIA
 
 <p>As it finishes, your client leaves a directive line of its own accord:</p>
 
-<pre><code>&lt;!-- librarian-session {"summary":"Renamed the archive folder and updated the two notes that linked to it.","refs":["Notes/Archive.md"]} --&gt;</code></pre>
+<pre><code class="language-text">&lt;!-- librarian-session {"summary":"Renamed the archive folder and updated the two notes that linked to it.","refs":["Notes/Archive.md"]} --&gt;</code></pre>
 
 <p>You never write that line yourself — the server's instructions teach your client the form. It is shown here only so you recognize one when it goes past. The summary aims for about 40 words and stops by 60. An empty summary, or one still wrapped in <code>&lt;angle brackets&gt;</code>, captures nothing.</p>
 
@@ -254,9 +283,9 @@ agy mcp add --env LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes" --env LIBRARIA
 
 <p><strong>Verify.</strong> A file should now exist for today's UTC day:</p>
 
-<pre><code>ls "$LIBRARIAN_VAULT_PATH/_librarian/sessions/"</code></pre>
+<pre><code class="language-text">ls "$LIBRARIAN_VAULT_PATH/_librarian/sessions/"</code></pre>
 
-<pre><code>2026-08-05.md</code></pre>
+<pre><code class="language-text">2026-08-05.md</code></pre>
 
 <p><em>Output shape verified against code; your date will differ.</em></p>
 
@@ -272,9 +301,9 @@ agy mcp add --env LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes" --env LIBRARIA
 
 <p>Then read the record yourself. It is a markdown file in your own notes directory:</p>
 
-<pre><code>cat "$LIBRARIAN_VAULT_PATH/_librarian/sessions/$(date -u +%F).md"</code></pre>
+<pre><code class="language-bash">cat "$LIBRARIAN_VAULT_PATH/_librarian/sessions/$(date -u +%F).md"</code></pre>
 
-<pre><code>---
+<pre><code class="language-bash">---
 collection: librarian.sessions
 schema: session-record@1
 day: '2026-08-05'
@@ -293,6 +322,7 @@ sessions:
     workspace:
       cwd: /Users/you/Development/notes-cleanup
       project: notes-cleanup
+    client: claude
 refs:
   - path: Notes/Archive.md
     hash: 3f1a9c2e7b40d8...
@@ -306,29 +336,49 @@ refs:
 
 <p><em>Output shape verified against code; hashes are trimmed here, and your paths, dates, and project names will differ.</em></p>
 
-<p>The frontmatter is the source of truth. The regenerated body of the file is for human eyes, and is rewritten each time the day's record grows. Each reference records the note's path <em>and</em> its content hash as it was read, which is what lets a rename be followed later.</p>
+<p>The <code>client</code> field names the host that wrote the entry. The hand-written first entry has none, because a hand-piped payload carries no host identity.</p>
+
+<p>The frontmatter is the source of truth. The regenerated body of the file is for human eyes, and is rewritten each time the day's record grows. Each reference records the note's path <em>and</em> its content hash as the file stood when capture ran, which is what lets a rename be followed later.</p>
 
 <p>If your notes directory is a git repository, <code>_librarian/</code> will be tracked and committed along with everything else. That is intended: the memory is durable, plain markdown, and travels with your notes.</p>
 
 <h2 id="what-next">What to do next</h2>
 
-<p>You now have ambient capture running end-to-end. Three things are worth reading once the records start accumulating:</p>
-
+<p>You now have ambient capture running end-to-end. These are worth reading once the records start accumulating:</p>
 <ul>
-  <li><a href="memory-of-use.html#the-style-contract">The style contract</a> — capture and recall in depth, including the contract that decides whether these summaries are readable in six months.</li>
-  <li><a href="memory-of-use.html#search-enrichment">Search enrichment</a> — the quiet prior-engagement note on search results.</li>
-  <li><a href="memory-of-use.html#note-identity">Note identity</a> — what happens to a reference when you rename the note it points at.</li>
+<li><strong><a href="memory-of-use.html#capturing-session-summaries">Capturing session summaries</a> and <a href="memory-of-use.html#recalling-recent-work">Recalling recent work</a></strong> — capture and recall in depth, including <a href="memory-of-use.html#the-style-contract">the style contract</a> that decides whether these summaries are readable in six months.</li>
+<li><strong><a href="memory-of-use.html#search-enrichment">Search enrichment</a></strong> — the quiet prior-engagement note on search results.</li>
+<li><strong><a href="memory-of-use.html#note-identity">Note identity</a></strong> — what happens to a reference when you rename the note it points at.</li>
+<li><strong><a href="memory-of-use.html#what-rutter-can-and-cannot-establish">What rutter can and cannot establish</a></strong> — what a recorded reference proves, and what it does not.</li>
 </ul>
-
-<p>The project also measures whether any of this actually gets used. <code>npm run gate</code> shows the per-ISO-week count; <a href="memory-of-use.html#the-gate">the gate section</a> explains what it is for.</p>
+<p>The project also measures whether any of this actually gets used. <code>npm run gate</code> shows the per-ISO-week count; <a href="memory-of-use.html#measuring-whether-it-gets-used">Measuring whether it gets used</a> explains what it is for.</p>
 
 <p>The server refreshes its index each time it starts, so a new session picks up changes to your notes on its own. Run <code>npm run reindex</code> when you want a refresh without restarting. The index is a disposable cache — your files stay the source of truth.</p>
+
+<h2 id="if-something-goes-wrong">If something goes wrong</h2>
+<p>Each entry starts with what you see, then the usual cause, then the fix.</p>
+<p><strong><code>0 notes indexed</code> after <code>npm run reindex</code>.</strong> The notes path is wrong, and an unreadable directory is not an error. Check the <code>vault:</code> line against where your notes actually are, re-export <code>LIBRARIAN_VAULT_PATH</code>, and reindex again (Step 2).</p>
+<p><strong><code>rutter</code> is missing from <code>/mcp</code>.</strong> Either the server registered project-local, because <code>--scope user</code> was left off, or the plugin has not reloaded. Re-run the <code>claude mcp add</code> line from Step 5 with <code>--scope user</code>, or run <code>/reload-plugins</code> if you installed the plugin.</p>
+<p><strong>No file appears in <code>_librarian/sessions/</code>.</strong> Work through these in order:</p>
+<ol>
+<li>Hooks are read at session start. Quit your client and start it again.</li>
+<li>Step 6 should have printed <code>registered the Stop hook</code> (or <code>already registered</code>). If it printed <code>dist/capture-cli.js is missing</code>, run <code>npm run build</code> and install again.</li>
+<li>Check that the notes path your client sees is the one you meant. The <code>env</code> block in <code>~/.claude/settings.json</code> covers Claude Code. Grok and Codex read the shell that launched them.</li>
+<li>Do real work first. An empty summary, or one still wrapped in <code>&lt;angle brackets&gt;</code>, captures nothing.</li>
+<li>If captures still refuse to land, the README documents a <code>CLAUDE.md</code> paste-in as a last-resort fallback.</li>
+</ol>
+<p><strong>Captures land in <code>~/Documents/knowledge-vault</code> instead of your notes.</strong> The hook did not see <code>LIBRARIAN_VAULT_PATH</code>, so it used the default. For Codex and Grok, export it in the shell profile that launches the client, then re-source the profile. Codex hooks do not read <code>~/.claude/settings.json</code>.</p>
+<p><strong>Codex captures nothing.</strong> The hook may be untrusted: start Codex, run <code>/hooks</code>, review the Librarian Stop hook, and trust it. Also check that the summary line is in Codex&#39;s final reply. The hook reads only the final message.</p>
+<p><strong>Antigravity leaves no summaries.</strong> The rule file <code>~/.gemini/config/rules/rutter-capture.md</code> should exist, and the model may never read the server&#39;s instructions without it. Re-run the installer from Step 6 if it is missing. A turn that ended in an error captures nothing.</p>
+<p><strong>A long Grok turn loses its summary.</strong> Grok clips its final message at 32,768 characters, so a directive near the end of a very long turn can be dropped.</p>
+<p><strong>Every capture appears to be attempted twice.</strong> You have both the plugin&#39;s hook and a hand-registered one. Remove the <code>npm run install-hook</code> entry from <code>~/.claude/settings.json</code>. The duplicate is detected and stored once, but it is wasted work.</p>
+<p><strong><code>node:sqlite</code> is missing.</strong> Your Node is older than 22. Check with <code>node -v</code> and upgrade.</p>
 
 </main>
 
 <footer class="site">
   <div class="footer-inner">
-    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source and receipts on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/3d54c51">main@3d54c51</a> · <a href="sources.json">source hashes</a>.</p>
+    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source and receipts on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/3412b6a">main@3412b6a</a> · <a href="sources.json">source hashes</a>.</p>
   </div>
 </footer>
 </body>

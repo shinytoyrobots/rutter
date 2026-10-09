@@ -1,10 +1,10 @@
 {
   "comment": "Content hashes of the repo docs this site was built from \u2014 the site's own ref line. Run `npm run site-drift` on main to compare; drift here means the published site has gone stale against its sources, which is exactly the failure this project exists to make visible.",
-  "builtFrom": "3d54c51",
+  "builtFrom": "3412b6a",
   "generated": "2026-10-09",
   "sources": {
-    "docs/overview.md": "sha256:0cf4641b953ccfbefa3361294af1dc4cb9485265b74da8e85a49e0c44e081f2f",
-    "docs/getting-started.md": "sha256:d70893d9ae5cdf5bba9c323a9f119613b88539125a4fc16f0279e856bf95d872",
-    "docs/memory-of-use.md": "sha256:73a640375543c88b925e2e69033d2c5b8ae71be3083496075ffc7e42582bc595"
+    "docs/overview.md": "sha256:c6527062cf9f9f228163a5bfa0c8bc532b0855fca9204158a3e43d05e9b3bb2f",
+    "docs/getting-started.md": "sha256:1490215b859921d12db741646b6473923d96fa7c1dfb7cf753a9685c1936a769",
+    "docs/memory-of-use.md": "sha256:6f76be4e3c9003628ed441e441dd723cf025126441b38e4daebcff37cbbe1874"
   }
 }

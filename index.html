@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>rutter — your notes are the store; this is the memory of using them</title>
-<meta name="description" content="One memory across Claude Code, Grok, Codex, and Antigravity: a record of what your AI sessions decided, and the receipts behind it. An MCP server over a folder of markdown notes.">
+<meta name="description" content="One memory across Claude Code, Grok, Codex, and Antigravity: a record of what your AI sessions decided, and the versioned references behind it. An MCP server over a folder of markdown notes.">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -38,121 +38,248 @@
 <main id="main">
 
 <p><strong>One memory across Claude Code, Grok, Codex, and Antigravity.</strong> A decision made in one is there when you ask another.</p>
-
-<h2 id="what-this-explains">What this explains</h2>
-
-<p>A folder of markdown notes is a store of knowledge. Hand the same folder to two people and they do not come away with the same thing. Which notes each of them opened, what each concluded, which question one of them finally stopped reopening — none of that is in the store. It never was.</p>
-
+<h2 id="the-missing-layer">The missing layer</h2>
+<p>A folder of markdown notes is a store of knowledge. Hand the same folder to two people and they
+do not come away with the same thing. Which notes each of them opened, what each concluded, which
+question one of them finally stopped reopening — none of that is in the store. It never was.</p>
 <p>rutter keeps that second thing.</p>
-
-<p>It gives an AI session the memory of how <strong>you</strong> traversed and used a body of knowledge, rather than the specifics of the knowledge itself. Same store, two readers, two different memories. The store is objective and shareable. The memory of using it is neither.</p>
-
-<p>Worth being exact about the scope, because the shape of the code invites a wrong guess: this is not about coding sessions. A session might be research, drafting, planning, or just reading around a problem. The directory underneath is a knowledge vault, not a codebase — Obsidian is what it was built against, though nothing requires it. The inspiration is the Librarian in Neal Stephenson's <cite>Snow Crash</cite>: a companion that remembers across time and thinks alongside you — the one thing a stateless assistant cannot be. The name is from the age of sail: a rutter was the logbook of the routes actually sailed, as against the map. The map tells you what is known. The rutter is what you did about it.</p>
-
-<p>This document is about <em>why</em> it is built this way. If you want to run it, start with <a href="getting-started.html">the getting-started lesson</a>. If you want the mechanics of capture, recall and identity in full, read <a href="memory-of-use.html">the memory-of-use reference</a>.</p>
-
-<h2 id="one-memory">One memory across your tools</h2>
-
+<p>It gives an AI session the memory of how <strong>you</strong> traversed and used a body of knowledge, rather
+than the specifics of the knowledge itself. Same store, two readers, two different memories. The
+store is objective and shareable. The memory of using it is neither.</p>
+<p>Worth being exact about the scope, because the shape of the code invites a wrong guess: this is not
+about coding sessions. A session might be research, drafting, planning, or just reading around a
+problem. The directory underneath is a knowledge vault, not a codebase — Obsidian is what it was
+built against, though nothing requires it. The inspiration is the Librarian in Neal Stephenson&#39;s
+<em>Snow Crash</em>: a companion that remembers across time and thinks alongside you — the one thing a
+stateless assistant cannot be. The name is from the age of sail: a rutter was the logbook of the
+routes actually sailed, as against the map. The map tells you what is known. The rutter is what
+you did about it.</p>
+<p>The project was called the librarian before it was called rutter. The tools (<code>librarian-search</code>
+and its siblings), the environment variables (<code>LIBRARIAN_*</code>), and the <code>_librarian/</code> folder in your
+notes kept the earlier name. They are all parts of rutter.</p>
+<p>This document is about <em>why</em> it is built this way. If you want to run it, start with
+<a href="getting-started.html"><code>getting-started.md</code></a>. If you want the mechanics of capture, recall and
+identity in full, read <a href="memory-of-use.html"><code>memory-of-use.md</code></a>.</p>
+<h2 id="an-example">An example</h2>
+<p>In August you ask Claude Code whether the ingest path should stay synchronous. You read two notes
+and decide it should. The session leaves one line: <em>&quot;Decided the ingest path stays synchronous;
+async needs the queue design first.&quot;</em> The line cites <code>Notes/ingest-design.md</code>. rutter stores the
+line exactly as written, with a hash of that note&#39;s contents when the line was captured.</p>
+<p>In October you reorganize your notes. <code>ingest-design.md</code> moves to <code>Architecture/ingest.md</code>, contents
+untouched. At the next reindex, rutter sees that the old path is gone and finds exactly one note
+with the same hash. It binds the old path to the new one and records that.</p>
+<p>A week later you open Codex and ask why the ingest path stayed synchronous. Codex searches your
+notes and finds <code>Architecture/ingest.md</code>, with a dated note attached: what you concluded in
+August, and that you did. Codex can tell you what you decided, when, and from which note.</p>
+<p>Had the note been renamed <em>and</em> edited, no hash would match. Asking for recent work would show the
+reference marked unresolved, with every candidate rutter found, and you would decide what it means.</p>
+<p>One thing rutter does not do yet: tell you that a note at the <em>same</em> path has changed since August.
+It holds the original hash, so the comparison is possible. Reporting it is not built. What rutter
+can and cannot establish is spelled out <a href="#what-rutter-can-and-cannot-establish">below</a>.</p>
+<h2 id="one-memory-across-your-tools">One memory across your tools</h2>
 <p>Most memory features live inside one tool. Switch tools and you start again.</p>
-
-<p>rutter does not belong to a tool. It is a folder of markdown files plus an MCP (Model Context Protocol) server. Any MCP client can read the memory. Any tool with a hook that runs after each turn can write to it. Four have one today: Claude Code, Grok, Codex, and the Antigravity command-line tool (<code>agy</code>).</p>
-
-<p>A session summary captured in any of them is available to all of them straight away. Positions appear after the next reindex.</p>
-
-<p>"Shared" means one person's tools sharing one memory. It does not mean shared between people. The README's <em>Known limitations</em> says what is out of scope there. The README also has the setup for each tool and a table of how each one captures.</p>
-
-<h2 id="the-problem">The problem with the memory you already have</h2>
-
-<p>Your harness almost certainly does a version of this already. Claude Code writes session recaps and infers preferences into a memory folder, then consolidates them over time — merging duplicates, dropping what looks stale. Other tools expire what goes unused, or keep it inside a vendor's account, where it is portable exactly as far as the vendor is.</p>
-
-<p>Merging is defensible. It keeps a memory folder small and readable, and much of what a session produces genuinely is noise. But it is lossy in one particular way. Once two entries have been merged, you can no longer ask what you actually thought in March — only what the merge decided you think now. The sequence of positions you moved through is exactly what consolidation is built to flatten.</p>
-
-<p>The second problem is the one that matters more. A summary on its own is not a record. It is an assertion. "Decided the ingest path stays synchronous" tells you what a session claimed. It tells you nothing about whether the notes that argument rested on still say what they said. Files get rewritten. Notes get renamed. The summary keeps its confident tone the whole time, and nothing announces the gap.</p>
-
-<p>A summary plus the versioned state of what it was based on is a record, because it can be checked.</p>
-
-<p>That sentence is the design. Everything that follows is what it costs.</p>
-
-<h2 id="how-it-works">How it works, conceptually</h2>
-
+<p>rutter does not belong to a tool. It is a folder of markdown files plus an MCP (Model Context
+Protocol) server. Any MCP client can read the memory. Any tool with a hook that runs after each turn
+can write to it. Four have one today: Claude Code, Grok, Codex, and the Antigravity command-line
+tool (<code>agy</code>).</p>
+<p>A session summary captured in any of them is available to all of them straight away. Positions
+appear after the next reindex. The memory belongs to the folder and to you. A tool you add later
+reads the same records.</p>
+<p>&quot;Shared&quot; means one person&#39;s tools sharing one memory. It does not mean shared between people. The
+README&#39;s <em>Known limitations</em> says what is out of scope there. The README also has the setup for each
+tool and a table of how each one captures.</p>
+<h2 id="how-it-works">How it works</h2>
 <p>Two halves, and neither of them contains a model.</p>
-
-<p><strong>Writing.</strong> As a session finishes something worth recalling, your client emits one line about it — a short summary, plus the paths it touched. A Stop hook lifts the newest such line: from the transcript in Claude Code and Antigravity, from the final assistant message in Grok and Codex. It appends that line to a dated file inside your notes directory. Each path is stored with the sha256 of that file's bytes. The server reads the file and computes that hash itself, rather than accepting one from the client, so a client cannot assert provenance it never had. Each entry also records the working directory the session ran in, and the git remote when there is one. A day spread across three efforts still reads cleanly.</p>
-
-<p>One line per separable outcome, not one per session. A working session usually leaves three or four. Because your client writes while its context is still loaded, capture costs no extra inference and no network call.</p>
-
-<p>That line carries a style contract. Lead with what was decided. Prefer common words to the session's own shorthand. Aim for about 40 words and stop by 60. The contract is advisory. The server stores whatever it is handed, byte-verbatim — it never rewrites, shortens, annotates, or rejects a line. It cannot. Judging prose is inference, and there is no model in there to do it.</p>
-
-<p><strong>Reading.</strong> The server exposes four read-only tools over MCP (Model Context Protocol), the standard way an AI client connects to an outside source of data:</p>
-
+<p><strong>Writing.</strong> As a session finishes something worth recalling, your client emits one line about it —
+a short summary, plus the paths it touched. A Stop hook lifts the newest such line: from the
+transcript in Claude Code and Antigravity, from the final assistant message in Grok and Codex. It appends that line to a dated file inside your notes directory. Each path
+is stored with the sha256 of that file&#39;s bytes. The server reads the file and computes that hash
+itself, rather than accepting one from the client, so a client cannot hand it a hash for a file
+that was not on disk. The client still chooses which paths to list. The hash says what the file
+contained at capture, not that the session read it. Each entry also records the working directory
+the session ran in, and the git remote when there is one. A day spread across three efforts still
+reads cleanly.</p>
+<p>One line per separable outcome, not one per session. A working session usually leaves three or
+four. Because your client writes while its context is still loaded, capture costs no extra
+inference and no network call.</p>
+<p>That line carries a style contract. Lead with what was decided. Prefer common words to the
+session&#39;s own shorthand. Aim for about 40 words and stop by 60. The contract is advisory. The
+server stores whatever it is handed, byte-verbatim — it never rewrites, shortens, annotates, or
+rejects a line. It cannot. Judging prose is inference, and there is no model in there to do it.</p>
+<p><strong>Reading.</strong> The server exposes four read-only tools over MCP (Model Context Protocol), the
+standard way an AI client connects to an outside source of data:</p>
 <ul>
-  <li><code>librarian-search</code> — ranked full-text search over the notes, each result carrying its path, frontmatter provenance and a matching snippet. A result a past session engaged also carries a quiet prior-engagement note. The annotation is additive only. It never re-ranks anything.</li>
-  <li><code>librarian-get-note</code> — one note's full content, by path.</li>
-  <li><code>librarian-recent</code> — <em>"what was I working on lately?"</em> Sessions newest-first, with dates, project and references. Filterable by project, day window, or count.</li>
-  <li><code>librarian-positions</code> — <em>"what do I think about X, and did that change?"</em> One topic by its exact key, or a list found by free text over recorded stances or by a note the positions reference. Each answer carries the date the stance was formed and the date it was last revised, so a client reports it as your recorded position rather than as its own conclusion. Answered from the last reindex, so a position captured since then appears after the next one — which the server runs itself the next time it starts.</li>
+<li><code>librarian-search</code> — ranked full-text search over the notes, each result carrying its path,
+frontmatter provenance and a matching snippet. A result a past session engaged also carries a
+quiet prior-engagement note. The annotation is additive only. It never re-ranks anything.</li>
+<li><code>librarian-get-note</code> — one note&#39;s full content, by path.</li>
+<li><code>librarian-recent</code> — <em>&quot;what was I working on lately?&quot;</em> Sessions newest-first, with dates, project
+and references. Filterable by project, day window, or count.</li>
+<li><code>librarian-positions</code> — <em>&quot;what do I think about X, and did that change?&quot;</em> One topic by its exact
+key, or a list found by free text over recorded stances, or by a note the positions reference.
+Each answer carries the date the stance was formed and the date it was last revised, so a client
+reports it as your recorded position and not as its own conclusion. Answered from the last
+reindex, so a position captured since then appears after the next one — which the server runs
+itself the next time it starts.</li>
 </ul>
-
-<p>The Stop hook runs in Claude Code, Grok, Codex, and Antigravity. The tools work with any MCP client. The server also sends its own usage guidance to every client that connects. Antigravity saves that guidance as a file instead of putting it in the prompt, so its installer also writes a rule file. There is nothing to configure per project.</p>
-
-<p>Records live in <code>&lt;notes&gt;/_librarian/</code>, inside your own notes directory. They are plain markdown, sitting beside the notes they describe — greppable in a terminal, committable to the same git history. They are never written into the code repo. The SQLite FTS5 index is a disposable cache: delete it, reindex, and it rebuilds from the notes and those records alone. The notes are the source of truth; the index is a convenience.</p>
-
-<p>As of spec v14.0.0, all eleven of the spec's scenarios — SCN-001 through SCN-011 — have shipped. That is full-text search, ambient capture and the style contract, plus workspace provenance, prior-engagement annotations on search results, references that survive renames, and instrumentation on its own use. The most recent additions are position capture and position recall. Embeddings and semantic search are a stub.</p>
-
+<p>The Stop hook runs in Claude Code, Grok, Codex, and Antigravity. The tools work with any MCP client. The
+server also sends its own usage guidance to every client that connects. Antigravity saves that
+guidance as a file instead of putting it in the prompt, so its installer also writes a rule file.
+There is nothing to configure per project.</p>
+<p>Records live in <code>&lt;notes&gt;/_librarian/</code>, inside your own notes directory. They are plain markdown,
+sitting beside the notes they describe — greppable in a terminal, committable to the same git
+history. They are never written into the code repo. The SQLite FTS5 index is a disposable cache:
+delete it, reindex, and it rebuilds from the notes and those records alone. The notes are the source
+of truth; the index is a convenience.</p>
+<p>Everything the current spec describes has shipped. That is full-text search, ambient capture and
+the style contract, plus workspace provenance, prior-engagement annotations on search results,
+references that survive renames, instrumentation on its own use, position capture and recall, and
+a label on each record naming the host client that wrote it. The one stub is embeddings and
+semantic search.</p>
 <p>The client does the thinking. The server only keeps.</p>
-
-<h2 id="the-bets">The bets, and what each one costs</h2>
-
-<h3 id="append-only">Append-only, and byte-verbatim</h3>
-
-<p>A stored line is never rewritten. New lines are appended, and grouping happens when you read them back rather than on disk. What comes out is what went in. Where a consolidating memory folder converges on one current answer, this keeps every answer you gave, in order, with the wrong ones intact.</p>
-
-<p>The cost is real, and already visible. The record only grows. Entries written before the style contract existed are exactly as dense as the day they were captured. Nothing retrofits them. Rewriting your own past record to look tidier would be a worse failure than the density. Some early entries read like build logs. The only layer that reaches them is guidance at read time: your client is asked to report old, dense summaries in plain language when it recalls them. What is on disk stays the record; what you are told is the answer.</p>
-
-<h3 id="hashed-refs">References that carry a hash</h3>
-
-<p>Every reference is a path plus the content hash of what was there when it was read. Weeks later you can ask what you concluded, and separately ask whether the files that conclusion rested on have moved or changed since. Drift becomes visible instead of silent.</p>
-
-<p>Almost nothing else pairs those two. Architecture decision records capture the what and the why without pinning the version they applied to. Event-sourced logs timestamp events but rarely carry file-level provenance. Supply-chain provenance formats hash content properly, but they are built for auditors rather than for your next working session. One near neighbor, Kage, does carry provenance of this kind — and then does the opposite thing with it, which is the next bet.</p>
-
-<p>The cost: a hash is a statement about bytes, not about meaning. Reformat a note, fix a typo, and the hash says it changed. The signal is honest but blunt, and deliberately so. A fuzzier comparison would need a model, and a model in the server is the thing this design refuses.</p>
-
-<h3 id="show-the-drift">Show the drift, rather than withhold the answer</h3>
-
-<p>This is a crowded space, and the nearest neighbors each take half of this position. Recall does append-only session capture, without hashing what a memory rested on. Kage checks its memories against the live code, and withholds the ones that have gone stale. Refusal is a defensible choice. It is not the choice here. A reference whose target has changed is still shown to you, with the drift named. You are better placed than the tool to decide whether a changed note invalidates what you concluded.</p>
-
-<p>So the novelty claimed is only the combination: append-only verbatim lines, references carrying content hashes, and drift shown rather than resolved. Each half of that exists elsewhere. The square where all three meet is the part that appears to be unoccupied, and it is the only claim made here.</p>
-
-<h3 id="dead-refs">A dead reference is a person's call</h3>
-
-<p>Rename a referenced note without touching its content, and the next reindex rebinds the old reference to its new path. No heuristics, no similarity scoring, just an exact content-hash match. Both read surfaces then resolve through that binding quietly.</p>
-
-<p>When the librarian cannot tell, it says so. Two cases defeat the match. The note was renamed <em>and</em> edited, so no current note's hash matches; or several notes share the same hash. Either way the reference renders explicitly as unresolved, with every candidate it found. It never picks one. Confirming a binding is a local terminal command (<code>npm run identity-confirm</code>), never an MCP tool. That line is deliberate: a model must not be able to decide what a dead reference means. A confirmed binding is sticky afterwards. Suppose the vault later changes so that automatic matching would point somewhere else. The disagreement is rendered rather than settled: <em>confirmed X; the hash now matches Y</em>. Shown, never auto-resolved.</p>
-
-<p>The cost is friction. Some references sit unresolved until you get round to them, and only you can clear them. That is the intended price of not letting a model quietly rewrite your provenance.</p>
-
-<h2 id="what-it-is-not">What it deliberately is not</h2>
-
-<p><strong>Not a retrieval play.</strong> A capable agent reading a well-organized notes directory already retrieves well. Building a better search box loses. Search here is plain plumbing, and stays that way on purpose: SQLite FTS5 keyword matching, AND-ed across terms, so "blue man group" finds notes containing all three words rather than any one. Semantic search is a stub — <code>embeddings.ts</code> is a port with no implementation. None of that is why the project exists. It exists for the part an ephemeral session cannot be, which is memory across time.</p>
-
-<p><strong>Not multi-user — though the store can be.</strong> Memory-of-use is inherently personal. The store is not, and that split is the point. In principle, several readers can point their own librarian at the same knowledge vault, each keeping their own record of using it. Ask the same question and each gets a different answer back, because the difference was never in the notes. Same store, two readers, two different memories — made literal. That is the ideal shape of this design, not an edge case of it. What stays single-user is the memory itself. Entries carry no user identity, so the overlay only works while it stays with its owner rather than being synced into the shared store. And <em>sharing</em> records — authority, privacy surface, whose version of a decision wins — is untouched, as a scope decision rather than an apology. One shared store, N personal overlays. The overlay is the architecturally correct unit, not a stepping stone toward something bigger.</p>
-
-<p><strong>Not a supported product.</strong> This is one person's tool, published as a dated reference implementation. No roadmap promises, no support commitment, no guarantee the next commit leaves something you depend on where it was. The useful thing to take is the mechanism. Fork it.</p>
-
-<p><strong>And it is still on trial.</strong> The stateful behavior sits behind a usage gate. An append-only local log counts how often that behavior actually gets reached for, and the project is prepared to conclude that it isn't. The first reading, in August 2026, <a href="https://github.com/shinytoyrobots/rutter/blob/main/docs/gate-verdict-2026-08.md">came back a pass</a> — and the gate keeps running. The larger design for tracking how your beliefs change over time is part-built: position capture and recall shipped in August 2026, after logged friction asked for them rather than a plan scheduling them. The rest of that design is not built — drift visibility, which would tell you the notes a position rests on have changed since it was formed, and an optional backfill of positions from records that predate capture. Both wait on the same test: observed use, rather than a plan.</p>
-
-<h2 id="further-reading">Further reading</h2>
-
+<h2 id="why-it-is-different">Why it is different</h2>
+<p>Your harness almost certainly does a version of this already. Claude Code writes session recaps and
+infers preferences into a memory folder, then consolidates them over time — merging duplicates,
+dropping what looks stale. Other tools expire what goes unused, or keep it inside a vendor&#39;s
+account, where it is portable exactly as far as the vendor is.</p>
+<p>Merging is defensible. It keeps a memory folder small and readable, and much of what a session
+produces genuinely is noise. But it is lossy in one particular way. Once two entries have been
+merged, you can no longer ask what you actually thought in March — only what the merge decided you
+think now. The sequence of positions you moved through is exactly what consolidation is built to
+flatten.</p>
+<p>The second problem is the one that matters more. A summary on its own is not a record. It is an
+assertion. &quot;Decided the ingest path stays synchronous&quot; tells you what a session claimed. It tells
+you nothing about whether the notes that argument rested on still say what they said. Files get
+rewritten. Notes get renamed. The summary keeps its confident tone the whole time, and nothing
+announces the gap.</p>
+<p>A summary plus the hash of the files it cited is a record, because you can check it.</p>
+<p>That sentence is the design. Everything that follows is what it costs.</p>
+<h2 id="the-bets-and-what-each-one-costs">The bets, and what each one costs</h2>
+<h3 id="append-only-and-byte-verbatim">Append-only, and byte-verbatim</h3>
+<p>A stored line is never rewritten. New lines are appended, and grouping happens when you read them
+back. What comes out is what went in. Where a consolidating memory folder converges on one current
+answer, this keeps every answer you gave, in order, with the wrong ones intact.</p>
+<p>The cost is real, and already visible. The record only grows. Entries written before the style
+contract existed are exactly as dense as the day they were captured. Nothing retrofits them.
+Rewriting your own past record to look tidier would be a worse failure than the density. Some early
+entries read like build logs. The only layer that reaches them is guidance at read time: your client
+is asked to report old, dense summaries in plain language when it recalls them. What is on disk
+stays the record; what you are told is the answer.</p>
+<p>Append-only is a rule rutter follows. It is not a tamper-proof log, and the records are plain files
+you can edit.</p>
+<h3 id="references-that-carry-a-hash">References that carry a hash</h3>
+<p>Every reference is a path plus the content hash of what was there when the line was captured. Weeks
+later you can ask what you concluded, and ask whether the files that conclusion rested on have
+moved. A renamed note is followed by exact hash match. A note rutter cannot place is shown as
+unresolved, with its candidates. The stored hash also gives you something to compare a file against
+later. The report that a note at the same path has changed is not built yet.</p>
+<p>Almost nothing else pairs those two. Architecture decision records capture the what and the why
+without pinning the version they applied to. Event-sourced logs timestamp events but rarely carry
+file-level provenance. Supply-chain provenance formats hash content properly, but they are built
+for auditors rather than for your next working session. One near neighbor, Kage, does carry
+provenance of this kind — and then treats stale memories differently, which is the next bet.</p>
+<p>The cost: a hash is a statement about bytes, not about meaning. Reformat a note, fix a typo, and the
+hash says it changed. The signal is honest but blunt, and deliberately so. A fuzzier comparison
+would need a model, and a model in the server is the thing this design refuses.</p>
+<h3 id="show-what-you-can39t-place-and-don39t-withhold-the-answer">Show what you can&#39;t place, and don&#39;t withhold the answer</h3>
+<p>This is a crowded space, and the nearest neighbors each take half of this position. Recall does
+append-only session capture, without hashing what a memory rested on. Kage checks its memories
+against the live code, and withholds the ones that have gone stale. Withholding is a defensible
+choice. rutter makes a different one. A reference it cannot place is still shown, marked
+unresolved, with every candidate it found. You are better placed than the tool to decide what a
+missing or changed note means for what you concluded.</p>
+<p>Changed content is the part not built. If a note stays at the same path and its bytes change,
+rutter does not flag it today. The design is the same rule applied there: show the change, name
+it, and let you decide. It waits on observed use, like the rest of the unbuilt design at the end of
+this page.</p>
+<p>So the claim is only the combination: append-only verbatim lines, references carrying content
+hashes, and references the tool cannot place shown to you instead of silently resolved or dropped.
+Each of those exists elsewhere. The square where all three meet appears to be unoccupied, and it is
+the only claim made here.</p>
+<h3 id="a-dead-reference-is-a-person39s-call">A dead reference is a person&#39;s call</h3>
+<p>Rename a referenced note without touching its content, and the next reindex rebinds the old
+reference to its new path. No heuristics, no similarity scoring, just an exact content-hash match.
+Both read surfaces then resolve through that binding quietly.</p>
+<p>When rutter cannot tell, it says so. Two cases defeat the match. The note was renamed <em>and</em> edited,
+so no current note&#39;s hash matches; or several notes share the same hash. Either way the reference
+renders explicitly as unresolved, with every candidate it found. It never picks one. Confirming a
+binding is a local terminal command (<code>npm run identity-confirm</code>), never an MCP tool. That is a firm
+line: a model must not be able to decide what a dead reference means. A confirmed binding is
+sticky afterwards. Suppose the vault later changes so that automatic matching would point somewhere
+else. The disagreement is rendered and left for you: <em>confirmed X; the hash now matches Y</em>.</p>
+<p>The cost is friction. Some references sit unresolved until you get round to them, and only you can
+clear them. That is the intended price of not letting a model quietly rewrite your provenance.</p>
+<h2 id="what-rutter-can-and-cannot-establish">What rutter can and cannot establish</h2>
+<p>A reference is evidence of what a session recorded. It is not proof of what the session read.</p>
+<p><strong>It can establish:</strong></p>
 <ul>
-  <li><a href="getting-started.html">Getting started</a> — clone to first recall, in eight verified steps.</li>
-  <li><a href="memory-of-use.html">Memory-of-use</a> — capture, recall, enrichment, the gate and note identity in full mechanical detail.</li>
-  <li><a href="https://github.com/shinytoyrobots/rutter/blob/main/docs/roadmap.md">The roadmap</a> — current sequencing, and what is deliberately not being built.</li>
-  <li><a href="https://github.com/shinytoyrobots/rutter/blob/main/spec/spec.md">The executable spec</a> — Given-When-Then scenarios, the requirements derived from them, the tests that grade each one, and what every amendment rejected. This page is the argument; that file is the receipts.</li>
-  <li><a href="https://github.com/shinytoyrobots/rutter#readme">The README</a> — what it does today, setup, and the limitations stated up front.</li>
-  <li><a href="https://github.com/raiyanyahya/recall">Recall</a> — the nearest neighbor on append-only session capture. If that half of the position is the part you want, start there.</li>
-  <li><a href="https://github.com/kage-core/Kage">Kage</a> — the nearest neighbor on content-hashed provenance, resolved the other way: it withholds stale memories where this shows the drift.</li>
-  <li><a href="https://www.robin-cannon.com/p/youre-lost-unless-you-have-a-rutter">"You're lost, unless you have a rutter."</a> — the essay the name comes from: the Dutch East India Company's logbooks of routes actually sailed, and Clavell's warning that a rutter is only as good as the pilot who wrote it — which is why every reference here carries a hash.</li>
+<li>which paths the client listed;</li>
+<li>the hash of each file&#39;s contents when capture ran, computed by the server;</li>
+<li>the conclusion the client wrote, byte-verbatim;</li>
+<li>when and where the line was captured, and which client wrote it when that can be established.</li>
 </ul>
-
+<p><strong>It cannot establish:</strong></p>
+<ul>
+<li>that the model read any listed file, because the client chooses the paths;</li>
+<li>that those files produced the conclusion;</li>
+<li>that capture is complete, because a line exists only when the client wrote one and the hook found it;</li>
+<li>that a file did not change between the session reading it and capture, because the hash is taken after the turn;</li>
+<li>whether a note at an unchanged path has changed since. That report is not built.</li>
+</ul>
+<p>Append-only is an application rule, not tamper-proof auditing. Anyone with write access to your
+notes folder can edit the records, and nothing detects it. The full list of capture dependencies is
+in <a href="memory-of-use.html#what-rutter-can-and-cannot-establish"><code>memory-of-use.md</code></a>.</p>
+<h2 id="what-it-deliberately-is-not">What it deliberately is not</h2>
+<p><strong>Not a retrieval play.</strong> A capable agent reading a well-organized notes directory already retrieves
+well, so a better search box would lose. Search here is plain plumbing: SQLite FTS5 keyword
+matching, AND-ed across terms, so &quot;blue man group&quot; finds notes containing all three words rather
+than any one. Semantic search is a stub — <code>embeddings.ts</code> is a port with no implementation. None of
+that is why the project exists. It exists for the part an ephemeral session cannot have, which is
+memory across time.</p>
+<p><strong>Not multi-user — though the store can be.</strong> Memory-of-use is personal. The store need not be.
+Several readers can point their own rutter at the same knowledge vault, each keeping their own
+record of using it, and the same question gets a different answer for each, because the difference
+was never in the notes. Same store, two readers, two different memories — made literal. What stays
+single-user is the memory itself. Entries carry no user identity, so the overlay only works while
+it stays with its owner and is not synced into the shared store. Sharing records — authority,
+privacy surface, whose version of a decision wins — is out of scope. One shared store, N personal
+overlays. The overlay is the intended unit, not a stepping stone toward something bigger.</p>
+<p><strong>Not a supported product.</strong> This is one person&#39;s tool, published as a dated reference
+implementation. No roadmap promises, no support commitment, no guarantee the next commit leaves
+something you depend on where it was. The useful thing to take is the mechanism. Fork it.</p>
+<p><strong>And it is still on trial.</strong> The stateful behavior sits behind a usage gate. An append-only local
+log counts how often that behavior actually gets reached for, and the project is prepared to
+conclude that it isn&#39;t. So far the log reads one person&#39;s usage. The first reading, in August 2026,
+<a href="https://github.com/shinytoyrobots/rutter/blob/main/docs/gate-verdict-2026-08.md">came back a pass</a>, and the gate keeps running. The larger design for
+tracking how your beliefs change over time is part-built: position capture and recall shipped in
+August 2026, after logged friction asked for them. The rest of that design is not built — drift
+visibility, which would tell you the notes a position rests on have changed since it was formed,
+and an optional backfill of positions from records that predate capture. Both wait on observed use.</p>
+<h2 id="try-it">Try it</h2>
+<p>If you use Claude Code, install the plugin and you can be recalling in a few minutes: see the
+<a href="getting-started.html#fast-path-for-claude-code">fast path</a>. Everyone else:
+<a href="getting-started.html"><code>getting-started.md</code></a> takes you from clone to first recall in eight verified
+steps.</p>
+<h2 id="further-reading">Further reading</h2>
+<ul>
+<li><a href="getting-started.html"><code>getting-started.md</code></a> — clone to first recall, in eight verified steps.</li>
+<li><a href="memory-of-use.html"><code>memory-of-use.md</code></a> — capture, recall, enrichment, note identity, positions,
+the trust boundary, and the usage gate, in full mechanical detail.</li>
+<li><a href="https://github.com/shinytoyrobots/rutter/blob/main/docs/roadmap.md"><code>roadmap.md</code></a> — current sequencing, and what is deliberately not being built.</li>
+<li><a href="https://github.com/shinytoyrobots/rutter/blob/main/spec/spec.md"><code>../spec/spec.md</code></a> — the executable spec: Given-When-Then scenarios, the
+requirements derived from them, the tests that grade each one, and what every amendment rejected.
+This document is the argument; that file is the receipts.</li>
+<li><a href="https://github.com/shinytoyrobots/rutter#readme"><code>../README.md</code></a> — what it does today, setup, and the limitations stated up front.</li>
+<li><a href="https://github.com/raiyanyahya/recall">Recall</a> — the nearest neighbor on append-only session
+capture. If that half of the position is the part you want, start there.</li>
+<li><a href="https://github.com/kage-core/Kage">Kage</a> — the nearest neighbor on content-hashed provenance.
+It withholds stale memories. rutter shows a reference it cannot place, and would show a changed
+one once that is built.</li>
+<li><a href="https://www.robin-cannon.com/p/youre-lost-unless-you-have-a-rutter">&quot;You&#39;re lost, unless you have a rutter.&quot;</a>
+— the essay the name comes from: the Dutch East India Company&#39;s logbooks of routes actually
+sailed, and Clavell&#39;s warning that a rutter is only as good as the pilot who wrote it — which is
+why every reference here carries a hash.</li>
+</ul>
 <div class="coda">
   <p>A store records what is known. This records what you did about it.</p>
   <p>That is the part nobody else can hold for you.</p>
@@ -162,7 +289,7 @@
 
 <footer class="site">
   <div class="footer-inner">
-    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source and receipts on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/3d54c51">main@3d54c51</a> · <a href="sources.json">source hashes</a>.</p>
+    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source and receipts on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/3412b6a">main@3412b6a</a> · <a href="sources.json">source hashes</a>.</p>
   </div>
 </footer>
 </body>
