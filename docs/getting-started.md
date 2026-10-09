@@ -120,7 +120,7 @@ npm run build
 export LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes"
 ```
 
-Without it, the hook quietly writes captures to the default `~/Documents/knowledge-vault`. Run `npm run reindex` to check the path: a non-zero note count means it is right, and [Step 2](#step-2--point-it-at-your-notes-and-build-the-index) shows the full output.
+Without it, the hook writes captures to the default `~/Documents/knowledge-vault`, and its stderr line says the default was used. Run `npm run reindex` to check the path: a non-zero note count means it is right, and [Step 2](#step-2--point-it-at-your-notes-and-build-the-index) shows the full output.
 
 **3. Register the server,** passing the notes path at registration:
 
@@ -241,7 +241,7 @@ A shell-profile `export` also works, but only when `claude` launches from a shel
 
 Grok, Codex, and Antigravity get the path differently: see the [Grok](#grok-path), [Codex](#codex-path), and [Antigravity](#antigravity-path) paths.
 
-Two other variables are optional. `LIBRARIAN_DB_PATH` moves the index, which defaults to `data/librarian.db` inside the repository and is resolved from the module's own location rather than your working directory. `LIBRARIAN_USER_LABEL` is a bare noun — `Robin`, not `Robin's` — used as "<label>'s work" in the descriptions your client receives.
+Two other variables are optional. `LIBRARIAN_DB_PATH` moves the index, which defaults to `data/librarian.db` inside the repository and is resolved from the module's own location rather than your working directory. `LIBRARIAN_USER_LABEL` is a bare noun — `Robin`, not `Robin's` — used as `<label>'s work` in the descriptions your client receives.
 
 ## Step 3 — Capture your first memory by hand
 
@@ -266,7 +266,7 @@ echo '{"summary":"Set up rutter and captured this first memory by hand.","refs":
 You should see:
 
 ```text
-[librarian-capture] captured 1 entry into 2026-08-05 session record.
+[librarian-capture] captured 1 entry into 2026-08-05 session record in vault /Users/you/Documents/notes (rutter 0.5.0).
 ```
 
 *Output shape verified against code; your date will differ.*
@@ -450,7 +450,7 @@ Capture runs without asking, so it helps to know how to see it, stop it, and und
 ### Notice when capture stops
 
 - **Look for the line.** After a session that decided something, today's file in `_librarian/sessions/` should have a new entry, and `npm run recent` (or asking your client) should show it. A session with no new line was not captured.
-- **Read the hook's status line.** After each turn the hook writes one line to stderr, for example `no session directive found; nothing captured.` or `captured 1 entry … into 2026-08-05 session record`. Where a client shows hook output varies; `agy` keeps it in its log under `~/.gemini/antigravity-cli/log/`.
+- **Read the hook's status line.** After each turn the hook writes one line to stderr, for example `no session directive found; nothing captured.` or `captured 1 entry into 2026-08-05 session record in vault /Users/you/Documents/notes (rutter 0.5.0).` When `LIBRARIAN_VAULT_PATH` was not set for the hook, the line says the default folder was used. Where a client shows hook output varies; `agy` keeps it in its log under `~/.gemini/antigravity-cli/log/`.
 - **Check the `client` label.** Each entry names the client that wrote it, when the hook can tell. If one client's entries stop appearing while others continue, that client has stopped capturing.
 
 The usage count from `npm run gate` measures recall, not capture. It is not a capture monitor.
@@ -460,6 +460,7 @@ The usage count from `npm run gate` measures recall, not capture. It is not a ca
 rutter has no pause switch. A line is captured whenever the hook runs and the model has left one. To stop capture, stop the hook:
 
 - **Claude Code plugin:** `/plugin disable rutter@rutter` turns off the plugin's server and hook together.
+- **Grok:** Grok runs the hook from your Claude Code install. Whether Grok honors a plugin disabled in Claude Code has not been checked, so after disabling it, confirm that a Grok session adds no new line.
 - **A hook added by `npm run install-hook`:** delete its entry from the hook file named in [Before you start](#before-you-start). There is no uninstall command.
 - **Codex:** remove the entry from `~/.codex/hooks.json`. A hook you have not trusted in `/hooks` never runs, so an untrusted hook is already paused.
 - **Antigravity:** remove the hook entry, and delete `~/.gemini/config/rules/rutter-capture.md` so the model stops writing lines.

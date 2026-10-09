@@ -3,7 +3,7 @@
 **Recall past decisions and the notes your AI session cited.**
 
 An MCP (Model Context Protocol) server over a folder of markdown notes. As a session decides
-something, your client leaves one line about it. A hook stores that line, without rewriting it, in a
+something, your client leaves one line about it. A hook stores that line, without rewriting it for style, in a
 dated file inside your notes folder, with the path and a content hash of each note it cited.
 
 Weeks later you ask what you concluded, in the same AI tool or another one you have set up, and get
@@ -30,8 +30,8 @@ against the map. The map records what is known. The rutter records what you did 
 rutter keeps one set of records for Claude Code, Grok, Codex, and Antigravity. Each client writes its
 session summaries to the same notes folder. Each client reads them back through the same MCP server.
 
-A decision you made in Codex on Tuesday is there when you ask Claude Code on Thursday. You copy
-nothing between clients. This works because the memory is a folder of markdown files you own, not a
+A decision you made in Codex on Tuesday is there when you ask Claude Code on Thursday, provided
+Codex wrote a line for it and its hook ran. You copy nothing between clients. This works because the memory is a folder of markdown files you own, not a
 feature inside one tool.
 
 | Client | How it captures | Setup |
@@ -48,7 +48,7 @@ command-line tool, not the Antigravity IDE.
 Point every client at the same notes folder. Each sets it differently. The Claude Code plugin asks
 for it at install. Grok and Codex read `LIBRARIAN_VAULT_PATH` from the shell that launches them.
 Antigravity's installer takes `--vault`. Each record notes which client wrote it, when the hook can
-tell (see *How this differs*).
+tell (see *Known limitations*).
 
 ## How this differs from memory you already have
 
@@ -64,7 +64,7 @@ read them, and a line is not rewritten for style on the way in: only a one-line 
 
 The second difference is the one that matters more. A summary on its own is not a record — it is
 an assertion. A summary plus the versioned state of the notes it cited is a record, because it
-can be checked.
+gives you a fingerprint to compare against.
 
 Neighboring approaches each do part of that second part. Architecture decision records capture the *what* and the
 *why* without pinning the version they applied to. Event-sourced logs timestamp events but rarely
@@ -318,6 +318,11 @@ in the plugin's notes-folder option, so rutter uses the default folder (`~/Docum
 To share a different folder, set `LIBRARIAN_VAULT_PATH` in the environment you launch Grok from.
 A line on stderr says when the default was used for that reason.
 
+The hook reads only Grok's final assistant message, so put the summary line at the end of the final
+reply. Grok clips that message at 32,768 characters, so on a very long turn a trailing line can be
+lost. If the final message holds two lines, only the last is kept. The [Grok
+path](./docs/getting-started.md#grok-path) has the full sequence.
+
 ### Codex
 
 Codex cannot use the plugin. It fills in none of a plugin's variables and installs no hook. Set it
@@ -330,6 +335,7 @@ up by hand from a clone, verified with Codex 0.160.0:
 3. Export `LIBRARIAN_VAULT_PATH` in the shell that launches Codex. Its hooks see only that
    environment, not `~/.claude/settings.json`. Without it they write captures to the default folder.
 4. Expect the summary line in Codex's final reply, because that is where its hook looks for it.
+   If the final reply holds two lines, only the last is kept.
 
 ### Antigravity CLI
 
@@ -352,8 +358,8 @@ IDE. Set it up by hand from a clone:
    Gemini Pro, and Claude Sonnet each wrote the line after a decision and none after a trivial
    question. Re-run the installer to refresh the rule.
 4. Expect the line anywhere in the turn. The Stop event carries no reply text, so the hook reads the
-   current turn's assistant messages from `agy`'s transcript. An earlier turn's directive is never
-   read again.
+   current turn's assistant messages from `agy`'s transcript. If the turn holds two lines, only the
+   last is kept. An earlier turn's directive is never read again.
 
 To move to another notes folder, re-run the installer with a new `--vault`, then re-run
 `agy mcp add`. Each capture prints `in vault <path>` on stderr, visible in `agy`'s log under
@@ -426,7 +432,7 @@ scenarios and the requirements derived from them, each mapped to the tests that 
 amendment records what was rejected and why.
 
 If you want to understand a decision here, that file is the honest account. This README is the
-summary; the spec is the receipts.
+summary; the spec is the detail.
 
 ## Privacy Policy
 
