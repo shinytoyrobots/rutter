@@ -4,7 +4,7 @@
     "name": "Robin Cannon",
     "url": "https://github.com/shinytoyrobots"
   },
-  "description": "rutter: a record of what your AI sessions decided, and the receipts behind it.",
+  "description": "rutter: one memory across Claude Code, Grok, Codex, and Antigravity, with the receipts behind it.",
   "plugins": [
     {
       "name": "rutter",
