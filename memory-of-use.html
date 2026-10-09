@@ -82,6 +82,7 @@
   <li>Not inside a repository (or no <code>origin</code>) → <code>repo</code> is omitted; <code>cwd</code> and <code>project</code> still land.</li>
   <li>A <code>.git</code> redirect (linked worktree or submodule) is followed only when its target is itself git metadata; anything else is refused and <code>repo</code> is omitted — the reader can't be steered into arbitrary directories.</li>
   <li><strong>Entries captured before this existed stay valid, untouched.</strong> <code>workspace</code> is an <em>additive-optional</em> field on the same record schema — there is no migration, no rewrite of old records, and a day file can hold a mix of old and new entries.</li>
+  <li><strong>Which client wrote it.</strong> <code>client</code> is another additive-optional field: <code>claude</code>, <code>grok</code>, <code>codex</code>, or <code>agy</code>. It names the host, never the model, and it is metadata only; the summary and stance stay byte-verbatim. The hook reads the original Stop envelope (Antigravity&rsquo;s shape, Grok&rsquo;s camelCase <code>lastAssistantMessage</code>) together with the identity the installer passes as <code>--client</code>, and writes a label only when the two agree. Conflicts, direct payloads, an unrecognized identity, and Codex without an identity (nothing in its payload separates it from Claude) get no label, so entries from a hook registered by hand before this existed show none; re-run <code>install-hook</code> to add it. A stored value this build does not know is kept and ignored, never an error. It is shown in the record&rsquo;s frontmatter, not the body.</li>
   <li><strong>It never affects duplicate detection.</strong> Identity is the <em>directive</em>, so a Stop firing whose directory changed is still an unchanged directive and still a byte-identical no-op. Moving a project does not fork your history.</li>
 </ul>
 
@@ -91,7 +92,7 @@
 
 <p><strong>Setup is the hook</strong> — register the hook (<code>npm run install-hook</code>, or by hand; see <a href="getting-started.html#step-6">Step 6 of getting started</a>). For Claude Code and Grok that registers it in <code>~/.claude/settings.json</code>. For Codex, build and run <code>npm run install-hook -- --client codex</code>, then review and trust the hook in Codex with <code>/hooks</code> — installing does not grant trust, and an untrusted hook never runs. For Antigravity, build and run <code>npm run install-hook -- --client antigravity --vault &lt;your notes folder&gt;</code>, then run the <code>agy mcp add</code> line it prints. There is nothing to add to your <code>CLAUDE.md</code>. The whole capture contract lives in the server's MCP (Model Context Protocol) instructions — a single source, quoted rather than restated everywhere else — and the server sends it to every client on connect. Antigravity does not put those instructions in the model's prompt, so its installer also writes a rule file (see <em>Host differences</em>).</p>
 
-<p><strong>Host differences.</strong> All four hosts fire the same hook after each turn and store the same records, in the same notes folder. That shared folder is how a decision captured in one tool is recalled in another. The records do not name the tool that wrote them. They differ in where the hook looks for the directive:</p>
+<p><strong>Host differences.</strong> All four hosts fire the same hook after each turn and store the same records, in the same notes folder. That shared folder is how a decision captured in one tool is recalled in another. Each record carries a <code>client</code> label naming the host that wrote it (see below). They differ in where the hook looks for the directive:</p>
 
 <ul>
   <li><strong>Claude Code</strong> reads the whole transcript, so a directive anywhere in the session is found.</li>
@@ -295,7 +296,7 @@ npm run gate 2026-07-13 2026-07-26 # counts within a date range</code></pre>
 
 <footer class="site">
   <div class="footer-inner">
-    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source and receipts on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/ed8c59d">main@ed8c59d</a> · <a href="sources.json">source hashes</a>.</p>
+    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source and receipts on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/3d54c51">main@3d54c51</a> · <a href="sources.json">source hashes</a>.</p>
   </div>
 </footer>
 </body>
