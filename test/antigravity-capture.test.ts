@@ -152,3 +152,24 @@ test("AGY-7: shape selection -- a payload with session_id/transcript_path (Claud
   fire({ session_id: "S-7", conversationId: "C-7", transcriptPath: t, last_assistant_message: "no directive here" });
   assert.equal(sessionExists(day()), false);
 });
+
+test("AGY-8: a capture names the vault it wrote to, and flags the default when LIBRARIAN_VAULT_PATH was not set", () => {
+  const t1 = transcript("agy-8.jsonl", [user("x"), planner(SESSION("Names its vault."))]);
+  const named = fire(stop("C-8a", t1));
+  assert.ok(named.stderr.includes(`in vault ${vaultRoot}`), named.stderr);
+  assert.doesNotMatch(named.stderr, /was not set for this hook/);
+
+  // Unset: the CLI falls back to the default vault, so run it against a throwaway HOME and say so.
+  const home = path.join(vaultRoot, "home-8");
+  fs.mkdirSync(home, { recursive: true });
+  const env = { ...process.env, HOME: home } as Record<string, string | undefined>;
+  delete env.LIBRARIAN_VAULT_PATH;
+  const res = spawnSync(process.execPath, ["--import", "tsx", cli], {
+    input: JSON.stringify(stop("C-8b", transcript("agy-8b.jsonl", [user("x"), planner(SESSION("Default vault."))]))),
+    env: env as NodeJS.ProcessEnv,
+    encoding: "utf8",
+  });
+  assert.equal(res.status, 0);
+  assert.match(res.stderr, /\(default: LIBRARIAN_VAULT_PATH was not set for this hook\)/);
+  assert.ok(res.stderr.includes(path.join(home, "Documents", "knowledge-vault")), res.stderr);
+});

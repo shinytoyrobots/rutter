@@ -114,8 +114,13 @@ t("antigravity: creates ~/.gemini/config/hooks.json keyed by name, with Stop tim
   const res = install(sb, "--client", "antigravity");
   assert.equal(res.status, 0, res.stderr);
   const cfg = JSON.parse(fs.readFileSync(agyHooks(sb.home), "utf8"));
-  assert.deepEqual(cfg["librarian-capture"], { Stop: [{ type: "command", command: hookPath, timeout: 30 }] });
-  assert.match(res.stderr, /SAME vault/);
+  const entry = cfg["librarian-capture"].Stop[0];
+  assert.equal(entry.type, "command");
+  assert.equal(entry.timeout, 30);
+  assert.equal(cfg["librarian-capture"].Stop.length, 1);
+  assert.ok(entry.command.endsWith(` ${hookPath}`), "still runs the shared hook script");
+  assert.match(entry.command, /^LIBRARIAN_VAULT_PATH="\$\{LIBRARIAN_VAULT_PATH:-[^}]+\}" /, "the vault is baked in as a default an exported value can override");
+  assert.match(res.stderr, /VAULT for capture AND reads/);
   assert.match(res.stderr, /mcp_config\.json/);
   const rule = fs.readFileSync(agyRule(sb.home), "utf8");
   assert.match(rule, /^---\ntrigger: always_on\n---\n/, "always_on frontmatter (required, or agy silently discards the rule)");
@@ -168,6 +173,65 @@ t("antigravity: the capture rule is refreshed when stale, even if the hook is al
   assert.match(res.stderr, /not written by this installer/);
   assert.equal(fs.readFileSync(agyRule(sb2.home), "utf8"), "my own rule\n");
   assert.equal(fs.existsSync(agyHooks(sb2.home)), false, "hooks.json untouched when the rule is refused");
+});
+
+const agyCommand = (home: string): string =>
+  (JSON.parse(fs.readFileSync(agyHooks(home), "utf8")) as { "librarian-capture": { Stop: { command: string }[] } })["librarian-capture"].Stop[0]!.command;
+
+t("antigravity: --vault is baked into the hook AND the MCP snippet, so reads and writes cannot disagree", () => {
+  const sb = sandbox();
+  const vault = path.join(sb.home, "my notes", "vault");
+  const res = install(sb, "--client", "antigravity", "--vault", vault);
+  assert.equal(res.status, 0, res.stderr);
+  assert.ok(agyCommand(sb.home).includes(`:-${vault}}"`), "hook default is the chosen vault (path with a space survives)");
+  assert.ok(res.stderr.includes(`VAULT for capture AND reads: ${vault}`));
+  assert.ok(res.stderr.includes(`"LIBRARIAN_VAULT_PATH": "${vault}"`), "MCP snippet carries the same vault");
+  assert.ok(res.stderr.includes(`--env LIBRARIAN_VAULT_PATH=${vault}`), "agy mcp add line carries the same vault");
+  assert.match(res.stderr, /from --vault/);
+});
+
+t("antigravity: with no --vault the shell's LIBRARIAN_VAULT_PATH is used, else the default is named as such", () => {
+  const sb = sandbox();
+  const fromEnv = spawnSync(process.execPath, [script, "--client", "antigravity"], {
+    env: { ...process.env, HOME: sb.home, LIBRARIAN_VAULT_PATH: path.join(sb.home, "env-vault") },
+    encoding: "utf8",
+  });
+  assert.equal(fromEnv.status, 0, fromEnv.stderr);
+  assert.match(fromEnv.stderr, /from LIBRARIAN_VAULT_PATH in this shell/);
+  assert.ok(agyCommand(sb.home).includes(`:-${path.join(sb.home, "env-vault")}}"`));
+  const sb2 = sandbox();
+  const env = { ...process.env, HOME: sb2.home } as Record<string, string | undefined>;
+  delete env.LIBRARIAN_VAULT_PATH;
+  const dflt = spawnSync(process.execPath, [script, "--client", "antigravity"], { env: env as NodeJS.ProcessEnv, encoding: "utf8" });
+  assert.match(dflt.stderr, /\(from default\)/);
+  assert.match(dflt.stderr, /that is the default vault/);
+  assert.ok(agyCommand(sb2.home).includes(`:-${path.join(sb2.home, "Documents", "knowledge-vault")}}"`));
+});
+
+t("antigravity: re-running with a different --vault moves the hook; the same vault is a byte-identical no-op", () => {
+  const sb = sandbox();
+  const a = path.join(sb.home, "vault-a");
+  const b = path.join(sb.home, "vault-b");
+  install(sb, "--client", "antigravity", "--vault", a);
+  const first = fs.readFileSync(agyHooks(sb.home), "utf8");
+  assert.match(install(sb, "--client", "antigravity", "--vault", a).stderr, /unchanged/);
+  assert.equal(fs.readFileSync(agyHooks(sb.home), "utf8"), first);
+  const moved = install(sb, "--client", "antigravity", "--vault", b);
+  assert.match(moved.stderr, /updated the Stop hook/);
+  assert.ok(agyCommand(sb.home).includes(`:-${b}}"`));
+  assert.equal(JSON.parse(fs.readFileSync(agyHooks(sb.home), "utf8"))["librarian-capture"].Stop.length, 1, "replaced, not stacked");
+});
+
+t("antigravity: a vault path that would change the shell command is refused; --vault is refused for other clients", () => {
+  const sb = sandbox();
+  for (const bad of ['/tmp/a"b', "/tmp/a$b", "/tmp/a`b"]) {
+    const res = install(sb, "--client", "antigravity", "--vault", bad);
+    assert.equal(res.status, 1, bad);
+    assert.match(res.stderr, /pass a plainer path/);
+  }
+  assert.equal(fs.existsSync(agyHooks(sb.home)), false, "nothing written");
+  assert.equal(install(sb, "--client", "codex", "--vault", "/tmp/v").status, 1);
+  assert.equal(install(sb, "--vault", "/tmp/v").status, 1);
 });
 
 t("antigravity: refuses malformed config, a non-object, and a name collision, changing nothing", () => {

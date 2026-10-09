@@ -118,6 +118,18 @@ async function main(): Promise<void> {
   runPositionCapture(payload, getTranscriptText);
 }
 
+/**
+ * Names the vault a capture was written to, and says when that is the DEFAULT because
+ * LIBRARIAN_VAULT_PATH was unset. A hook inherits its vault from the host's launch environment while
+ * the MCP server may carry its own, so the two can disagree; saying where the write went (stderr
+ * only, INV-5) makes that visible instead of silent.
+ */
+function vaultNote(): string {
+  const raw = process.env.LIBRARIAN_VAULT_PATH?.trim();
+  const unset = !raw || /\$\{[^}]*\}/.test(raw); // unset, empty, or an unfilled plugin placeholder: config fell back
+  return ` in vault ${config.vaultPath}${unset ? " (default: LIBRARIAN_VAULT_PATH was not set for this hook)" : ""}`;
+}
+
 // ---------------------------------------------------------------------------
 // Session capture (SCN-001/SCN-002/etc.) -- unchanged behavior (SR-055).
 // ---------------------------------------------------------------------------
@@ -139,7 +151,7 @@ function runSessionCapture(payload: StopPayload, getTranscriptText: () => string
     // Diagnostics on stderr only, never stdout (INV-5). The project is named when
     // provenance resolved, so a mis-wired hook is visible without opening the record.
     const project = result.entry?.workspace ? ` [${result.entry.workspace.project}]` : "";
-    console.error(`[librarian-capture] captured 1 entry${project} into ${result.day} session record.`);
+    console.error(`[librarian-capture] captured 1 entry${project} into ${result.day} session record${vaultNote()}.`);
     if (result.rejectedRefs.length) {
       console.error(`[librarian-capture] rejected unresolvable refs: ${result.rejectedRefs.join(", ")}`);
     }
@@ -239,7 +251,7 @@ function runPositionCapture(payload: StopPayload, getTranscriptText: () => strin
   if (result.captured) {
     const project = result.event?.workspace ? ` [${result.event.workspace.project}]` : "";
     console.error(
-      `[librarian-capture] captured 1 position event (${directive.kind} ${directive.topicKey})${project} into ${result.month} positions stream.`
+      `[librarian-capture] captured 1 position event (${directive.kind} ${directive.topicKey})${project} into ${result.month} positions stream${vaultNote()}.`
     );
     if (result.rejectedRefs.length) {
       console.error(`[librarian-capture] rejected unresolvable position refs: ${result.rejectedRefs.join(", ")}`);

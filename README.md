@@ -263,14 +263,23 @@ instead (`claude plugin install rutter@rutter`), pass `--config vault_path=/path
   3. Export `LIBRARIAN_VAULT_PATH` in the shell that launches Codex. Its hooks see only that
      environment, not `~/.claude/settings.json`; without it they write captures to the default folder.
   4. Expect the summary line in Codex's final reply, since that is where its hook looks for it.
-- **Antigravity (`agy`)** is set up by hand from a clone (verified with `agy` 1.3.2, headless runs):
-  1. Run `npm run install-hook -- --client antigravity`. It registers the Stop hook in
-     `~/.gemini/config/hooks.json` and writes the capture rule to
-     `~/.gemini/config/rules/rutter-capture.md`, then prints an `mcpServers` snippet for
-     `~/.gemini/config/mcp_config.json` (or use `agy mcp add --env LIBRARIAN_VAULT_PATH=…`).
-  2. Set the same `LIBRARIAN_VAULT_PATH` in BOTH places: the MCP server's `env`, and the shell that
-     launches `agy` (the hook inherits that environment). If they differ, records are written to one
-     folder and read from another.
+- **Antigravity (`agy`)** is set up by hand from a clone (verified with `agy` 1.3.2):
+  1. Run `npm run install-hook -- --client antigravity --vault <your notes folder>`. It registers the
+     Stop hook in `~/.gemini/config/hooks.json`, writes the capture rule to
+     `~/.gemini/config/rules/rutter-capture.md`, and prints the `agy mcp add …` line to register the
+     server (or the equivalent `mcpServers` entry for `~/.gemini/config/mcp_config.json`).
+     Without `--vault` it uses `LIBRARIAN_VAULT_PATH` from your shell, else the default folder, and
+     says which.
+  2. **Run the printed `agy mcp add` line.** The vault is decided once, by the installer, and written to
+     both sides: the hook gets it as a built-in default, and the printed server entry carries the same
+     value. This matters because the two sides learn their vault differently. The MCP server's vault
+     is stored config (its `env` block). A hook has no config of its own and inherits the shell `agy`
+     was launched from, so an installer that left it to the environment let captures fall back to the
+     default folder while reads came from another (seen in testing: a decision was written to the
+     real vault while `agy` could only read a test one). An exported `LIBRARIAN_VAULT_PATH` still
+     overrides the hook's default. To move to another vault, re-run the installer with a new `--vault`
+     AND re-run `agy mcp add`; every capture prints `in vault <path>` on stderr (visible in `agy`'s log,
+     `~/.gemini/antigravity-cli/log/`) and says so when it fell back to the default.
   3. **The rule file matters.** `agy` does not put an MCP server's instructions in the prompt; it
      saves them as a file the model may never read. In testing the model wrote no summary lines
      from those, nor from the same text in an `AGENTS.md`. A global `trigger: always_on` rule is
