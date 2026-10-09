@@ -1,8 +1,27 @@
-# Your notes are the store. This is the memory of using them.
+# Recall past decisions and the notes your AI session cited
 
 *What rutter is, why it is built the way it is, and what that costs.*
 
-**One memory across Claude Code, Grok, Codex, and Antigravity.** A decision made in one is there when you ask another.
+Months after a working session, you want to know what you decided and which notes the session
+cited when it decided it. rutter keeps that. As an AI session decides something, your client
+writes one line about it. rutter stores the line in a dated file inside your own notes folder,
+with each cited note's path and a hash of its contents at that moment. Later you ask, in the same
+AI tool or another one you have set up, and get the decision back with its date and its notes.
+
+The mechanism is plain. Records are only appended, so earlier decisions stay alongside later ones.
+Each reference carries the hash taken when the line was captured, so a note renamed without edits
+is followed to its new path, and a reference rutter cannot place is shown to you rather than
+dropped.
+
+It has limits, stated up front. A line exists only if your client wrote one. A reference shows
+which notes the session listed, not that the model read them. A note that changes in place, at the
+same path, is not flagged today. rutter is one person's tool, MIT-licensed and published as a
+reference implementation, with no support commitment. It suits someone who keeps markdown notes and
+is comfortable configuring an AI client.
+
+**Try it:** the [Claude Code fast path](./getting-started.md#fast-path-for-claude-code) takes a few
+minutes; [getting started](./getting-started.md) covers Grok, Codex, and Antigravity. The rest of
+this page is the argument for the design.
 
 ## The missing layer
 
@@ -146,13 +165,14 @@ flatten.
 
 The second problem is the one that matters more. A summary on its own is not a record. It is an
 assertion. "Decided the ingest path stays synchronous" tells you what a session claimed. It tells
-you nothing about whether the notes that argument rested on still say what they said. Files get
+you nothing about which notes the session cited, or whether those files have changed since. Files get
 rewritten. Notes get renamed. The summary keeps its confident tone the whole time, and nothing
 announces the gap.
 
 A summary plus the hash of the files it cited is a record, because you can check it.
 
-That sentence is the design. Everything that follows is what it costs.
+That sentence is the design. The next section takes each bet the design makes and what that bet
+costs. The trust boundary, and what rutter deliberately is not, come after the bets.
 
 ## The bets, and what each one costs
 
@@ -160,8 +180,8 @@ That sentence is the design. Everything that follows is what it costs.
 
 A stored line is never rewritten. New lines are appended, and grouping happens when you read them
 back. A line is not rewritten for style on the way in either; only a one-line normalization and a
-2,000-character cut apply ([detail](./memory-of-use.md#the-style-contract)). Where a consolidating memory folder converges on one current
-answer, this keeps every answer you gave, in order, with the wrong ones intact.
+2,000-character cut apply ([detail](./memory-of-use.md#the-style-contract)). Where a consolidating
+memory folder converges on one current answer, this keeps every answer you gave, in order, with the wrong ones intact.
 
 The cost is real, and already visible. The record only grows. Entries written before the style
 contract existed are exactly as dense as the day they were captured. Nothing retrofits them.
@@ -176,7 +196,7 @@ you can edit.
 ### References that carry a hash
 
 Every reference is a path plus the content hash of what was there when the line was captured. Weeks
-later you can ask what you concluded, and ask whether the files that conclusion rested on have
+later you can ask what you concluded, and ask whether the notes the session cited have
 moved. A renamed note is followed by exact hash match. A note rutter cannot place is shown as
 unresolved, with its candidates. The stored hash also gives you something to compare a file against
 later. The report that a note at the same path has changed is not built yet.
@@ -194,7 +214,7 @@ would need a model, and a model in the server is the thing this design refuses.
 ### Show what you can't place, and don't withhold the answer
 
 This is a crowded space, and the nearest neighbors each take half of this position. Recall does
-append-only session capture, without hashing what a memory rested on. Kage checks its memories
+append-only session capture, without hashing the files a memory cites. Kage checks its memories
 against the live code, and withholds the ones that have gone stale. Withholding is a defensible
 choice. rutter makes a different one. A reference it cannot place is still shown, marked
 unresolved, with every candidate it found. You are better placed than the tool to decide what a
@@ -225,7 +245,7 @@ sticky afterwards. Suppose the vault later changes so that automatic matching wo
 else. The disagreement is rendered and left for you: *confirmed X; the hash now matches Y*.
 
 The cost is friction. Some references sit unresolved until you get round to them, and only you can
-clear them. That is the intended price of not letting a model quietly rewrite your provenance.
+clear them. That is the intended price of not letting a model quietly decide what your references point to.
 
 ## What rutter can and cannot establish
 
