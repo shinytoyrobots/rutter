@@ -19,5 +19,8 @@ fi
 if [ -z "${LIBRARIAN_DB_PATH:-}" ] && [ -n "${CLAUDE_PLUGIN_DATA:-}" ]; then
   export LIBRARIAN_DB_PATH="$CLAUDE_PLUGIN_DATA/librarian.db"
 fi
-node "$DIR/dist/capture-cli.js" || true
+# Arguments (e.g. `--client codex`, set by install-hook) pass through to the CLI, which labels the
+# record with the host client. An argument survives every host's hook runner where an environment
+# prefix might not.
+node "$DIR/dist/capture-cli.js" "$@" || true
 exit 0

@@ -33,6 +33,16 @@ pending-amendment: true    # code is ahead of this spec (rutter v0.3.0); see PEN
 #      rebuild cannot leave a stale "up to date" stamp.
 #   3. The server's reported version is read from package.json (single source), kept in
 #      step with the plugin manifest and CHANGELOG by test/version.test.ts. Non-functional.
+# PENDING AMENDMENT -- client label, noted 2026-10-09, NOT ratified; fold in with /flow-spec.
+#   Implemented per docs/client-label-plan.md (branch feat/client-label). Needs a scenario and
+#   requirements for: an optional, tolerant `client` string on session entries and position events
+#   (schema ids unchanged); excluded from idempotence identity (extend SR-018's and SR-049's lists);
+#   never in summary or stance text; absent on legacy records and on any ambiguity; the host/identity
+#   matrix in src/client.ts, classified from the original envelope before Antigravity normalization;
+#   an append never overwrites an existing record that fails validation, and reports `failed`, not
+#   `captured`; session and position capture run independently; the two-release rollout (readers
+#   tolerant before any writer emits). Amends the 0.4.0 "records do not name the client" statement and
+#   the position-schema field set that dissent-2026-08-13-0004 condition 4 pinned.
 # v14.0.0 (major — effort decision-graph, panel-2026-08-13-phase-b-reprobe.md
 # follow-up): closes Divergence 1 (the last of that re-probe's four routed
 # divergences) plus its single-reader match-scope flag, both on SR-061. v10.0.0

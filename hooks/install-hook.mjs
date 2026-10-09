@@ -88,7 +88,9 @@ async function installAntigravity() {
   // The path is embedded in a double-quoted shell default; refuse characters that would change its meaning.
   if (/["$`\\\n\r]/.test(vault)) fail(`vault path ${JSON.stringify(vault)} contains a quote, $, backtick, backslash or newline; pass a plainer path.`);
   const db = process.env.LIBRARIAN_DB_PATH ?? path.join(import.meta.dirname, "..", "data", "librarian.db");
-  const command = `LIBRARIAN_VAULT_PATH="\${LIBRARIAN_VAULT_PATH:-${vault}}" ${hookCommand}`;
+  // `--client agy` is the explicit identity: capture labels records with the host client, and an
+  // argument survives every host's hook runner where an environment prefix might not.
+  const command = `LIBRARIAN_VAULT_PATH="\${LIBRARIAN_VAULT_PATH:-${vault}}" ${hookCommand} --client agy`;
 
   // Quote for a copy-pasted shell line: a path with a space or other metacharacter must stay one argument.
   const sq = (v) => (/[^A-Za-z0-9_@%+=:,./-]/.test(v) ? `'${v.replaceAll("'", "'\\''")}'` : v);
@@ -244,15 +246,31 @@ if (!Array.isArray(settings.hooks.Stop)) {
   fail(`${settingsPath} has a non-array hooks.Stop -- fix it, then re-run (nothing was changed).`);
 }
 
-// Compare parsed command strings, not serialized JSON: a path containing `"` or `\`
-// is escaped in the serialized form and would never match, appending a duplicate.
-const already = settings.hooks.Stop.some(
-  (group) =>
-    Array.isArray(group?.hooks) &&
-    group.hooks.some((h) => typeof h?.command === "string" && (h.command.includes(hookPath) || h.command.includes(hookCommand)))
-);
-if (already) {
-  console.error(`[install-hook] already registered in ${settingsPath}; nothing to do.`);
+// The command we register carries the explicit client identity (`--client claude|codex`), which
+// capture uses to label the records it writes. Compare parsed command strings, not serialized JSON:
+// a path containing `"` or `\` is escaped in the serialized form and would never match, appending a
+// duplicate. A registration of ours made before the identity existed (the bare script path) is
+// updated in place rather than skipped or duplicated.
+const identified = `${hookCommand} --client ${client}`;
+const isOurs = (h) => typeof h?.command === "string" && (h.command.includes(hookPath) || h.command.includes(hookCommand));
+const existing = settings.hooks.Stop.flatMap((group) => (Array.isArray(group?.hooks) ? group.hooks : [])).find(isOurs);
+if (existing) {
+  if (existing.command === identified) {
+    console.error(`[install-hook] already registered in ${settingsPath}; nothing to do.`);
+    process.exit(0);
+  }
+  if (existing.command !== hookPath && existing.command !== hookCommand && !/^\S*librarian-stop\.sh'? --client \S+$/.test(existing.command)) {
+    console.error(
+      `[install-hook] already registered in ${settingsPath} with a custom command; left unchanged. Add \`--client ${client}\` to it ` +
+        `if you want records labeled with the client.`
+    );
+    process.exit(0);
+  }
+  existing.command = identified;
+  const updatedTmp = `${settingsPath}.librarian-tmp`;
+  fs.writeFileSync(updatedTmp, `${JSON.stringify(settings, null, 2)}\n`, "utf8");
+  fs.renameSync(updatedTmp, settingsPath);
+  console.error(`[install-hook] updated the Stop hook in ${settingsPath} to label records as "${client}".`);
   process.exit(0);
 }
 
@@ -266,7 +284,7 @@ if (client === "codex") {
   }
 }
 
-const entry = { type: "command", command: hookCommand };
+const entry = { type: "command", command: identified };
 if (client === "codex") {
   entry.timeout = 30;
   entry.statusMessage = "Librarian: capturing session memory";

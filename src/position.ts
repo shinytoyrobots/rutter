@@ -8,6 +8,7 @@ import {
 } from "./positions.js";
 import { deriveRefPaths, deriveRevises, type PositionKind } from "./position-directive.js";
 import { deriveWorkspace } from "./workspace.js";
+import { isClient } from "./client.js";
 
 /**
  * Position capture (SCN-010, decision-graph Phase A): turn a client-formed
@@ -25,6 +26,8 @@ export interface PositionCapturePayload {
   rawStance: string;
   sessionId?: string;
   cwd?: string;
+  /** Host client label (see CapturePayload.client). Canonical values only; not part of event identity. */
+  client?: string;
   now?: Date;
 }
 
@@ -68,6 +71,7 @@ export function capturePosition(payload: PositionCapturePayload): PositionCaptur
     ...(revises ? { revises } : {}),
     refs,
     ...(workspace ? { workspace } : {}),
+    ...(isClient(payload.client) ? { client: payload.client } : {}),
   };
 
   // SR-049 idempotence, decided before the durable write exactly as capture.ts
