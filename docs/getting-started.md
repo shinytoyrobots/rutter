@@ -384,3 +384,31 @@ You now have ambient capture running end-to-end. These are worth reading once th
 The project also measures whether any of this actually gets used. `npm run gate` shows the per-ISO-week count; [Measuring whether it gets used](./memory-of-use.md#measuring-whether-it-gets-used) explains what it is for.
 
 The server refreshes its index each time it starts, so a new session picks up changes to your notes on its own. Run `npm run reindex` when you want a refresh without restarting. The index is a disposable cache — your files stay the source of truth.
+
+## If something goes wrong
+
+Each entry starts with what you see, then the usual cause, then the fix.
+
+**`0 notes indexed` after `npm run reindex`.** The notes path is wrong, and an unreadable directory is not an error. Check the `vault:` line against where your notes actually are, re-export `LIBRARIAN_VAULT_PATH`, and reindex again (Step 2).
+
+**`rutter` is missing from `/mcp`.** Either the server registered project-local, because `--scope user` was left off, or the plugin has not reloaded. Re-run the `claude mcp add` line from Step 5 with `--scope user`, or run `/reload-plugins` if you installed the plugin.
+
+**No file appears in `_librarian/sessions/`.** Work through these in order:
+
+1. Hooks are read at session start. Quit your client and start it again.
+2. Step 6 should have printed `registered the Stop hook` (or `already registered`). If it printed `dist/capture-cli.js is missing`, run `npm run build` and install again.
+3. Check that the notes path your client sees is the one you meant. The `env` block in `~/.claude/settings.json` covers Claude Code. Grok and Codex read the shell that launched them.
+4. Do real work first. An empty summary, or one still wrapped in `<angle brackets>`, captures nothing.
+5. If captures still refuse to land, the README documents a `CLAUDE.md` paste-in as a last-resort fallback.
+
+**Captures land in `~/Documents/knowledge-vault` instead of your notes.** The hook did not see `LIBRARIAN_VAULT_PATH`, so it used the default. For Codex and Grok, export it in the shell profile that launches the client, then re-source the profile. Codex hooks do not read `~/.claude/settings.json`.
+
+**Codex captures nothing.** The hook may be untrusted: start Codex, run `/hooks`, review the Librarian Stop hook, and trust it. Also check that the summary line is in Codex's final reply. The hook reads only the final message.
+
+**Antigravity leaves no summaries.** The rule file `~/.gemini/config/rules/rutter-capture.md` should exist, and the model may never read the server's instructions without it. Re-run the installer from Step 6 if it is missing. A turn that ended in an error captures nothing.
+
+**A long Grok turn loses its summary.** Grok clips its final message at 32,768 characters, so a directive near the end of a very long turn can be dropped.
+
+**Every capture appears to be attempted twice.** You have both the plugin's hook and a hand-registered one. Remove the `npm run install-hook` entry from `~/.claude/settings.json`. The duplicate is detected and stored once, but it is wasted work.
+
+**`node:sqlite` is missing.** Your Node is older than 22. Check with `node -v` and upgrade.
