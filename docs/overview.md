@@ -100,13 +100,14 @@ report same-path changes today. What rutter can and cannot establish is spelled 
 ## The missing layer
 
 A folder of markdown notes is a store of knowledge. Hand the same folder to two people and they
-do not come away with the same thing. Which notes each of them opened, what each concluded, which
+do not come away with the same thing. What each concluded, which notes each leaned on, which
 question one of them finally stopped reopening — none of that is in the store. It never was.
 
-rutter keeps that second thing.
+rutter keeps a record of part of that second thing: the decisions your sessions wrote down, and the
+notes each one cited.
 
-It gives an AI session the memory of how **you** traversed and used a body of knowledge, rather
-than the specifics of the knowledge itself. Same store, two readers, two different memories. The
+It gives an AI session a record of how **you** used a body of knowledge, rather than the specifics
+of the knowledge itself. Same store, two readers, two different memories. The
 store is objective and shareable. The memory of using it is neither.
 
 Worth being exact about the scope, because the shape of the code invites a wrong guess: this is not
@@ -131,9 +132,9 @@ identity in full, read [`memory-of-use.md`](./memory-of-use.md).
 Most memory features live inside one tool. Switch tools and you start again.
 
 rutter does not belong to a tool. It is a folder of markdown files plus an MCP (Model Context
-Protocol) server. Any MCP client can read the memory. Any tool with a hook that runs after each turn
-can write to it. Four have one today: Claude Code, Grok, Codex, and the Antigravity command-line
-tool (`agy`).
+Protocol) server. Any MCP client can read the memory. Writing needs a hook that runs after each turn
+and a payload rutter knows how to read. Four clients have a supported hook today: Claude Code, Grok,
+Codex, and the Antigravity command-line tool (`agy`).
 
 A session summary captured in any of them is available to all of them straight away. Positions
 appear after the next reindex. The memory belongs to the folder and to you. A tool you add later
@@ -152,8 +153,9 @@ a short summary, plus the paths it touched. A Stop hook lifts the newest such li
 transcript in Claude Code and Antigravity, from the final assistant message in Grok and Codex. It appends that line to a dated file inside your notes directory. Each path
 is stored with the sha256 of that file's bytes. The server reads the file and computes that hash
 itself, rather than accepting one from the client, so a client cannot hand it a hash for a file
-that was not on disk. The client still chooses which paths to list. The hash says what the file
-contained at capture, not that the session read it. Each entry also records the working directory
+that was not on disk. The client still chooses which paths to list. The hash identifies the file's
+bytes at capture; rutter keeps no copy of them, and the hash does not show that the session read the
+file. Each entry also records the working directory
 the session ran in, and the git remote when there is one. A day spread across three efforts still
 reads cleanly.
 
@@ -223,7 +225,8 @@ you nothing about which notes the session cited, or whether those files have cha
 rewritten. Notes get renamed. The summary keeps its confident tone the whole time, and nothing
 announces the gap.
 
-A summary plus the hash of the files it cited is a record, because you can check it.
+A summary plus the hash of the files it cited is a record, because it gives you a fingerprint to
+compare against.
 
 That sentence is the design. The next section takes each bet the design makes and what that bet
 costs. The trust boundary, and what rutter deliberately is not, come after the bets.
@@ -235,7 +238,7 @@ costs. The trust boundary, and what rutter deliberately is not, come after the b
 A stored line is never rewritten. New lines are appended, and grouping happens when you read them
 back. A line is not rewritten for style on the way in either; only a one-line normalization and a
 2,000-character cut apply ([detail](./memory-of-use.md#the-style-contract)). Where a consolidating
-memory folder converges on one current answer, this keeps every answer you gave, in order, with the wrong ones intact.
+memory folder converges on one current answer, this keeps each recorded line, in order, with the wrong ones intact.
 
 The cost is real, and already visible. The record only grows. Entries written before the style
 contract existed are exactly as dense as the day they were captured. Nothing retrofits them.
@@ -351,18 +354,18 @@ and an optional backfill of positions from records that predate capture. Both wa
 
 If you use Claude Code, install the plugin and you can be recalling in a few minutes: see the
 [fast path](./getting-started.md#fast-path-for-claude-code). Everyone else:
-[`getting-started.md`](./getting-started.md) takes you from clone to first recall in eight verified
-steps.
+[`getting-started.md`](./getting-started.md) has a setup path for Grok, Codex, and Antigravity, and a
+step-by-step manual route, each ending in a capture check and a recall check.
 
 ## Further reading
 
-- [`getting-started.md`](./getting-started.md) — clone to first recall, in eight verified steps.
+- [`getting-started.md`](./getting-started.md) — a setup path for each client, from install to first recall.
 - [`memory-of-use.md`](./memory-of-use.md) — capture, recall, enrichment, note identity, positions,
   the trust boundary, and the usage gate, in full mechanical detail.
 - [`roadmap.md`](./roadmap.md) — current sequencing, and what is deliberately not being built.
 - [`../spec/spec.md`](../spec/spec.md) — the executable spec: Given-When-Then scenarios, the
   requirements derived from them, the tests that grade each one, and what every amendment rejected.
-  This document is the argument; that file is the receipts.
+  This document is the argument; that file is the detail.
 - [`../README.md`](../README.md) — what it does today, setup, and the limitations stated up front.
 - [Recall](https://github.com/raiyanyahya/recall) — the nearest neighbor on append-only session
   capture. If that half of the position is the part you want, start there.

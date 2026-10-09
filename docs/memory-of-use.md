@@ -7,9 +7,10 @@ after each turn and stores it. A later session, in the same client or another, c
 rutter also annotates search results you have engaged with before, and measures whether you
 actually reach for any of it. The server runs no model at any point.
 
-All of this is local-first. Nothing leaves your machine, the server runs no AI model (your client
+All of this is local-first. rutter makes no network calls, the server runs no AI model (your client
 is the brain), and it only ever writes inside your vault's `_librarian/` folder and the disposable
-`data/` index. This page says *vault* for your notes folder. The `_librarian/` folder is rutter's own
+`data/` index. What your client sends to its own model provider is outside rutter's control; see
+[What leaves your machine](./getting-started.md#what-leaves-your-machine). This page says *vault* for your notes folder. The `_librarian/` folder is rutter's own
 layer next to your notes. Tool names, environment variables, and that folder keep rutter's earlier
 name, *librarian*.
 
@@ -33,8 +34,9 @@ Session memory lives in your vault, as plain, human-readable, git-committable ma
   rule, the duplicate rule below.
 - **Typed frontmatter.** Each record carries a small typed header: the day, each session's identity
   and time, the curated summary, and the notes it touched, each by its **versioned identity**. That
-  is the vault-relative path plus a content hash taken when the line was captured. The reference
-  still records what the file contained then, even after the note changes later.
+  is the vault-relative path plus a content hash taken when the line was captured. The hash
+  identifies the file's bytes at that moment, even after the note changes later; rutter keeps no
+  copy of the contents.
 - **You can read and edit it.** It is your markdown, in your vault. Open it in Obsidian, edit it,
   commit it. A hand edit is outside the append-only rule, which binds only the server, and nothing
   detects it.
@@ -128,8 +130,8 @@ is wired through a **Stop hook**, a hook the host runs when the assistant finish
 Claude Code, Grok, Codex, and Antigravity.
 
 **Setup is the hook.** Register it with `npm run install-hook`, adding `--client codex` or
-`--client antigravity` for those hosts. [Getting started, Step 6](./getting-started.md#step-6--install-the-stop-hook)
-has the per-host commands and checks. Two facts change behavior:
+`--client antigravity` for those hosts. [Getting started](./getting-started.md#choose-your-path) has a
+setup path for each host, with its commands and checks. Two facts change behavior:
 
 - Codex will not run the hook until you review and trust it with `/hooks`. Installing does not
   grant trust, and an untrusted hook never runs.
@@ -158,7 +160,7 @@ last position in the text it reads, and two directives in that text collapse to 
   mid-turn commentary is not captured, so the client must put it in the final reply. Two directives
   there collapse to the last. Codex hooks
   also see only the environment Codex was launched with, so `LIBRARIAN_VAULT_PATH` must be exported
-  where Codex starts (see [Getting started, Step 2](./getting-started.md#make-the-path-stick)).
+  where Codex starts (see [Getting started, Codex path](./getting-started.md#codex-path)).
 - **Antigravity** (`agy`) sends a Stop event with no reply text. The hook reads the transcript file
   the event points to and takes the assistant messages from the current turn, which is everything
   after your last message. The last directive in those messages is kept, and an earlier turn's
@@ -353,7 +355,7 @@ and a fresher automatic detection.
 
 A reference records two things about a note at the moment it was captured: its vault-relative path
 and a content hash. Rename the note later and the path stops resolving, but the hash is still
-there, so rutter can tell *what* the reference meant even after *where* it lives has moved.
+there, so rutter can find the same bytes at a new path even after *where* the note lives has moved.
 
 At every `npm run reindex`, rutter checks each recorded reference whose path no longer resolves.
 *Resolves* means a file exists on disk at that path, inside the vault, of any type. A path that
