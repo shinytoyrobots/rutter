@@ -352,6 +352,7 @@ sessions:
     workspace:
       cwd: /Users/you/Development/notes-cleanup
       project: notes-cleanup
+    client: claude
 refs:
   - path: Notes/Archive.md
     hash: 3f1a9c2e7b40d8...
@@ -365,18 +366,21 @@ refs:
 
 *Output shape verified against code; hashes are trimmed here, and your paths, dates, and project names will differ.*
 
+The `client` field names the host that wrote the entry. The hand-written first entry has none, because a hand-piped payload carries no host identity.
+
 The frontmatter is the source of truth. The regenerated body of the file is for human eyes, and is rewritten each time the day's record grows. Each reference records the note's path *and* its content hash as the file stood when capture ran, which is what lets a rename be followed later.
 
 If your notes directory is a git repository, `_librarian/` will be tracked and committed along with everything else. That is intended: the memory is durable, plain markdown, and travels with your notes.
 
 ## What to do next
 
-You now have ambient capture running end-to-end. Three things are worth reading once the records start accumulating:
+You now have ambient capture running end-to-end. These are worth reading once the records start accumulating:
 
-- **[`docs/memory-of-use.md`](./memory-of-use.md) §2–3** — capture and recall in depth, including the style contract that decides whether these summaries are readable in six months.
-- **[`docs/memory-of-use.md`](./memory-of-use.md) §4** — search enrichment, the quiet prior-engagement note on search results.
-- **[`docs/memory-of-use.md`](./memory-of-use.md) §6** — note identity, and what happens to a reference when you rename the note it points at.
+- **[Capturing session summaries](./memory-of-use.md#capturing-session-summaries) and [Recalling recent work](./memory-of-use.md#recalling-recent-work)** — capture and recall in depth, including [the style contract](./memory-of-use.md#the-style-contract) that decides whether these summaries are readable in six months.
+- **[Search enrichment](./memory-of-use.md#search-enrichment)** — the quiet prior-engagement note on search results.
+- **[Note identity](./memory-of-use.md#note-identity)** — what happens to a reference when you rename the note it points at.
+- **[What rutter can and cannot establish](./memory-of-use.md#what-rutter-can-and-cannot-establish)** — what a recorded reference proves, and what it does not.
 
-The project also measures whether any of this actually gets used. `npm run gate` shows the per-ISO-week count; [§5](./memory-of-use.md) explains what it is for.
+The project also measures whether any of this actually gets used. `npm run gate` shows the per-ISO-week count; [Measuring whether it gets used](./memory-of-use.md#measuring-whether-it-gets-used) explains what it is for.
 
 The server refreshes its index each time it starts, so a new session picks up changes to your notes on its own. Run `npm run reindex` when you want a refresh without restarting. The index is a disposable cache — your files stay the source of truth.

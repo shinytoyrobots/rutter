@@ -131,7 +131,7 @@ Stated here rather than discovered later:
   model read a file, that a file produced the conclusion, that capture is complete, or that a note at
   an unchanged path has not changed since (that report is not built). Append-only is a rule the
   server follows, not tamper-proof auditing. See [what rutter can and cannot
-  establish](./docs/memory-of-use.md#7-what-rutter-can-and-cannot-establish).
+  establish](./docs/memory-of-use.md#what-rutter-can-and-cannot-establish).
 - **Semantic search is stubbed.** `embeddings.ts` is a port with no implementation; retrieval is
   full-text only.
 - **Under active evaluation.** The stateful behavior is behind a usage gate — the project measures
@@ -255,7 +255,7 @@ the contract; a test (COR-R-030) fails if this copy drifts from it.
 <!-- END capture-contract -->
 
 The paragraph beginning "Write each line" is the **style contract** (see
-[`docs/memory-of-use.md`](./docs/memory-of-use.md) §2) — the only thing standing between you
+[the style contract](./docs/memory-of-use.md#the-style-contract)) — the only thing standing between you
 and a directory full of summaries you can't read in six months. The server will not help here:
 it stores what it is given, verbatim, whatever style it is in. An unfilled template is the
 one exception: a summary still wrapped in `<angle brackets>` is treated as "no directive"
