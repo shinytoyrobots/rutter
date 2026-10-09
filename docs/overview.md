@@ -27,6 +27,22 @@ This document is about *why* it is built this way. If you want to run it, start 
 [`getting-started.md`](./getting-started.md). If you want the mechanics of capture, recall and
 identity in full, read [`memory-of-use.md`](./memory-of-use.md).
 
+## One memory across your tools
+
+Most memory features live inside one tool. Switch tools and you start again.
+
+rutter does not belong to a tool. It is a folder of markdown files plus an MCP (Model Context
+Protocol) server. Any MCP client can read the memory. Any tool with a hook that runs after each turn
+can write to it. Four have one today: Claude Code, Grok, Codex, and the Antigravity command-line
+tool (`agy`).
+
+A session summary captured in any of them is available to all of them straight away. Positions
+appear after the next reindex.
+
+"Shared" means one person's tools sharing one memory. It does not mean shared between people. The
+README's *Known limitations* says what is out of scope there. The README also has the setup for each
+tool and a table of how each one captures.
+
 ## The problem with the memory you already have
 
 Your harness almost certainly does a version of this already. Claude Code writes session recaps and
@@ -56,7 +72,7 @@ Two halves, and neither of them contains a model.
 
 **Writing.** As a session finishes something worth recalling, your client emits one line about it —
 a short summary, plus the paths it touched. A Stop hook lifts the newest such line: from the
-transcript in Claude Code, from the final assistant message in Grok and Codex. It appends that line to a dated file inside your notes directory. Each path
+transcript in Claude Code and Antigravity, from the final assistant message in Grok and Codex. It appends that line to a dated file inside your notes directory. Each path
 is stored with the sha256 of that file's bytes. The server reads the file and computes that hash
 itself, rather than accepting one from the client, so a client cannot assert provenance it never
 had. Each entry also records the working directory the session ran in, and the git remote when
@@ -87,7 +103,7 @@ standard way an AI client connects to an outside source of data:
   reindex, so a position captured since then appears after the next one — which the server runs
   itself the next time it starts.
 
-The Stop hook runs in Claude Code, Grok, and Codex. The tools work with any MCP client. The
+The Stop hook runs in Claude Code, Grok, Codex, and Antigravity. The tools work with any MCP client. The
 server also carries its own usage guidance to every client that connects. There is nothing to
 configure per project.
 

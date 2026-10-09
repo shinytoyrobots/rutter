@@ -34,7 +34,7 @@ markdown:
 - **You can read and edit it.** It's your markdown, in your vault. Open it in
   Obsidian, edit it, commit it.
 - **It is never auto-deleted.** Records are only ever appended to. The librarian
-  has no prune or delete path that destroys memory-of-use. The Claude Code / Grok / Codex Stop
+  has no prune or delete path that destroys memory-of-use. The Claude Code / Grok / Codex / Antigravity Stop
   hook fires at the end of *every* assistant turn, so the same session's summary
   is offered for capture many times — capture is **idempotent per directive**: an
   unchanged summary is a no-op (the file is left byte-identical, no duplicate
@@ -96,13 +96,15 @@ Everything about this is best-effort and never blocks a capture:
 ## 2. Ambient capture — setting it up
 
 Capture is **ambient**: it happens after each turn with no action from you inside
-the session. It is wired through a Claude Code / Grok / Codex **Stop hook**.
+the session. It is wired through a Claude Code / Grok / Codex / Antigravity **Stop hook**.
 
-**Setup is one step** — register the hook (`npm run install-hook`, or by hand; see
+**Setup is the hook** — register the hook (`npm run install-hook`, or by hand; see
 the README). For Claude Code and Grok that registers it in `~/.claude/settings.json`.
 For Codex, build and run `npm run install-hook -- --client codex`, then review and
 trust the hook in Codex with `/hooks` — installing does not grant trust, and an
-untrusted hook never runs. There is nothing to add to your `CLAUDE.md`. From v3.4.0 the whole
+untrusted hook never runs. For Antigravity, build and run
+`npm run install-hook -- --client antigravity --vault <your notes folder>`, then run the
+`agy mcp add` line it prints. There is nothing to add to your `CLAUDE.md`. From v3.4.0 the whole
 capture contract lives in `SERVER_INSTRUCTIONS` in `src/server.ts` — the single
 source, quoted rather than restated everywhere else — and reaches every client on
 connect as MCP server instructions. Before v3.4.0 the emission trigger and the
@@ -110,8 +112,10 @@ directive syntax existed *only* in a hand-installed `~/.claude/CLAUDE.md` rule,
 which meant ambient capture worked for exactly one person: whoever had installed
 that rule.
 
-**Host differences.** All three hosts fire the same hook after each turn and store
-the same records. They differ in where the hook looks for the directive:
+**Host differences.** All four hosts fire the same hook after each turn and store
+the same records, in the same notes folder. That shared folder is how a decision
+captured in one tool is recalled in another. The records do not name the tool
+that wrote them. They differ in where the hook looks for the directive:
 
 - **Claude Code** reads the whole transcript, so a directive anywhere in the
   session is found.
@@ -121,13 +125,25 @@ the same records. They differ in where the hook looks for the directive:
   directive left in mid-turn commentary is not captured, so the client must put it
   in the final reply. Codex hooks also see only the environment Codex was launched
   with, so `LIBRARIAN_VAULT_PATH` must be exported where Codex starts.
+- **Antigravity** (`agy`) sends a Stop event with no reply text. The hook reads the
+  transcript file the event points to and takes the assistant messages from the
+  current turn, which is everything after your last message. A directive anywhere in
+  the turn is found, and an earlier turn's directive is never read again. A turn that
+  ended in an error captures nothing. `agy` does not put MCP server instructions in
+  the prompt. It saves them as a file the model may never read. So the installer also
+  writes an always-on rule file, `~/.gemini/config/rules/rutter-capture.md`, built from
+  the server's own contract text. Without that rule the model did not leave summaries
+  on its own. The installer decides the vault once. It bakes the vault in as the hook's
+  default and prints the same value in the `agy mcp add` line, so writes and reads
+  cannot disagree. An exported `LIBRARIAN_VAULT_PATH` still overrides the hook's
+  default, and each capture logs the vault it wrote to.
 
 On every host, each firing keeps at most one session summary and one position —
 the last of each in the text it reads.
 
 **How the summary is produced (no AI in the server).** The librarian server never
 summarizes anything — that would be inference, which it does not do. Instead your
-client (Claude) writes the one-line summary *during* the session as a directive,
+client writes the one-line summary *during* the session as a directive,
 and the hook lifts it out of the transcript verbatim. Emit a directive like this
 whenever a session is worth remembering:
 

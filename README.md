@@ -2,7 +2,9 @@
 
 **A record of what your AI sessions decided — and the receipts behind it.**
 
-An MCP server over a folder of markdown notes. At the end of each session your client leaves one
+**One memory across Claude Code, Grok, Codex, and Antigravity.** A decision made in one is there when you ask another.
+
+An MCP (Model Context Protocol) server over a folder of markdown notes. At the end of each session your client leaves one
 line about what it decided. The server stores that line byte-verbatim, alongside content-hashed
 references to the notes it was based on.
 
@@ -18,6 +20,30 @@ against the map. The map records what is known. The rutter records what you did 
 > one person's workflow and shared because the mechanism might be useful. No roadmap promises, no
 > support commitment, no guarantee the next commit won't move something you depend on. Fork it, take
 > the ideas, file an issue if you like. Please don't put anything load-bearing on top of it.
+
+## One memory across your AI coding tools
+
+rutter keeps one set of records for Claude Code, Grok, Codex, and Antigravity. Each client writes its
+session summaries to the same notes folder. Each client reads them back through the same MCP server.
+
+A decision you made in Codex on Tuesday is there when you ask Claude Code on Thursday. You copy
+nothing between clients. This works because the memory is a folder of markdown files you own, not a
+feature inside one tool.
+
+| Client | How it captures | Setup |
+|--------|-----------------|-------|
+| Claude Code | The hook reads the whole session transcript. | [Install the plugin](#install-as-a-claude-plugin) |
+| Grok | The hook reads the final reply. | [Uses the Claude Code plugin](#grok) |
+| Codex | The hook reads the final reply only. | [By hand, four steps](#codex) |
+| Antigravity CLI (`agy`) | The hook reads the current turn from `agy`'s transcript. | [By hand, four steps](#antigravity-cli) |
+
+Every client can read the memory once its MCP server is registered. Writing needs a hook that runs after each turn, and these four
+have one. Any other MCP client can read but not write. The Antigravity row covers the `agy`
+command-line tool, not the Antigravity IDE.
+
+Point every client at the same notes folder. Each sets it differently. The Claude Code plugin asks
+for it at install. Grok and Codex read `LIBRARIAN_VAULT_PATH` from the shell that launches them.
+Antigravity's installer takes `--vault`. The records do not note which client wrote them.
 
 ## How this differs from memory you already have
 
@@ -45,7 +71,8 @@ instead of silent.
 
 Two smaller things follow from the design. The store is yours — markdown in your own notes
 directory, not a vendor's account or a tool's private folder, so it stays portable, greppable,
-git-committable, and readable if this project disappears. And because your client writes the
+git-committable, and readable if this project disappears. It is also why every client you use can
+write to and read from the same records. And because your client writes the
 summary while its context is still loaded, capture costs no inference and no network call. The
 trade is that quality depends on your client honoring the style contract, set out in *What the
 server tells the client*.
@@ -80,8 +107,14 @@ Stated here rather than discovered later:
   logs. Read-time guidance is the only layer that reaches them.
 - **Quality depends on your client.** The server holds no model, so a client that ignores the style
   contract produces summaries the server will faithfully store anyway.
-- **Single-user by design.** Nothing here addresses shared records, ratification, or whose version
-  of a decision wins. Those are the hard problems at team scale and none of them are solved here.
+- **Shared across your tools, not across people.** One person's tools share one memory. Nothing
+  here addresses records shared between people, ratification, or whose version of a decision wins.
+  Those are the hard problems at team scale and none of them are solved here.
+- **Records do not name the tool that wrote them.** A session entry carries its session ID and
+  workspace, not the client. You can recall what was decided, but not filter by which tool decided it.
+- **Capture depends on each tool's model following the instructions.** The hook only lifts a line the
+  model wrote. Each of the four was checked with a real session. A model
+  that skips the line leaves nothing to capture.
 - **A rebuild can briefly overlap another session.** The server rebuilds its index when it starts
   and finds changes, which drops and recreates the tables for about a second per few thousand notes.
   A search from another open session at that instant can come back empty. It is rare, because an
@@ -96,11 +129,10 @@ Stated here rather than discovered later:
 - **Node ≥ 22** (uses the built-in `node:sqlite` — no native build step; FTS5 included). Verified on Node 26.
 - A directory of markdown notes. Obsidian is what it was built against — wikilinks and frontmatter
   are understood — but nothing requires Obsidian itself.
-- Claude Code, Grok, Codex, or Antigravity, for ambient capture. The MCP tools work with any MCP client; the Stop
-  hook is fired by all four after each turn. Claude Code and Grok read it from
-  `~/.claude/settings.json`, Codex from `~/.codex/hooks.json` (`npm run install-hook -- --client codex`,
-  then trust it with `/hooks`; export `LIBRARIAN_VAULT_PATH` where Codex launches, since its hooks ignore `settings.json`). Claude Code lifts the directive from the transcript; Grok and Codex
-  from the Stop event's final assistant message, so with Codex the directive must be in the final reply.
+- Claude Code, Grok, Codex, or Antigravity, for ambient capture. The MCP tools work with any MCP client.
+  The table in *One memory across your AI coding tools* shows how each of the four captures and links to its setup. Claude Code
+  lifts the directive from the transcript, and so does Antigravity (from the current turn). Grok and Codex
+  use the Stop event's final assistant message, so with Codex the directive must be in the final reply.
 
 ## Setup
 
@@ -250,47 +282,61 @@ instead (`claude plugin install rutter@rutter`), pass `--config vault_path=/path
 - **If you already registered the hook by hand** (`npm run install-hook`), remove that entry from
   `~/.claude/settings.json` when you add the plugin, or captures are attempted twice. The duplicate
   is detected and not stored twice, but it is wasted work.
-- **Grok** picks the plugin up from your Claude Code install, server and hook included. It does not
-  fill in the plugin's notes-folder option, so rutter uses the default folder
-  (`~/Documents/knowledge-vault`) unless `LIBRARIAN_VAULT_PATH` is set in the environment you launch
-  Grok from; a line on stderr says when the default was used for that reason.
-- **Codex needs a few extra steps.** It cannot use the plugin: it fills in none of a plugin's
-  variables and installs no hook. Set it up by hand from a clone (verified with Codex 0.160.0):
-  1. Register the server with `codex mcp add`, passing your notes path with `--env LIBRARIAN_VAULT_PATH=…`
-     ([`docs/getting-started.md`](./docs/getting-started.md), Step 5).
-  2. Install the hook with `npm run install-hook -- --client codex`, then trust it in Codex with
-     `/hooks`. Installing does not grant trust, and an untrusted hook never runs.
-  3. Export `LIBRARIAN_VAULT_PATH` in the shell that launches Codex. Its hooks see only that
-     environment, not `~/.claude/settings.json`; without it they write captures to the default folder.
-  4. Expect the summary line in Codex's final reply, since that is where its hook looks for it.
-- **Antigravity (`agy`)** is set up by hand from a clone (verified with `agy` 1.3.2):
-  1. Run `npm run install-hook -- --client antigravity --vault <your notes folder>`. It registers the
-     Stop hook in `~/.gemini/config/hooks.json`, writes the capture rule to
-     `~/.gemini/config/rules/rutter-capture.md`, and prints the `agy mcp add …` line to register the
-     server (or the equivalent `mcpServers` entry for `~/.gemini/config/mcp_config.json`).
-     Without `--vault` it uses `LIBRARIAN_VAULT_PATH` from your shell, else the default folder, and
-     says which.
-  2. **Run the printed `agy mcp add` line.** The vault is decided once, by the installer, and written to
-     both sides: the hook gets it as a built-in default, and the printed server entry carries the same
-     value. This matters because the two sides learn their vault differently. The MCP server's vault
-     is stored config (its `env` block). A hook has no config of its own and inherits the shell `agy`
-     was launched from, so an installer that left it to the environment let captures fall back to the
-     default folder while reads came from another (seen in testing: a decision was written to the
-     real vault while `agy` could only read a test one). An exported `LIBRARIAN_VAULT_PATH` still
-     overrides the hook's default. To move to another vault, re-run the installer with a new `--vault`
-     AND re-run `agy mcp add`; every capture prints `in vault <path>` on stderr (visible in `agy`'s log,
-     `~/.gemini/antigravity-cli/log/`) and says so when it fell back to the default.
-  3. **The rule file matters.** `agy` does not put an MCP server's instructions in the prompt; it
-     saves them as a file the model may never read. In testing the model wrote no summary lines
-     from those, nor from the same text in an `AGENTS.md`. A global `trigger: always_on` rule is
-     injected every turn, and with it every model tried (Gemini Flash and Pro, Claude Sonnet) wrote
-     the line after a decision and none after a trivial question. The rule is generated from the
-     server's own contract text; re-run the installer to refresh it.
-  4. Antigravity's Stop event carries no reply text, so the hook reads the current turn's assistant
-     messages from `agy`'s transcript file (`PLANNER_RESPONSE` records after the last user message). A
-     directive anywhere in the turn's replies is found, and an earlier turn's directive is never re-read.
 - **Maintainers:** `dist/` is committed so the plugin works straight from a clone. Run
   `npm run build` and commit the result whenever `src/` changes.
+
+## Set up Grok, Codex, and Antigravity
+
+Claude Code has the one-command plugin. The other three take a few more steps. Whichever you use,
+point it at the same notes folder as your other clients, or each one keeps its own memory.
+
+### Grok
+
+Grok picks the plugin up from your Claude Code install, server and hook included. It does not fill
+in the plugin's notes-folder option, so rutter uses the default folder (`~/Documents/knowledge-vault`).
+To share a different folder, set `LIBRARIAN_VAULT_PATH` in the environment you launch Grok from.
+A line on stderr says when the default was used for that reason.
+
+### Codex
+
+Codex cannot use the plugin. It fills in none of a plugin's variables and installs no hook. Set it
+up by hand from a clone, verified with Codex 0.160.0:
+
+1. Register the server with `codex mcp add`, passing your notes path with
+   `--env LIBRARIAN_VAULT_PATH=…`. See Step 5 of [`docs/getting-started.md`](./docs/getting-started.md).
+2. Install the hook with `npm run install-hook -- --client codex`. Then trust it in Codex with
+   `/hooks`. Installing does not grant trust, and an untrusted hook never runs.
+3. Export `LIBRARIAN_VAULT_PATH` in the shell that launches Codex. Its hooks see only that
+   environment, not `~/.claude/settings.json`. Without it they write captures to the default folder.
+4. Expect the summary line in Codex's final reply, because that is where its hook looks for it.
+
+### Antigravity CLI
+
+This covers the `agy` command-line tool, verified with `agy` 1.3.2. It does not cover the Antigravity
+IDE. Set it up by hand from a clone:
+
+1. Run `npm run build && npm run install-hook -- --client antigravity --vault <your notes folder>`.
+   It registers the Stop hook in `~/.gemini/config/hooks.json` and writes the capture rule to
+   `~/.gemini/config/rules/rutter-capture.md`. Without `--vault` it uses `LIBRARIAN_VAULT_PATH`
+   from your shell, then the default folder, and says which.
+2. Run the `agy mcp add` line the installer prints. It carries the same notes folder as the hook,
+   so writes and reads use one folder. The installer decides the folder once because the two sides
+   learn it differently. The MCP server's folder is stored config. A hook has no config of its own
+   and inherits the shell that launched `agy`. Left to the environment, a decision once went to the
+   real vault while `agy` could read only a test one. An exported `LIBRARIAN_VAULT_PATH` still
+   overrides the hook's default.
+3. Keep the rule file. `agy` saves an MCP server's instructions as a file instead of putting them in
+   the prompt. In testing, the model wrote no summary lines from those, nor from the same text in
+   an `AGENTS.md`. A global `trigger: always_on` rule is injected every turn. With it, Gemini Flash,
+   Gemini Pro, and Claude Sonnet each wrote the line after a decision and none after a trivial
+   question. Re-run the installer to refresh the rule.
+4. Expect the line anywhere in the turn. The Stop event carries no reply text, so the hook reads the
+   current turn's assistant messages from `agy`'s transcript. An earlier turn's directive is never
+   read again.
+
+To move to another notes folder, re-run the installer with a new `--vault`, then re-run
+`agy mcp add`. Each capture prints `in vault <path>` on stderr, visible in `agy`'s log under
+`~/.gemini/antigravity-cli/log/`. It says so when the default was used.
 
 ## Wire it into Claude Code
 
