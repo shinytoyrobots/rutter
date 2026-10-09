@@ -324,7 +324,7 @@ Codex cannot use the plugin. It fills in none of a plugin's variables and instal
 up by hand from a clone, verified with Codex 0.160.0:
 
 1. Register the server with `codex mcp add`, passing your notes path with
-   `--env LIBRARIAN_VAULT_PATH=…`. See Step 5 of [`docs/getting-started.md`](./docs/getting-started.md).
+   `--env LIBRARIAN_VAULT_PATH=…`. See the [Codex path](./docs/getting-started.md#codex-path) in `docs/getting-started.md`.
 2. Install the hook with `npm run install-hook -- --client codex`. Then trust it in Codex with
    `/hooks`. Installing does not grant trust, and an untrusted hook never runs.
 3. Export `LIBRARIAN_VAULT_PATH` in the shell that launches Codex. Its hooks see only that
@@ -361,8 +361,8 @@ To move to another notes folder, re-run the installer with a new `--vault`, then
 
 ## Wire it into Claude Code
 
-New to the project? [`docs/getting-started.md`](./docs/getting-started.md) walks from
-clone to first recall in eight verified steps.
+New to the project? [`docs/getting-started.md`](./docs/getting-started.md) has a setup path for
+each client, from install to first recall.
 
 After `npm run build`, from the repository root:
 

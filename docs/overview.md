@@ -351,12 +351,12 @@ and an optional backfill of positions from records that predate capture. Both wa
 
 If you use Claude Code, install the plugin and you can be recalling in a few minutes: see the
 [fast path](./getting-started.md#fast-path-for-claude-code). Everyone else:
-[`getting-started.md`](./getting-started.md) takes you from clone to first recall in eight verified
-steps.
+[`getting-started.md`](./getting-started.md) has a setup path for Grok, Codex, and Antigravity, and a
+step-by-step manual route, each ending in a capture check and a recall check.
 
 ## Further reading
 
-- [`getting-started.md`](./getting-started.md) — clone to first recall, in eight verified steps.
+- [`getting-started.md`](./getting-started.md) — a setup path for each client, from install to first recall.
 - [`memory-of-use.md`](./memory-of-use.md) — capture, recall, enrichment, note identity, positions,
   the trust boundary, and the usage gate, in full mechanical detail.
 - [`roadmap.md`](./roadmap.md) — current sequencing, and what is deliberately not being built.

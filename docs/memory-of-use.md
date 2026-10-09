@@ -128,8 +128,8 @@ is wired through a **Stop hook**, a hook the host runs when the assistant finish
 Claude Code, Grok, Codex, and Antigravity.
 
 **Setup is the hook.** Register it with `npm run install-hook`, adding `--client codex` or
-`--client antigravity` for those hosts. [Getting started, Step 6](./getting-started.md#step-6--install-the-stop-hook)
-has the per-host commands and checks. Two facts change behavior:
+`--client antigravity` for those hosts. [Getting started](./getting-started.md#choose-your-path) has a
+setup path for each host, with its commands and checks. Two facts change behavior:
 
 - Codex will not run the hook until you review and trust it with `/hooks`. Installing does not
   grant trust, and an untrusted hook never runs.
@@ -158,7 +158,7 @@ last position in the text it reads, and two directives in that text collapse to 
   mid-turn commentary is not captured, so the client must put it in the final reply. Two directives
   there collapse to the last. Codex hooks
   also see only the environment Codex was launched with, so `LIBRARIAN_VAULT_PATH` must be exported
-  where Codex starts (see [Getting started, Step 2](./getting-started.md#make-the-path-stick)).
+  where Codex starts (see [Getting started, Codex path](./getting-started.md#codex-path)).
 - **Antigravity** (`agy`) sends a Stop event with no reply text. The hook reads the transcript file
   the event points to and takes the assistant messages from the current turn, which is everything
   after your last message. The last directive in those messages is kept, and an earlier turn's

@@ -4,9 +4,20 @@ By the end of this lesson your notes will answer *"what was I working on lately?
 
 This lesson is for people who keep their notes as markdown files and are comfortable configuring an AI client: editing a settings file, registering an MCP server, running a few `npm` commands. The tools (`librarian-*`), the environment variables (`LIBRARIAN_*`), and the `_librarian/` folder kept the project's earlier name, *librarian*; they are all parts of rutter.
 
-We will install rutter, index your notes, and write one memory by hand so you see a result in the first few minutes. Then we will turn on ambient capture and watch a real working session record itself.
+## Choose your path
 
-Eight steps. Each one ends with something you can check.
+Pick the path for your client. Each one is a single sequence, and each ends with something you can check.
+
+| You use | Follow | What it takes |
+|---------|--------|---------------|
+| Claude Code | [Fast path for Claude Code](#fast-path-for-claude-code) | A few minutes; nothing to clone |
+| Grok | [Grok path](#grok-path) | The Claude Code plugin, plus one environment variable |
+| Codex | [Codex path](#codex-path) | A clone, and a hook you trust |
+| Antigravity CLI (`agy`) | [Antigravity path](#antigravity-path) | A clone, a hook, and a rule file |
+| Claude Code, from a clone | [The manual route](#the-manual-route-step-by-step) | Eight steps, starting with a record written by hand |
+| Any other MCP client | [Steps 1, 2, and 5](#step-1--clone-and-install) | Search and recall only: with no hook, nothing is captured |
+
+Every path ends in two checks, kept separate on purpose. **Capture:** a new line landed in today's file under `_librarian/sessions/`. **Recall:** your client can answer from it. A record written by hand ([Step 3](#step-3--capture-your-first-memory-by-hand)) shows that storage and recall work. It does not show ambient capture, which needs a real session and a hook.
 
 ## Fast path for Claude Code
 
@@ -57,7 +68,6 @@ Your client calls `librarian-recent` and reports the session you just finished, 
 
 **If you ever ran `npm run install-hook` by hand,** remove that Stop hook entry from `~/.claude/settings.json` when you add the plugin. Otherwise capture is attempted twice. The duplicate is detected and stored once, but it is wasted work. To see the hooks Claude Code has active, run `/hooks`.
 
-Using another client, or want the manual route? Continue with the steps below.
 
 ## Before you start
 
@@ -67,28 +77,119 @@ Using another client, or want the manual route? Continue with the steps below.
 - **A directory of markdown notes.** Obsidian is what rutter was built against — it understands wikilinks and frontmatter — but nothing requires Obsidian itself.
 - **No compiler toolchain.** There are zero native dependencies. The index is Node's built-in SQLite, so there is nothing to build and no database to install.
 
-**Using Grok? It rides on the Claude Code install.** Grok picks up the rutter plugin from your Claude Code install, server and hook included, so there is no separate Grok registration step:
+## Grok path
 
-1. Install the Claude Code plugin first ([fast path](#fast-path-for-claude-code)).
-2. Grok does not fill in the plugin's notes-folder option. If your notes are not in the default `~/Documents/knowledge-vault`, export `LIBRARIAN_VAULT_PATH` in the shell profile that launches Grok, and re-source it. A line on stderr says when the default folder was used for that reason.
-3. Expect the summary line at the end of Grok's final reply. The hook reads only the final assistant message, and Grok clips that message at 32,768 characters, so on a very long turn a trailing directive can be cut off and lost.
+Grok picks up the rutter plugin from your Claude Code install, server and hook included. There is no separate Grok registration step, and no `grok mcp add`.
 
-**Using Codex? It takes a few extra steps.** Codex cannot use rutter's one-command plugin install (the [Claude Code fast path](#fast-path-for-claude-code)): it fills in none of a plugin's variables and installs no hook. So you set it up by hand from this clone, and the differences are easy to miss:
+**1. Install the Claude Code plugin.** Follow item 1 of the [fast path](#fast-path-for-claude-code).
 
-1. Register the server with `codex mcp add`, passing your notes path at registration (Step 5).
-2. Install the Stop hook with `npm run install-hook -- --client codex`, then trust it with `/hooks` (Step 6). Installing does not grant trust, and an untrusted hook never runs.
-3. Export `LIBRARIAN_VAULT_PATH` in the shell that launches Codex, because its hooks see only that environment, not `~/.claude/settings.json` (Step 2).
-4. Expect the summary line in Codex's final reply, since that is where its hook looks for it.
+**2. Give Grok your notes folder.** Grok does not fill in the plugin's notes-folder option. If your notes are not in the default `~/Documents/knowledge-vault`, add this to the shell profile that launches Grok, then re-source it:
 
-Verified with Codex 0.160.0 (October 2026).
+```bash
+export LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes"
+```
 
-**Using Antigravity (`agy`)? It also takes a few extra steps.** This covers the `agy` command-line tool, not the Antigravity IDE. It has no one-command plugin install either (the [Claude Code fast path](#fast-path-for-claude-code) is Claude Code only), so you set it up by hand from this clone:
+A line on stderr says when the default folder was used for that reason.
 
-1. Build, then register the server with `agy mcp add`, passing your notes path at registration (Step 5).
-2. Install the Stop hook and a capture rule file with `npm run install-hook -- --client antigravity --vault /path/to/your/notes` (Step 6). Use the same notes path as in the first step. The rule file is needed: `agy` does not put the server's instructions in the prompt, and without the rule its model did not leave summaries on its own.
-3. Expect `agy` to leave the summary line anywhere in the current turn. The hook reads the turn from `agy`'s transcript file. If the turn holds two summary lines, only the last is kept.
+**3. Do one small real task.** Start Grok from that shell and make one decision or one small change. The summary line belongs at the end of Grok's final reply. The hook reads only the final assistant message, and Grok clips that message at 32,768 characters, so on a very long turn a trailing line can be cut off and lost. If the final message holds two lines, only the last is kept.
 
-Verified with `agy` 1.3.2 (October 2026).
+**4. Check capture.** A file for today's UTC day should exist, and its new entry should carry `client: grok`:
+
+```bash
+ls "$LIBRARIAN_VAULT_PATH/_librarian/sessions/"
+```
+
+**5. Check recall.** Ask Grok *"What was I working on lately?"* It should call `librarian-recent` and report the session you just finished.
+
+## Codex path
+
+Codex cannot use the plugin: it fills in none of a plugin's variables and installs no hook. You set it up from a clone. Check [Before you start](#before-you-start) first. Verified with Codex 0.160.0 (October 2026).
+
+**1. Clone, install, and build.**
+
+```bash
+git clone https://github.com/shinytoyrobots/rutter.git
+cd rutter
+npm install
+npm run build
+```
+
+**2. Set your notes folder where Codex starts.** A Codex hook inherits only the environment Codex itself was launched with. It does not read `~/.claude/settings.json`, and a `shell_environment_policy` entry in `~/.codex/config.toml` does not reach it. Add this to the shell profile that launches Codex, then re-source it:
+
+```bash
+export LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes"
+```
+
+Without it, the hook quietly writes captures to the default `~/Documents/knowledge-vault`. Run `npm run reindex` to check the path: a non-zero note count means it is right, and [Step 2](#step-2--point-it-at-your-notes-and-build-the-index) shows the full output.
+
+**3. Register the server,** passing the notes path at registration:
+
+```bash
+codex mcp add rutter --env LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes" -- node "$PWD/dist/stdio.js"
+```
+
+Check it with `codex mcp list`: `rutter` should appear as `enabled`. An `Auth` column reading `Unsupported` is normal for a local stdio server. This sets the path for the server only. The hook gets it from step 2.
+
+**4. Install the hook, then trust it.**
+
+```bash
+npm run install-hook -- --client codex
+```
+
+This merges into `~/.codex/hooks.json` (or `$CODEX_HOME/hooks.json`). If an equivalent hook is already registered inline in `~/.codex/config.toml`, the installer stops and tells you rather than stacking a second one. Codex will not run a new hook until you trust it: start Codex, run `/hooks`, review the Librarian Stop hook, and trust it. Installing does not grant trust, and an untrusted hook never runs.
+
+**5. Do one small real task.** Restart Codex from the shell in step 2 and make one decision or one small change. The summary line must be in Codex's final reply. The hook reads only the final assistant message, so a line left in earlier commentary is not captured, and if the final reply holds two lines, only the last is kept. The server's instructions tell the client to put it there.
+
+**6. Check capture.** A file for today's UTC day should exist, and its new entry should carry `client: codex`:
+
+```bash
+ls "$LIBRARIAN_VAULT_PATH/_librarian/sessions/"
+```
+
+**7. Check recall.** Ask Codex *"What was I working on lately?"* It should call `librarian-recent` and report the session you just finished. If step 6 found the file but Codex says no sessions are recorded, the server is reading a different folder from the one the hook writes to: compare the paths in steps 2 and 3.
+
+## Antigravity path
+
+This covers the `agy` command-line tool, not the Antigravity IDE. It has no plugin install either, so you set it up from a clone. Check [Before you start](#before-you-start) first. Verified with `agy` 1.3.2 (October 2026).
+
+**1. Clone, install, and build.**
+
+```bash
+git clone https://github.com/shinytoyrobots/rutter.git
+cd rutter
+npm install
+npm run build
+```
+
+**2. Install the hook and the capture rule,** passing your notes folder:
+
+```bash
+npm run install-hook -- --client antigravity --vault /path/to/your/notes
+```
+
+This adds a `librarian-capture` hook to `~/.gemini/config/hooks.json` and writes `~/.gemini/config/rules/rutter-capture.md`. The rule file is needed: `agy` does not put the server's instructions in the prompt, and without the rule its model did not leave summaries on its own. The installer prints which notes folder it chose and where that came from; without `--vault` it uses `LIBRARIAN_VAULT_PATH` from your shell, then the default. The hook uses that folder as its default no matter which shell launches `agy`, and an exported `LIBRARIAN_VAULT_PATH` still overrides it. Re-running with a different `--vault` updates the hook in place. It refuses to overwrite a rule file it did not write.
+
+**3. Register the server** with the `agy mcp add` line the installer printed. It has this shape, with flags before the server name:
+
+```bash
+agy mcp add --env LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes" --env LIBRARIAN_DB_PATH="$PWD/data/librarian.db" rutter "$(which node)" "$PWD/dist/stdio.js"
+```
+
+Check it with `agy mcp list`: `rutter` should appear as `enabled`. The `LIBRARIAN_DB_PATH` value is where the index lives, and any writable path works. The notes path must match step 2, or captures go to one folder and reads come from another.
+
+**4. Do one small real task.** Restart `agy`, run `/hooks` to review the hook, then make one decision or one small change. The summary line can be anywhere in the current turn: the hook reads the turn's assistant messages from `agy`'s transcript file. If the turn holds two lines, only the last is kept. A turn that ended in an error captures nothing.
+
+**5. Check capture.** A file for today's UTC day should exist, and its new entry should carry `client: agy`. Each capture also prints the vault it wrote to in `agy`'s log, under `~/.gemini/antigravity-cli/log/`.
+
+```bash
+ls /path/to/your/notes/_librarian/sessions/
+```
+
+**6. Check recall.** Ask `agy` *"What was I working on lately?"* It should call `librarian-recent` and report the session you just finished.
+
+## The manual route, step by step
+
+Steps 1 to 8 set up Claude Code from a clone instead of the plugin. They start with a record written by hand, so you can see storage and recall work before adding the hook, then turn on ambient capture. Any other MCP client can follow Steps 1, 2, and 5 for search and recall; without a hook it captures nothing. The Codex and Antigravity paths above link here where the output needs explaining.
 
 ## Step 1 — Clone and install
 
@@ -128,7 +229,7 @@ You can skip this step in day-to-day use: the server builds its index the first 
 
 Two things later in this lesson run outside this terminal: the MCP server that your client launches, and the capture hook. Both read `LIBRARIAN_VAULT_PATH`, and neither sees an `export` you typed in one shell session.
 
-Set it once for every Claude Code session, in `~/.claude/settings.json`. Grok and Codex are different; the bold paragraphs for each follow the example. Merge this into the file, keeping whatever is already there:
+Set it once for every Claude Code session, in `~/.claude/settings.json`. Merge this into the file, keeping whatever is already there:
 
 ```json
 { "env": { "LIBRARIAN_VAULT_PATH": "/Users/you/path/to/your/notes" } }
@@ -138,11 +239,7 @@ The top-level `env` object sets environment variables for Claude Code sessions. 
 
 A shell-profile `export` also works, but only when `claude` launches from a shell that re-sourced the edited profile.
 
-**Grok does not fill in the plugin's notes-folder option.** If your notes are not in the default `~/Documents/knowledge-vault`, export `LIBRARIAN_VAULT_PATH` in the shell profile that launches Grok.
-
-**Codex does not read that file.** A Codex hook inherits only the environment Codex itself was launched with; a `shell_environment_policy` entry in `~/.codex/config.toml` does not reach it. If your notes are not in the default `~/Documents/knowledge-vault`, export `LIBRARIAN_VAULT_PATH` in the shell profile that launches Codex (and re-source it), or the hook will quietly write captures to the default location instead.
-
-**Antigravity needs neither.** Its installer takes `--vault` and builds that path into the hook as a default (Step 6). The server gets the same path from the `agy mcp add` line (Step 5).
+Grok, Codex, and Antigravity get the path differently: see the [Grok](#grok-path), [Codex](#codex-path), and [Antigravity](#antigravity-path) paths.
 
 Two other variables are optional. `LIBRARIAN_DB_PATH` moves the index, which defaults to `data/librarian.db` inside the repository and is resolved from the module's own location rather than your working directory. `LIBRARIAN_USER_LABEL` is a bare noun — `Robin`, not `Robin's` — used as "<label>'s work" in the descriptions your client receives.
 
@@ -202,7 +299,7 @@ npm run recent -- --project rutter   # one project, case-insensitive
 
 ## Step 5 — Build and register the MCP server
 
-Compile the TypeScript, then register the server with your client. Run these from the repository root. The first commands are for Claude Code. Codex and Antigravity have their own, each in a labeled paragraph.
+Compile the TypeScript, then register the server with your client. Run these from the repository root. These commands are for Claude Code; the [Codex](#codex-path) and [Antigravity](#antigravity-path) paths have their own.
 
 ```bash
 npm run build
@@ -219,27 +316,9 @@ claude mcp add rutter --scope user -e LIBRARIAN_VAULT_PATH="$HOME/path/to/your/n
 
 That covers the server alone. The Stop hook in Step 6 still reads the `env` block, so most people want Step 2's route.
 
-**Codex.** Register the server with Codex instead, passing the vault path at registration (Codex does not read the `env` block from `~/.claude/settings.json`):
-
-```bash
-npm run build
-codex mcp add rutter --env LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes" -- node "$PWD/dist/stdio.js"
-```
-
-Check it with `codex mcp list`: `rutter` should appear as `enabled`. An `Auth` column reading `Unsupported` is normal for a local stdio server. This sets the path for the server only; the Codex Stop hook in Step 6 reads it from Codex's own launch environment.
-
-**Antigravity.** Register the server with `agy mcp add`. Flags go before the server name, and the vault path is passed at registration:
-
-```bash
-npm run build
-agy mcp add --env LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes" --env LIBRARIAN_DB_PATH="$PWD/data/librarian.db" rutter "$(which node)" "$PWD/dist/stdio.js"
-```
-
-Check it with `agy mcp list`: `rutter` should appear as `enabled`. The `LIBRARIAN_DB_PATH` value is where the index lives, and any writable path works. The Stop hook in Step 6 needs the same notes path. If the two differ, captures go to one folder and reads come from another. The Step 6 installer prints this same command, so you can compare.
-
 Any other MCP client works too: register `node "$PWD/dist/stdio.js"` as a stdio server and give it `LIBRARIAN_VAULT_PATH`.
 
-**Verify.** In Claude Code, start a fresh session and run this. For Codex use `codex mcp list` instead, and for Antigravity use `agy mcp list`:
+**Verify.** In Claude Code, start a fresh session and run this:
 
 ```text
 /mcp
@@ -278,22 +357,6 @@ The installer is deliberately cautious. It merges into `~/.claude/settings.json`
 
 The registered script always exits 0, so a failure inside capture can never break one of your sessions.
 
-**Codex.** Codex reads hooks from its own config, so install there explicitly:
-
-```bash
-npm run install-hook -- --client codex
-```
-
-This merges into `~/.codex/hooks.json` (or `$CODEX_HOME/hooks.json`). The hook finds your notes through `LIBRARIAN_VAULT_PATH` in Codex's own environment (see Step 2), so export it before launching Codex. Codex will not run a new hook until you trust it: start Codex, run `/hooks`, review the Librarian Stop hook, and trust it. The installer does not grant trust. If an equivalent hook is already registered inline in `~/.codex/config.toml`, the installer stops and tells you rather than stacking a second one. Codex hands the hook only the final assistant message of each turn, so a directive left in earlier commentary is not captured; the server's instructions teach the client to put it in the final reply.
-
-**Antigravity.** Install the hook and the capture rule in one command, passing your notes folder:
-
-```bash
-npm run install-hook -- --client antigravity --vault /path/to/your/notes
-```
-
-This adds a `librarian-capture` hook to `~/.gemini/config/hooks.json` and writes `~/.gemini/config/rules/rutter-capture.md`. The installer prints which notes folder it chose and where that came from. The hook uses that folder as its default no matter which shell launches `agy`; an exported `LIBRARIAN_VAULT_PATH` still overrides it. Re-running with a different `--vault` updates the hook in place. It refuses to overwrite a rule file it did not write. Use the same notes path you gave `agy mcp add` in Step 5. Run `/hooks` in `agy` to review the hook. Each capture prints the vault it wrote to in `agy`'s log, under `~/.gemini/antigravity-cli/log/`.
-
 **There is nothing to add to your `CLAUDE.md`.** The whole capture contract ships inside the server as MCP instructions, and the server sends it to every client on connect. Antigravity does not put those instructions in the model's prompt, which is why its installer writes a rule file. That contract covers when to leave a summary, its exact syntax, and how to write it. Setup is the hook, and that is all.
 
 ## Step 7 — Restart, and let a real session record itself
@@ -324,7 +387,7 @@ ls "$LIBRARIAN_VAULT_PATH/_librarian/sessions/"
 
 *Output shape verified against code; your date will differ.*
 
-If nothing appeared, check that Step 6 printed its success line and that the `env` block from Step 2 names the right notes directory. The README documents a `CLAUDE.md` paste-in as a last-resort fallback if captures still refuse to land.
+If nothing appeared, check that Step 6 printed its success line and that the `env` block from Step 2 names the right notes directory; [If something goes wrong](#if-something-goes-wrong) has the full list. The README documents a `CLAUDE.md` paste-in as a last-resort fallback if captures still refuse to land.
 
 ## Step 8 — Recall again, and read the record
 
@@ -380,6 +443,46 @@ The frontmatter is the source of truth. The regenerated body of the file is for 
 
 If your notes directory is a git repository, `_librarian/` will be tracked and committed along with everything else. That is intended: the memory is durable, plain markdown, and travels with your notes.
 
+## Check, pause, or remove capture
+
+Capture runs without asking, so it helps to know how to see it, stop it, and undo it. This section describes what exists today. Where rutter has no feature for something, it says so.
+
+### Notice when capture stops
+
+- **Look for the line.** After a session that decided something, today's file in `_librarian/sessions/` should have a new entry, and `npm run recent` (or asking your client) should show it. A session with no new line was not captured.
+- **Read the hook's status line.** After each turn the hook writes one line to stderr, for example `no session directive found; nothing captured.` or `captured 1 entry … into 2026-08-05 session record`. Where a client shows hook output varies; `agy` keeps it in its log under `~/.gemini/antigravity-cli/log/`.
+- **Check the `client` label.** Each entry names the client that wrote it, when the hook can tell. If one client's entries stop appearing while others continue, that client has stopped capturing.
+
+The usage count from `npm run gate` measures recall, not capture. It is not a capture monitor.
+
+### Pause capture
+
+rutter has no pause switch. A line is captured whenever the hook runs and the model has left one. To stop capture, stop the hook:
+
+- **Claude Code plugin:** `/plugin disable rutter@rutter` turns off the plugin's server and hook together.
+- **A hook added by `npm run install-hook`:** delete its entry from the hook file named in [Before you start](#before-you-start). There is no uninstall command.
+- **Codex:** remove the entry from `~/.codex/hooks.json`. A hook you have not trusted in `/hooks` never runs, so an untrusted hook is already paused.
+- **Antigravity:** remove the hook entry, and delete `~/.gemini/config/rules/rutter-capture.md` so the model stops writing lines.
+
+Hooks are read at session start, so restart the client after a change. Asking the model not to leave a line in one session usually works, but nothing enforces it.
+
+### Remove a record you don't want
+
+The server only appends; it has no delete command. The records are your markdown, so you remove an entry by hand:
+
+- **A session line:** open `_librarian/sessions/<day>.md` and delete the entry from the `sessions:` list in the frontmatter. The frontmatter is the record. The body below it is regenerated from the frontmatter the next time that day's file grows, so delete the matching body line too if you want it gone now. The day's top-level `refs:` list is also rebuilt on the next write. Recall reads these files directly, so the entry disappears from recall at once.
+- **A position:** delete the event from `_librarian/positions/<YYYY-MM>.md`, then run `npm run reindex` or restart the server, because positions are recalled from the index.
+- **Keep the YAML valid.** If a file stops parsing, recall skips it, and capture refuses to write into it rather than overwrite it.
+- **Mind your history.** If your notes folder is a git repository, the line stays in its history until you rewrite that history.
+
+A hand edit is outside the append-only rule, which binds only the server, and nothing detects it.
+
+## What leaves your machine
+
+rutter's server and hook make no network calls and run no model. Your records and index stay in your notes folder and the index file.
+
+That does not settle what your AI client sends. Whatever rutter's tools return becomes part of the client's context: search snippets, a full note from `librarian-get-note`, recalled summaries, and positions. The client sends its context to its model provider under the client's own terms. rutter cannot see or change that, and makes no promise about how a provider handles it. Point rutter at a folder you are content for your client to read.
+
 ## What to do next
 
 You now have ambient capture running end-to-end. These are worth reading once the records start accumulating:
@@ -411,11 +514,11 @@ Each entry starts with what you see, then the usual cause, then the fix.
 
 **Captures land in `~/Documents/knowledge-vault` instead of your notes.** The hook did not see `LIBRARIAN_VAULT_PATH`, so it used the default. For Codex and Grok, export it in the shell profile that launches the client, then re-source the profile. Codex hooks do not read `~/.claude/settings.json`.
 
-**Codex captures nothing.** The hook may be untrusted: start Codex, run `/hooks`, review the Librarian Stop hook, and trust it. Also check that the summary line is in Codex's final reply. The hook reads only the final message.
+**Codex captures nothing.** The hook may be untrusted: start Codex, run `/hooks`, review the Librarian Stop hook, and trust it ([Codex path](#codex-path), step 4). Also check that the summary line is in Codex's final reply. The hook reads only the final message.
 
-**Antigravity leaves no summaries.** The rule file `~/.gemini/config/rules/rutter-capture.md` should exist, and the model may never read the server's instructions without it. Re-run the installer from Step 6 if it is missing. A turn that ended in an error captures nothing.
+**Antigravity leaves no summaries.** The rule file `~/.gemini/config/rules/rutter-capture.md` should exist, and the model may never read the server's instructions without it. Re-run the installer from the [Antigravity path](#antigravity-path), step 2, if it is missing. A turn that ended in an error captures nothing.
 
-**A long Grok turn loses its summary.** Grok clips its final message at 32,768 characters, so a directive near the end of a very long turn can be dropped. See [Using Grok](#before-you-start) for the full Grok setup.
+**A long Grok turn loses its summary.** Grok clips its final message at 32,768 characters, so a directive near the end of a very long turn can be dropped. The [Grok path](#grok-path) has the full Grok setup.
 
 **Every capture appears to be attempted twice.** You have both the plugin's hook and a hand-registered one. Remove the `npm run install-hook` entry from `~/.claude/settings.json`. The duplicate is detected and stored once, but it is wasted work.
 
