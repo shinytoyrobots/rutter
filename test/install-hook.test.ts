@@ -107,6 +107,7 @@ t("no argument still targets Claude's settings.json; unknown client or flag fail
 });
 
 const agyHooks = (home: string): string => path.join(home, ".gemini", "config", "hooks.json");
+const agyRule = (home: string): string => path.join(home, ".gemini", "config", "rules", "rutter-capture.md");
 
 t("antigravity: creates ~/.gemini/config/hooks.json keyed by name, with Stop timeout, and prints both-environment guidance", () => {
   const sb = sandbox();
@@ -116,6 +117,11 @@ t("antigravity: creates ~/.gemini/config/hooks.json keyed by name, with Stop tim
   assert.deepEqual(cfg["librarian-capture"], { Stop: [{ type: "command", command: hookPath, timeout: 30 }] });
   assert.match(res.stderr, /SAME vault/);
   assert.match(res.stderr, /mcp_config\.json/);
+  const rule = fs.readFileSync(agyRule(sb.home), "utf8");
+  assert.match(rule, /^---\ntrigger: always_on\n---\n/, "always_on frontmatter (required, or agy silently discards the rule)");
+  assert.match(rule, /librarian-session/, "carries the capture contract from the server's own text");
+  assert.match(rule, /librarian-position/);
+  assert.doesNotMatch(rule, /Consult these tools/, "capture contract only, not the read-tool guidance");
   assert.match(res.stderr, /"LIBRARIAN_VAULT_PATH"/, "prints the MCP env snippet");
   assert.equal(fs.existsSync(path.join(sb.home, ".claude", "settings.json")), false, "Claude config untouched");
   assert.equal(fs.existsSync(sb.hooksJson), false, "Codex config untouched");
@@ -144,6 +150,24 @@ t("antigravity: a hand-made registration under another name is detected, not dup
   const before = fs.readFileSync(agyHooks(sb.home), "utf8");
   assert.match(install(sb, "--client", "antigravity").stderr, /already registered/);
   assert.equal(fs.readFileSync(agyHooks(sb.home), "utf8"), before);
+});
+
+t("antigravity: the capture rule is refreshed when stale, even if the hook is already registered; a foreign file of that name is never overwritten", () => {
+  const sb = sandbox();
+  assert.equal(install(sb, "--client", "antigravity").status, 0);
+  fs.writeFileSync(agyRule(sb.home), fs.readFileSync(agyRule(sb.home), "utf8").replace("librarian-session", "STALE"), "utf8");
+  const again = install(sb, "--client", "antigravity");
+  assert.equal(again.status, 0);
+  assert.match(again.stderr, /already registered/);
+  assert.match(fs.readFileSync(agyRule(sb.home), "utf8"), /librarian-session/, "restored from the server's text");
+  const sb2 = sandbox();
+  fs.mkdirSync(path.dirname(agyRule(sb2.home)), { recursive: true });
+  fs.writeFileSync(agyRule(sb2.home), "my own rule\n", "utf8");
+  const res = install(sb2, "--client", "antigravity");
+  assert.equal(res.status, 1);
+  assert.match(res.stderr, /not written by this installer/);
+  assert.equal(fs.readFileSync(agyRule(sb2.home), "utf8"), "my own rule\n");
+  assert.equal(fs.existsSync(agyHooks(sb2.home)), false, "hooks.json untouched when the rule is refused");
 });
 
 t("antigravity: refuses malformed config, a non-object, and a name collision, changing nothing", () => {

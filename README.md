@@ -264,18 +264,22 @@ instead (`claude plugin install rutter@rutter`), pass `--config vault_path=/path
      environment, not `~/.claude/settings.json`; without it they write captures to the default folder.
   4. Expect the summary line in Codex's final reply, since that is where its hook looks for it.
 - **Antigravity (`agy`)** is set up by hand from a clone (verified with `agy` 1.3.2, headless runs):
-  1. Install the hook with `npm run install-hook -- --client antigravity`. It prints an `mcpServers`
-     snippet for `~/.gemini/config/mcp_config.json` (or use `agy mcp add --env LIBRARIAN_VAULT_PATH=…`).
+  1. Run `npm run install-hook -- --client antigravity`. It registers the Stop hook in
+     `~/.gemini/config/hooks.json` and writes the capture rule to
+     `~/.gemini/config/rules/rutter-capture.md`, then prints an `mcpServers` snippet for
+     `~/.gemini/config/mcp_config.json` (or use `agy mcp add --env LIBRARIAN_VAULT_PATH=…`).
   2. Set the same `LIBRARIAN_VAULT_PATH` in BOTH places: the MCP server's `env`, and the shell that
      launches `agy` (the hook inherits that environment). If they differ, records are written to one
      folder and read from another.
-  3. Antigravity's Stop event carries no reply text, so the hook reads the current turn's assistant
+  3. **The rule file matters.** `agy` does not put an MCP server's instructions in the prompt; it
+     saves them as a file the model may never read. In testing the model wrote no summary lines
+     from those, nor from the same text in an `AGENTS.md`. A global `trigger: always_on` rule is
+     injected every turn, and with it every model tried (Gemini Flash and Pro, Claude Sonnet) wrote
+     the line after a decision and none after a trivial question. The rule is generated from the
+     server's own contract text; re-run the installer to refresh it.
+  4. Antigravity's Stop event carries no reply text, so the hook reads the current turn's assistant
      messages from `agy`'s transcript file (`PLANNER_RESPONSE` records after the last user message). A
      directive anywhere in the turn's replies is found, and an earlier turn's directive is never re-read.
-  4. **Ambient capture is not verified.** `agy` stores the server's instructions as a file but, in testing,
-     the model did not leave a summary line on its own, even with the capture rule in an `AGENTS.md` it
-     could quote back. A line it is asked to write is captured correctly; the read tools work. Treat
-     capture from Antigravity as explicit-only until that changes.
 - **Maintainers:** `dist/` is committed so the plugin works straight from a clone. Run
   `npm run build` and commit the result whenever `src/` changes.
 
