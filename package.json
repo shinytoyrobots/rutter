@@ -2,7 +2,7 @@
   "name": "rutter",
   "version": "0.5.0",
   "type": "module",
-  "description": "One memory across Claude Code, Grok, Codex, and Antigravity: a record of what your AI sessions decided, and the receipts behind it. MCP server over a folder of markdown notes.",
+  "description": "One memory across Claude Code, Grok, Codex, and Antigravity: a record of what your AI sessions decided, and the versioned references behind it. MCP server over a folder of markdown notes.",
   "license": "MIT",
   "repository": {
     "type": "git",

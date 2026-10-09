@@ -1,6 +1,6 @@
 # rutter
 
-**A record of what your AI sessions decided — and the receipts behind it.**
+**A record of what your AI sessions decided — and the versioned references behind it.**
 
 **One memory across Claude Code, Grok, Codex, and Antigravity.** A decision made in one is there when you ask another.
 
