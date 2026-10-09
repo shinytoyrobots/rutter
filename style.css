@@ -274,6 +274,13 @@ footer.site {
   color: var(--ink-muted);
 }
 .footer-inner a { color: var(--cyan); }
+.footer-more {
+  margin-top: 0.9rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--line);
+}
+.footer-more ul { list-style: none; margin: 0; padding: 0; }
+.footer-more li { margin: 0.2rem 0; }
 
 /* --- focus: visible everywhere, 3:1+ against every background --- */
 :focus-visible {
