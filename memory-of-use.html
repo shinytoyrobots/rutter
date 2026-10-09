@@ -32,44 +32,69 @@
 
 <div class="hero">
   <h1>Memory-of-use: the mechanics in full<span class="cursor" aria-hidden="true">▌</span></h1>
-  <p class="dek">Capture, recall, enrichment, note identity, positions, the trust boundary, and the usage gate — where the record lives, how it accrues, and how it all comes back.</p>
+  <p class="dek">Capture, recall, enrichment, note identity, positions, the trust boundary, and the usage gate — where the record lives, how it is written, and how it all comes back.</p>
 </div>
 
 <main id="main">
 
-<p>Search alone is something any capable agent can already do. Memory-of-use adds the first thing a
-stateless assistant <em>can&#39;t</em> have: <strong>memory that accrues by itself and surfaces later.</strong> rutter
-quietly records what each AI session decided or produced, lets you recall recent work, annotates
-search results you have engaged with before, and measures whether you actually reach for any of it.</p>
-<p>All of this is local-first. Nothing leaves your machine, the server runs no AI model (your client
+<p>Search alone is something any capable agent can already do. Memory-of-use adds a record that a
+later session can recall. Here is how it gets written: the server&#39;s instructions ask your client to
+write one line when a session decides or produces something, and a hook lifts the last such line
+after each turn and stores it. A later session, in the same client or another, can recall it.
+rutter also annotates search results you have engaged with before, and measures whether you
+actually reach for any of it. The server runs no model at any point.</p>
+<p>All of this is local-first. rutter makes no network calls, the server runs no AI model (your client
 is the brain), and it only ever writes inside your vault&#39;s <code>_librarian/</code> folder and the disposable
-<code>data/</code> index. This page says <em>vault</em> for your notes folder. The <code>_librarian/</code> folder is rutter&#39;s own
+<code>data/</code> index. What your client sends to its own model provider is outside rutter&#39;s control; see
+<a href="getting-started.html#what-leaves-your-machine">What leaves your machine</a>. This page says <em>vault</em> for your notes folder. The <code>_librarian/</code> folder is rutter&#39;s own
 layer next to your notes. Tool names, environment variables, and that folder keep rutter&#39;s earlier
 name, <em>librarian</em>.</p>
+<hr>
 <h2 id="where-rutter-keeps-what-it-remembers">Where rutter keeps what it remembers</h2>
 <p>Session memory lives in your vault, as plain, human-readable, git-committable markdown:</p>
 <pre><code class="language-text">&lt;vault&gt;/_librarian/sessions/2026-07-24.md
 </code></pre>
 <ul>
-<li><strong>One file per day, one line per outcome.</strong> Each separable thing a session decides or produces
-adds <strong>one curated line</strong> to that day&#39;s file. That line is a <em>directive</em> the client leaves (see
+<li><p><strong>One file per day, one line per outcome.</strong> The contract asks the client for one line per
+separable thing a session decides or produces. That line is a <em>directive</em> the client leaves (see
 <a href="#capturing-session-summaries">Capturing session summaries</a>). It is not the raw transcript, and it
 is not one line per session. A working session usually leaves three or four. Over the first two
 weeks of real capture, one person&#39;s use, the average was 3.2 lines per session. Those lines are
 the session&#39;s <strong>steps</strong>, and <code>librarian-recent</code> groups them back into a single account of that
-session when you read it.</li>
-<li><strong>Typed frontmatter.</strong> Each record carries a small typed header: the day, each session&#39;s identity
+session when you read it. Whether a line offered for capture is actually stored is a separate
+rule, the duplicate rule below.</p>
+</li>
+<li><p><strong>Typed frontmatter.</strong> Each record carries a small typed header: the day, each session&#39;s identity
 and time, the curated summary, and the notes it touched, each by its <strong>versioned identity</strong>. That
-is the vault-relative path plus a content hash taken when the line was captured. The reference
-still records what the file contained then, even after the note changes later.</li>
-<li><strong>You can read and edit it.</strong> It is your markdown, in your vault. Open it in Obsidian, edit it,
-commit it.</li>
-<li><strong>It is never auto-deleted.</strong> Records are only ever appended to. rutter has no prune or delete
-path that destroys memory-of-use.</li>
-<li><strong>Capture is idempotent.</strong> The Stop hook fires at the end of <em>every</em> assistant turn, so the same
-session&#39;s summary is offered for capture many times. An unchanged summary is a no-op: the file is
-left byte-identical, with no duplicate entry. A <em>changed</em> summary is appended as a <strong>revision</strong>
-after the earlier one. Nothing is ever overwritten or deleted.</li>
+is the vault-relative path plus a content hash taken when the line was captured. The hash
+identifies the file&#39;s bytes at that moment, even after the note changes later; rutter keeps no
+copy of the contents.</p>
+</li>
+<li><p><strong>You can read and edit it.</strong> It is your markdown, in your vault. Open it in Obsidian, edit it,
+commit it. A hand edit is outside the append-only rule, which binds only the server, and nothing
+detects it.</p>
+</li>
+<li><p><strong>It is never auto-deleted.</strong> Records are only ever appended to. rutter has no prune or delete
+path that destroys memory-of-use.</p>
+</li>
+<li><p><strong>Capture is idempotent, and this is the duplicate rule.</strong> The Stop hook fires at the end of
+<em>every</em> assistant turn, so the same line is offered for capture many times. A line is skipped
+when a line already recorded <em>anywhere</em> in <code>_librarian/sessions/</code>, on any day, has the same
+session id, the same summary <em>after normalization</em> (see <a href="#the-style-contract">the style
+contract</a>), and the same sorted list of resolved reference paths. Order is
+ignored and duplicates are kept, so <code>[A]</code> and <code>[A, A]</code> differ. Content hashes and the workspace
+are not compared, so editing a cited note between firings does not add a twin. A skipped line
+leaves the file byte-identical. What follows from the rule:</p>
+<ul>
+<li>Identical text in a <em>different</em> session appends.</li>
+<li>Two raw texts that normalize to the same line are one line.</li>
+<li>A rephrased line appends after the earlier one, as a <strong>revision</strong>. Nothing is overwritten or
+deleted.</li>
+<li>A capture with no session id, such as a hand-piped <code>npm run capture</code> test, always appends.</li>
+</ul>
+<p>Position lines follow the same pattern with their own key; see
+<a href="#positions-capturing-a-stance">Positions</a>.</p>
+</li>
 </ul>
 <h3 id="which-workspace-an-entry-came-from">Which workspace an entry came from</h3>
 <p>Because a single day can span several efforts, each entry also records <strong>where the session
@@ -109,12 +134,13 @@ reader cannot be steered into arbitrary directories.</li>
 <p><strong>Entries captured before this existed stay valid, untouched.</strong> <code>workspace</code> is an optional field
 added to the same record schema (<code>session-record@1</code>). There is no migration and no rewrite of old
 records. A day file can hold a mix of old and new entries.</p>
-<p><strong>Duplicate detection ignores it.</strong> Duplicate detection compares the directive text only. A Stop
-firing whose directory changed (a rename, a subdirectory, or none at all) is still an unchanged
-directive and still a byte-identical no-op. Moving a project does not fork your history.</p>
+<p><strong>Duplicate detection ignores it.</strong> The duplicate rule compares session id, normalized summary, and
+reference paths, never the workspace. A Stop firing whose directory changed (a rename, a
+subdirectory, or none at all) is still an unchanged line and still a byte-identical no-op. Moving a
+project does not fork your history.</p>
 <h3 id="which-client-wrote-it">Which client wrote it</h3>
 <p><code>client</code> is another optional field: <code>claude</code>, <code>grok</code>, <code>codex</code>, or <code>agy</code>. It names the host, never
-the model, and it is metadata only. The summary and stance stay byte-verbatim.</p>
+the model, and it is metadata only. It changes nothing about how the summary or stance is stored.</p>
 <p>The hook compares two things: the raw Stop event payload the host sends (Antigravity&#39;s shape,
 Grok&#39;s camelCase <code>lastAssistantMessage</code>) and the identity the installer passes as <code>--client</code>. It
 writes a label only when the two agree.</p>
@@ -123,13 +149,14 @@ identity gets none either, because nothing in its payload separates it from Clau
 hook registered by hand before this field existed show no label. Re-run <code>install-hook</code> to add it.
 A stored value this build does not know is kept and ignored, never an error. The label shows in the
 record&#39;s frontmatter, not the body.</p>
+<hr>
 <h2 id="capturing-session-summaries">Capturing session summaries</h2>
 <p>Capture is <strong>ambient</strong>: it happens after each turn with no action from you inside the session. It
 is wired through a <strong>Stop hook</strong>, a hook the host runs when the assistant finishes a turn, in
 Claude Code, Grok, Codex, and Antigravity.</p>
 <p><strong>Setup is the hook.</strong> Register it with <code>npm run install-hook</code>, adding <code>--client codex</code> or
-<code>--client antigravity</code> for those hosts. <a href="getting-started.html#step-6">Getting started, Step 6</a>
-has the per-host commands and checks. Two facts change behavior:</p>
+<code>--client antigravity</code> for those hosts. <a href="getting-started.html#choose-your-path">Getting started</a> has a
+setup path for each host, with its commands and checks. Two facts change behavior:</p>
 <ul>
 <li>Codex will not run the hook until you review and trust it with <code>/hooks</code>. Installing does not
 grant trust, and an untrusted hook never runs.</li>
@@ -142,18 +169,24 @@ failure can never break your session.</p>
 <p>All four hosts fire the same hook after each turn and store the same records, in the same notes
 folder. That shared folder is how a decision captured in one tool is recalled in another. Each
 record carries a <code>client</code> label naming the host that wrote it (see <a href="#which-client-wrote-it">Which client wrote
-it</a>). The hosts differ in where the hook looks for the directive:</p>
+it</a>). The hosts differ in what text the hook reads. On every host the rule
+from <a href="#the-directive">The directive</a> holds: each firing keeps the last session directive and the
+last position in the text it reads, and two directives in that text collapse to the last.</p>
 <ul>
-<li><strong>Claude Code</strong> reads the whole transcript, so a directive anywhere in the session is found.</li>
+<li><strong>Claude Code</strong> reads the whole transcript. Each firing still keeps only the last directive in
+it. A line that is no longer last survives only if an earlier firing already captured it, so two
+directives written in one turn leave only the second.</li>
 <li><strong>Grok</strong> reads the Stop event&#39;s final assistant message. Grok clips that message at 32,768
-characters, so a long turn can drop a trailing directive.</li>
+characters, so a long turn can drop a trailing directive. Two directives in the final message
+collapse to the last.</li>
 <li><strong>Codex</strong> reads the Stop event&#39;s final assistant message and nothing earlier. A directive left in
-mid-turn commentary is not captured, so the client must put it in the final reply. Codex hooks
+mid-turn commentary is not captured, so the client must put it in the final reply. Two directives
+there collapse to the last. Codex hooks
 also see only the environment Codex was launched with, so <code>LIBRARIAN_VAULT_PATH</code> must be exported
-where Codex starts (see <a href="getting-started.html#make-the-path-stick">Getting started, Step 2</a>).</li>
+where Codex starts (see <a href="getting-started.html#codex-path">Getting started, Codex path</a>).</li>
 <li><strong>Antigravity</strong> (<code>agy</code>) sends a Stop event with no reply text. The hook reads the transcript file
 the event points to and takes the assistant messages from the current turn, which is everything
-after your last message. A directive anywhere in the turn is found, and an earlier turn&#39;s
+after your last message. The last directive in those messages is kept, and an earlier turn&#39;s
 directive is never read again. A turn that ended in an error captures nothing.</li>
 <li><strong>Antigravity needs a rule file.</strong> <code>agy</code> does not put MCP server instructions in the prompt. It
 saves them as a file the model may never read. So the installer also writes an always-on rule
@@ -167,7 +200,8 @@ hook&#39;s default, and each capture logs the vault it wrote to.</li>
 <p><strong>How the summary is produced (no AI in the server).</strong> The server never summarizes anything, which
 would be inference. Instead your client writes the one-line summary <em>during</em> the session as a
 directive, and the hook lifts it out verbatim, from the transcript or from the final reply
-depending on the host. Emit a directive like this whenever a session is worth remembering:</p>
+depending on the host. Normalization (see <a href="#the-style-contract">the style contract</a>) happens after
+that, when the line is stored. Emit a directive like this whenever a session is worth remembering:</p>
 <pre><code class="language-text">&lt;!-- librarian-session {"summary":"Decided to store refs by content-hash; shipped capture.","refs":["Notes/foo.md"]} --&gt;
 </code></pre>
 <ul>
@@ -195,13 +229,24 @@ uses are fine). <strong>Aim for about 40 words and stop by 60</strong> — one l
 <p>The word budget only works because the trigger agrees with it. The contract asks for a line as each
 separable thing lands. A client told to write one line at the end packs the whole session into it,
 which is exactly the over-stuffed entry the budget exists to prevent.</p>
-<p><strong>The server does not enforce the style contract.</strong> It stores the summary byte-verbatim. It never
-rewrites, shortens, &quot;clarifies&quot;, or rejects a line for being dense, and it writes no style warning
-into your record. The capture path prints the word count so drift is visible, then stores exactly
-what it was given. Judging or rewriting prose is inference, and the server runs no model. Silently
-truncating would lose the only copy of what the session meant. A dense summary is a readability
-problem, handled by guidance and by how it is read back, never a data problem solved by editing
-your memory.</p>
+<p><strong>The server does not enforce the style contract.</strong> Three separate things happen to a line on its
+way into the record, and only the last one ever shortens it:</p>
+<ul>
+<li><strong>The words are not edited for style.</strong> A dense line is stored as dense. The capture path prints
+a word-count warning so drift is visible, and writes no warning into your record. The 40-word
+target and the 60-word ceiling are guidance, not a cut. Judging or rewriting prose is inference,
+and the server runs no model. Cutting a line for being over budget would silently lose the only
+copy of what the session meant.</li>
+<li><strong>The line is normalized so it sits in the record as one line.</strong> Newlines and tabs become spaces.
+Control characters, ANSI escape sequences, bidirectional-override characters, and zero-width
+characters are dropped. Runs of spaces collapse to one, and the ends are trimmed. Ordinary
+markdown is kept as text. (<code>toInertLine</code> in <code>src/sanitize.ts</code>.)</li>
+<li><strong>A line past 2,000 characters is cut</strong> at 2,000 (<code>config.maxSummaryChars</code>). This guards against
+oversized input and has nothing to do with the style budget; a line within the word budget is
+nowhere near it.</li>
+</ul>
+<p>A dense summary is a readability problem, handled by guidance and by how it is read back, never a
+data problem solved by editing your memory.</p>
 <p>Compare:</p>
 <pre><code class="language-text">✗  Landed HK-7/ambient-splice v0.9.3-rc2 behind FLG_SPLICE_V2; idx@4 -&gt; idx@5,
    backfill gated on FKS_DUAL_READ, ZQ-1197 still open, cutover ETA W31.
@@ -216,6 +261,7 @@ instructions there, and a test holds the line. Guidance that only matters when <
 lives in the description of the tool that returns it.</p>
 <p>There is nothing to add to your <code>CLAUDE.md</code>. The README keeps a paste-in only as a fallback if
 captures refuse to land. Antigravity is the exception to &quot;on connect&quot;: see <em>Host differences</em> for its rule file.</p>
+<hr>
 <h2 id="recalling-recent-work">Recalling recent work</h2>
 <p>Ask <em>&quot;what was I working on lately?&quot;</em> and your client calls the <strong><code>librarian-recent</code></strong> tool. It
 returns recent session summaries <strong>most-recent-first</strong>, each with its date, its project, and the
@@ -242,7 +288,7 @@ message, never an error. A filter that matches nothing says so specifically.</li
 </ul>
 <p>Filters only ever <em>remove</em> entries: the order you get is the same order you would have got
 unfiltered.</p>
-<h3 id="old-dense-entries-still-read-clearly">Old, dense entries still read clearly</h3>
+<h3 id="old-entries-stay-dense-the-answer-does-not-have-to">Old entries stay dense. The answer does not have to.</h3>
 <p>Records written before the style contract existed are exactly as dense as the day they were
 captured. They are <strong>never migrated, edited, or re-summarized</strong>. Memory-of-use is append-only, and
 rewriting your own past record to look tidier would be a worse bug than the density.</p>
@@ -264,7 +310,8 @@ recency questions to <code>librarian-recent</code>, prior-engagement and content
 <code>librarian-search</code> (then <code>librarian-get-note</code> to read a note in full), and position questions to
 <code>librarian-positions</code>. They also tell the client how to write session and position lines.</p>
 <p>The reading-back half travels in the tool descriptions. <code>librarian-recent</code> asks the client to
-report recalled summaries in plain language (see <em>Old, dense entries still read clearly</em>), and
+report recalled summaries in plain language (see <a href="#old-entries-stay-dense-the-answer-does-not-have-to">Old entries stay
+dense</a>), and
 <code>librarian-positions</code> asks it to attribute a stance to you rather than adopt it. Neither is
 enforced by the server. Both reach every client that connects.</p>
 <p>This matters because guidance in a project&#39;s <code>CLAUDE.md</code> only helps in that project. Instructions
@@ -273,6 +320,7 @@ install, not one per repo. Writing the summary is still your client&#39;s job, b
 inference. The instructions for doing it ship with the server too.</p>
 <p>The guidance says <em>when the tools are the right answer</em>. It does not tell your client to call them
 unprompted. Memory stays quiet until it is relevant.</p>
+<hr>
 <h2 id="search-enrichment">Search enrichment</h2>
 <p>When you run <strong><code>librarian-search</code></strong> and a result is a note a past session referenced, that one
 result carries a quiet <strong>prior-engagement</strong> note: <em>what you concluded and when</em>. For example:</p>
@@ -291,17 +339,21 @@ promotes, demotes, adds, or drops a result.</li>
 <p><a href="#note-identity">Note identity</a> describes two more things this surface renders when a reference
 cannot be resolved on its own: a candidate note for it, and a conflict between a confirmed binding
 and a fresher automatic detection.</p>
+<hr>
 <h2 id="note-identity">Note identity</h2>
 <p>A reference records two things about a note at the moment it was captured: its vault-relative path
 and a content hash. Rename the note later and the path stops resolving, but the hash is still
-there, so rutter can tell <em>what</em> the reference meant even after <em>where</em> it lives has moved.</p>
+there, so rutter can find the same bytes at a new path even after <em>where</em> the note lives has moved.</p>
 <p>At every <code>npm run reindex</code>, rutter checks each recorded reference whose path no longer resolves.
-<em>Resolves</em> means a file exists on disk at that path, inside the vault, of any type. A reference can
-legitimately point at a non-note file (a <code>.gitignore</code>, an exported <code>.html</code>, a <code>.yaml</code> config,
-anything under <code>_librarian/</code> itself), because capture hashes whatever bytes are there. Such a
-reference is live for as long as the file exists. The identity pass never treats &quot;not an indexed
-markdown note&quot; as dead. Only a path that is actually <em>missing</em>, deleted or moved with no trace at
-the old location, is checked further:</p>
+<em>Resolves</em> means a file exists on disk at that path, inside the vault, of any type. A path that
+resolves is not checked, even when its bytes have changed since capture. The stored hash makes that
+comparison possible; rutter does not report it yet (see <a href="#what-rutter-can-and-cannot-establish">What rutter can and cannot
+establish</a>).</p>
+<p>A reference can legitimately point at a non-note file (a <code>.gitignore</code>, an exported <code>.html</code>, a
+<code>.yaml</code> config, anything under <code>_librarian/</code> itself), because capture hashes whatever bytes are
+there. Such a reference is live for as long as the file exists. The identity pass never treats &quot;not
+an indexed markdown note&quot; as dead. Only a path that is actually <em>missing</em>, deleted or moved with no
+trace at the old location, is checked further:</p>
 <ul>
 <li><strong>Exactly one current note&#39;s content hash matches what was recorded.</strong> The note was renamed with
 its content untouched. rutter binds the old path to the new one, deterministically, and appends
@@ -356,6 +408,7 @@ entries are the exception, as described above. Earlier entries are never rewritt
 removed. The identity tables in the SQLite index are, like the rest of the index, fully
 disposable: delete <code>data/librarian.db</code> and reindex, and they rebuild from the vault and the ledger
 alone.</p>
+<hr>
 <h2 id="positions-capturing-a-stance">Positions: capturing a stance</h2>
 <p>Alongside the session summary, your client can leave a second kind of line: a <strong>position
 directive</strong>. It emits one only when a session forms, changes, reaffirms, or retires a stance on a
@@ -364,22 +417,28 @@ about 19 lines a day in the author&#39;s own use when this was written.</p>
 <pre><code class="language-text">&lt;!-- librarian-position POSITION assert my-topic: I think X because of the meeting notes. --&gt;
 </code></pre>
 <ul>
-<li><code>assert | revise | reaffirm | retire</code> is the directive&#39;s kind. Kind is the only thing that routes
-it. There is no content inspection.</li>
+<li><code>assert | revise | reaffirm | retire</code> is the directive&#39;s kind, and it alone selects what the
+event does. The stance prose is not classified or interpreted. Two strings inside it are read,
+as described in the stance bullet below: a <code>[[wikilink]]</code> and <code>revises: &lt;event-id&gt;</code>.</li>
 <li><code>&lt;topic-key&gt;</code> is free-form and client-chosen, kebab-case by convention but never enforced. An
 off-convention key is reported on stderr and stored as written.</li>
-<li><code>&lt;stance&gt;</code> is the rest of the line, stored byte-verbatim. A <code>[[wikilink]]</code> anywhere in the stance
-is captured as a versioned reference exactly like a session ref. The text <code>revises: &lt;event-id&gt;</code>
-anywhere in the stance records that this event replaces that earlier one. Neither is stripped out
-of the stored stance. What you wrote is what is stored, in full.</li>
+<li><code>&lt;stance&gt;</code> is the rest of the line. It is not rewritten for style; it gets the same one-line
+normalization and 2,000-character cut as a session summary (see <a href="#the-style-contract">the style
+contract</a>). A <code>[[wikilink]]</code> anywhere in the stance is captured as a
+versioned reference exactly like a session ref. The text <code>revises: &lt;event-id&gt;</code> anywhere in the
+stance records that this event replaces that earlier one. Neither is stripped out of the stored
+stance.</li>
 <li>Position events are appended to a <strong>wholly separate stream</strong>,
 <code>&lt;vault&gt;/_librarian/positions/&lt;YYYY-MM&gt;.md</code>, never to a session record. Emitting one position, or
 many, changes nothing about how session summaries are captured, stored, or read. The reverse
 holds too.</li>
-<li>The idempotence rule is the same as for a session summary: an unchanged directive re-fired by the
-same session appends nothing.</li>
+<li>The duplicate rule has the same shape as a session summary&#39;s. A position is skipped when one
+already recorded in any month has the same session id, kind, topic key, normalized stance,
+sorted reference paths, and <code>revises</code> value. So an unchanged directive re-fired by the same
+session appends nothing, and a capture with no session id always appends.</li>
 </ul>
 <p>Recall is a separate path with its own guarantees. See the next section.</p>
+<hr>
 <h2 id="positions-recalling-a-stance">Positions: recalling a stance</h2>
 <p><code>librarian-positions</code> answers <em>&quot;what do I think about X, and how did that change?&quot;</em> from the stream
 that position capture writes. It is read-only. It reads a <strong>derived table</strong> in the index, rebuilt
@@ -411,8 +470,10 @@ with <code>retired &lt;date&gt;</code> stated as a retirement, never as a revisi
 history to produce it. Every earlier event is still there under <code>chain: true</code>. A position asserted
 <em>again</em> after a retirement is simply live again. A retirement is terminal only while it is the last
 thing recorded.</p>
-<p><strong>Dormant is computed, never stored.</strong> A live position that nothing has touched for a long while is
-marked dormant. That is worked out on every read from the events&#39; own timestamps. Nothing about
+<p><strong>Dormant is computed, never stored.</strong> A live position that nothing has touched for 180 days is
+marked dormant (<code>config.positionDormantAfterDays</code>). That number is a starting guess, not a
+calibrated figure: positions are rare, and no real stream was old enough to calibrate against when
+it was set. Dormancy is worked out on every read from the events&#39; own timestamps. Nothing about
 dormancy is written to disk or to the index, so the rule can change without a migration or a
 rebuild. A retired position is never marked dormant. Withdrawing a stance on purpose is not the
 same fact as letting one go quiet.</p>
@@ -431,6 +492,7 @@ tables or by any query you make.</li>
 <p>Calling <code>librarian-positions</code> is logged to <code>_librarian/stateful-use.jsonl</code> under its own kind, and
 does <strong>not</strong> count toward the usage gate (see <a href="#measuring-whether-it-gets-used">Measuring whether it gets
 used</a>).</p>
+<hr>
 <h2 id="what-rutter-can-and-cannot-establish">What rutter can and cannot establish</h2>
 <p>A reference is evidence of what a session recorded. It is not proof of what the session read. This
 section puts the boundary in one place.</p>
@@ -439,7 +501,8 @@ section puts the boundary in one place.</p>
 <li><strong>Which paths the client listed</strong> in its directive.</li>
 <li><strong>The sha256 of each listed file&#39;s bytes when capture ran.</strong> The server computes it. A client
 cannot supply one.</li>
-<li><strong>The summary or stance the client wrote,</strong> byte-verbatim.</li>
+<li><strong>The summary or stance the client wrote,</strong> not rewritten for style. It is normalized to one
+line and cut past 2,000 characters (see <a href="#the-style-contract">the style contract</a>).</li>
 <li><strong>When and where the line was captured.</strong> That means the time, and the working directory,
 project, and repo origin when the host reports them. Each record also names the client that wrote
 it, when that can be established.</li>
@@ -466,7 +529,8 @@ reads.</li>
 <li>Grok clips its final message at 32,768 characters, so a long turn can drop a trailing directive.</li>
 <li>Antigravity captures nothing from a turn that ended in an error, and needs the rule file, or its
 model may not leave summaries.</li>
-<li>The style contract is advisory. The server stores a dense or over-long summary as written.</li>
+<li>The style contract is advisory. The server stores a dense or over-budget summary without
+rewriting it.</li>
 </ul>
 <p><strong>Append-only is a rule rutter follows, not a tamper-proof log.</strong> The server has no code path that
 rewrites, reorders, or deletes a stored line. But the records are plain markdown in your notes
@@ -484,11 +548,13 @@ or tidied up to match a newer convention.</li>
 reconstructs everything from the vault plus <code>_librarian/</code>.</li>
 <li><strong>Hooks never break a session:</strong> the capture hook always exits cleanly, so a failure inside
 capture cannot interrupt your work.</li>
-<li><strong>No AI in the server:</strong> summaries are your client&#39;s. The server stores and serves them
-<strong>verbatim</strong>, including summaries that ignore the style contract entirely. Judging or improving
-prose would be inference, so the server does neither, at capture or at read time.</li>
+<li><strong>No AI in the server:</strong> summaries are your client&#39;s. The server stores and serves them without
+rewriting them for style, including summaries that ignore the style contract entirely. Only the
+one-line normalization and the 2,000-character cut apply. Judging or improving prose would be
+inference, so the server does neither, at capture or at read time.</li>
 </ul>
 <p>The spec states each of these as an invariant: <a href="https://github.com/shinytoyrobots/rutter/blob/main/spec/spec.md"><code>spec/spec.md</code></a>.</p>
+<hr>
 <h2 id="measuring-whether-it-gets-used">Measuring whether it gets used</h2>
 <p>Memory-of-use is on trial. The project set a usage test it can fail: <em>does ambient memory-of-use
 actually pull you toward reaching for it?</em> The target is reaching for a stateful behavior
@@ -528,7 +594,7 @@ stateful behavior does not get reached for.</p>
 
 <footer class="site">
   <div class="footer-inner">
-    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source and receipts on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/3412b6a">main@3412b6a</a> · <a href="sources.json">source hashes</a>.</p>
+    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/4019a82">main@4019a82</a> · <a href="sources.json">source hashes</a>.</p>
   </div>
 </footer>
 </body>
