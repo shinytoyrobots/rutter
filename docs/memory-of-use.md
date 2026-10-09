@@ -1,9 +1,11 @@
 # Memory-of-use: the mechanics in full
 
-Search alone is something any capable agent can already do. Memory-of-use adds the first thing a
-stateless assistant *can't* have: **memory that accrues by itself and surfaces later.** rutter
-quietly records what each AI session decided or produced, lets you recall recent work, annotates
-search results you have engaged with before, and measures whether you actually reach for any of it.
+Search alone is something any capable agent can already do. Memory-of-use adds a record that a
+later session can recall. Here is how it gets written: the server's instructions ask your client to
+write one line when a session decides or produces something, and a hook lifts the last such line
+after each turn and stores it. A later session, in the same client or another, can recall it.
+rutter also annotates search results you have engaged with before, and measures whether you
+actually reach for any of it. The server runs no model at any point.
 
 All of this is local-first. Nothing leaves your machine, the server runs no AI model (your client
 is the brain), and it only ever writes inside your vault's `_librarian/` folder and the disposable
@@ -34,7 +36,8 @@ Session memory lives in your vault, as plain, human-readable, git-committable ma
   is the vault-relative path plus a content hash taken when the line was captured. The reference
   still records what the file contained then, even after the note changes later.
 - **You can read and edit it.** It is your markdown, in your vault. Open it in Obsidian, edit it,
-  commit it.
+  commit it. A hand edit is outside the append-only rule, which binds only the server, and nothing
+  detects it.
 - **It is never auto-deleted.** Records are only ever appended to. rutter has no prune or delete
   path that destroys memory-of-use.
 - **Capture is idempotent, and this is the duplicate rule.** The Stop hook fires at the end of
@@ -277,7 +280,7 @@ versioned provenance of the notes it references:
 Filters only ever *remove* entries: the order you get is the same order you would have got
 unfiltered.
 
-### Old, dense entries still read clearly
+### Old entries stay dense. The answer does not have to.
 
 Records written before the style contract existed are exactly as dense as the day they were
 captured. They are **never migrated, edited, or re-summarized**. Memory-of-use is append-only, and
@@ -307,7 +310,8 @@ recency questions to `librarian-recent`, prior-engagement and content questions 
 `librarian-positions`. They also tell the client how to write session and position lines.
 
 The reading-back half travels in the tool descriptions. `librarian-recent` asks the client to
-report recalled summaries in plain language (see *Old, dense entries still read clearly*), and
+report recalled summaries in plain language (see [Old entries stay
+dense](#old-entries-stay-dense-the-answer-does-not-have-to)), and
 `librarian-positions` asks it to attribute a stance to you rather than adopt it. Neither is
 enforced by the server. Both reach every client that connects.
 
@@ -352,12 +356,16 @@ and a content hash. Rename the note later and the path stops resolving, but the 
 there, so rutter can tell *what* the reference meant even after *where* it lives has moved.
 
 At every `npm run reindex`, rutter checks each recorded reference whose path no longer resolves.
-*Resolves* means a file exists on disk at that path, inside the vault, of any type. A reference can
-legitimately point at a non-note file (a `.gitignore`, an exported `.html`, a `.yaml` config,
-anything under `_librarian/` itself), because capture hashes whatever bytes are there. Such a
-reference is live for as long as the file exists. The identity pass never treats "not an indexed
-markdown note" as dead. Only a path that is actually *missing*, deleted or moved with no trace at
-the old location, is checked further:
+*Resolves* means a file exists on disk at that path, inside the vault, of any type. A path that
+resolves is not checked, even when its bytes have changed since capture. The stored hash makes that
+comparison possible; rutter does not report it yet (see [What rutter can and cannot
+establish](#what-rutter-can-and-cannot-establish)).
+
+A reference can legitimately point at a non-note file (a `.gitignore`, an exported `.html`, a
+`.yaml` config, anything under `_librarian/` itself), because capture hashes whatever bytes are
+there. Such a reference is live for as long as the file exists. The identity pass never treats "not
+an indexed markdown note" as dead. Only a path that is actually *missing*, deleted or moved with no
+trace at the old location, is checked further:
 
 - **Exactly one current note's content hash matches what was recorded.** The note was renamed with
   its content untouched. rutter binds the old path to the new one, deterministically, and appends
@@ -433,8 +441,9 @@ about 19 lines a day in the author's own use when this was written.
 <!-- librarian-position POSITION assert my-topic: I think X because of the meeting notes. -->
 ```
 
-- `assert | revise | reaffirm | retire` is the directive's kind. Kind is the only thing that routes
-  it. There is no content inspection.
+- `assert | revise | reaffirm | retire` is the directive's kind, and it alone selects what the
+  event does. The stance prose is not classified or interpreted. Two strings inside it are read,
+  as described in the stance bullet below: a `[[wikilink]]` and `revises: <event-id>`.
 - `<topic-key>` is free-form and client-chosen, kebab-case by convention but never enforced. An
   off-convention key is reported on stderr and stored as written.
 - `<stance>` is the rest of the line. It is not rewritten for style; it gets the same one-line
@@ -492,8 +501,10 @@ history to produce it. Every earlier event is still there under `chain: true`. A
 *again* after a retirement is simply live again. A retirement is terminal only while it is the last
 thing recorded.
 
-**Dormant is computed, never stored.** A live position that nothing has touched for a long while is
-marked dormant. That is worked out on every read from the events' own timestamps. Nothing about
+**Dormant is computed, never stored.** A live position that nothing has touched for 180 days is
+marked dormant (`config.positionDormantAfterDays`). That number is a starting guess, not a
+calibrated figure: positions are rare, and no real stream was old enough to calibrate against when
+it was set. Dormancy is worked out on every read from the events' own timestamps. Nothing about
 dormancy is written to disk or to the index, so the rule can change without a migration or a
 rebuild. A retired position is never marked dormant. Withdrawing a stance on purpose is not the
 same fact as letting one go quiet.
