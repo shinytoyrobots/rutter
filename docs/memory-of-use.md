@@ -86,6 +86,15 @@ Everything about this is best-effort and never blocks a capture:
   *additive-optional* field on the same record schema (`session-record@1`) — there
   is no migration, no rewrite of old records, and a day file can hold a mix of old
   and new entries.
+- **Which client wrote it.** `client` is another additive-optional field: `claude`, `grok`,
+  `codex`, or `agy`. It names the host, never the model, and it is metadata only; the summary
+  and stance stay byte-verbatim. The hook reads the original Stop envelope (Antigravity's shape,
+  Grok's camelCase `lastAssistantMessage`) together with the identity the installer passes as
+  `--client`, and writes a label only when the two agree. Conflicts, direct payloads, an
+  unrecognized identity, and Codex without an identity (nothing in its payload separates it from
+  Claude) get no label, so entries from a hook registered by hand before this existed show none;
+  re-run `install-hook` to add it. A stored value this build does not know is kept and ignored,
+  never an error. It is shown in the record's frontmatter, not the body.
 - **It never affects duplicate detection.** Identity is the *directive*, so a Stop
   firing whose directory changed (a rename, a subdirectory, or none at all) is
   still an unchanged directive and still a byte-identical no-op. Moving a project
@@ -116,8 +125,8 @@ that rule.
 
 **Host differences.** All four hosts fire the same hook after each turn and store
 the same records, in the same notes folder. That shared folder is how a decision
-captured in one tool is recalled in another. The records do not name the tool
-that wrote them. They differ in where the hook looks for the directive:
+captured in one tool is recalled in another. Each record carries a `client` label
+naming the host that wrote it (see below). They differ in where the hook looks for the directive:
 
 - **Claude Code** reads the whole transcript, so a directive anywhere in the
   session is found.

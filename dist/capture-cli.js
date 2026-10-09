@@ -3,12 +3,20 @@ import { config } from "./config.js";
 import { captureSession, overSummaryWordCeiling, summaryWordCount } from "./capture.js";
 import { parseSessionDirective } from "./directive.js";
 import { capturePosition, overStanceWordCeiling, stanceWordCount } from "./position.js";
+import { classifyClient, parseExplicitIdentity } from "./client.js";
 import { parsePositionDirective, findEmptyStancePositionDirective } from "./position-directive.js";
 async function main() {
     const input = await readStdin();
     const parsed = safeParse(input);
     if (!parsed)
         return;
+    // Classify the host from the ORIGINAL envelope, once, before normalization
+    // rewrites an Antigravity payload into a shape indistinguishable from Codex's.
+    const client = classifyClient({
+        direct: typeof parsed.summary === "string" || typeof parsed.position === "string",
+        agy: isAntigravityPayload(parsed),
+        grok: typeof parsed.lastAssistantMessage === "string",
+    }, explicitIdentity());
     const payload = isAntigravityPayload(parsed) ? normalizeAntigravity(parsed) : parsed;
     if (!payload)
         return;
@@ -25,8 +33,30 @@ async function main() {
     };
     // The two captures are independent: a failure or an unexpected throw in one must
     // never skip the other (a corrupt session day file must not cost a position).
-    guarded("session", () => runSessionCapture(payload, getTranscriptText));
-    guarded("position", () => runPositionCapture(payload, getTranscriptText));
+    guarded("session", () => runSessionCapture(payload, getTranscriptText, client));
+    guarded("position", () => runPositionCapture(payload, getTranscriptText, client));
+}
+/**
+ * The identity the installer set, from `--client <name>` (what librarian-stop.sh
+ * forwards) or the RUTTER_CLIENT variable. Two sources that disagree are treated as
+ * unrecognized -- absent beats wrong -- and an argument given without a value is
+ * unrecognized too, not absent.
+ */
+function explicitIdentity() {
+    const argv = process.argv.slice(2);
+    let fromArg;
+    for (let i = 0; i < argv.length; i++) {
+        if (argv[i] === "--client")
+            fromArg = argv[++i] ?? "\0";
+        else if (argv[i].startsWith("--client="))
+            fromArg = argv[i].slice("--client=".length);
+    }
+    const fromEnv = process.env.RUTTER_CLIENT;
+    const arg = parseExplicitIdentity(fromArg);
+    const env = parseExplicitIdentity(fromEnv);
+    if (arg.kind !== "absent" && env.kind !== "absent" && fromArg !== fromEnv)
+        return { kind: "unrecognized" };
+    return arg.kind !== "absent" ? arg : env;
 }
 function guarded(kind, run) {
     try {
@@ -57,7 +87,7 @@ function vaultNote() {
 // ---------------------------------------------------------------------------
 // Session capture (SCN-001/SCN-002/etc.) -- unchanged behavior (SR-055).
 // ---------------------------------------------------------------------------
-function runSessionCapture(payload, getTranscriptText) {
+function runSessionCapture(payload, getTranscriptText, client) {
     const directive = resolveDirective(payload, getTranscriptText);
     if (!directive) {
         console.error("[librarian-capture] no session directive found; nothing captured.");
@@ -68,6 +98,7 @@ function runSessionCapture(payload, getTranscriptText) {
         refs: directive.refs,
         sessionId: payload.session_id ?? payload.sessionId,
         cwd: payload.cwd,
+        client,
     });
     if (result.failed) {
         reportFailure("session entry", result.failed);
@@ -142,7 +173,7 @@ function assistantMessage(payload) {
 // ---------------------------------------------------------------------------
 // Position capture (SCN-010, decision-graph Phase A) -- wholly additive.
 // ---------------------------------------------------------------------------
-function runPositionCapture(payload, getTranscriptText) {
+function runPositionCapture(payload, getTranscriptText, client) {
     const text = positionDirectiveSourceText(payload, getTranscriptText);
     if (text === null)
         return; // neither a direct `position` field nor a transcript to scan -- nothing possible
@@ -167,6 +198,7 @@ function runPositionCapture(payload, getTranscriptText) {
         rawStance: directive.rawStance,
         sessionId: payload.session_id ?? payload.sessionId,
         cwd: payload.cwd,
+        client,
     });
     if (result.failed) {
         reportFailure("position event", result.failed);

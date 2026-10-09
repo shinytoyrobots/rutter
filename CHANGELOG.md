@@ -4,6 +4,23 @@ Notable changes to rutter, newest first. Detailed per-ship records — grounds,
 disclosed gaps, and what is being watched — are kept by the maintainer
 outside this repository.
 
+## v0.5.0 — 2026-10-09
+
+- **Records name the client that wrote them.** Each session entry and position event now carries
+  a `client` label: `claude`, `grok`, `codex`, or `agy`. It answers "which client stopped writing
+  summaries?" from the records. It is the host, not the model: `agy` runs Gemini and Claude
+  models and no hook payload says which. This reverses the 0.4.0 note that records do not name
+  the client. The label is metadata only (the summary and stance stay byte-verbatim), sits in the
+  frontmatter rather than the body, and is not part of duplicate detection.
+- **A label is left off rather than guessed.** The hook classifies the original Stop envelope
+  before Antigravity normalization and combines it with the identity the installer passes
+  (`--client`, or `RUTTER_CLIENT`). Conflicts, an unrecognized identity, direct payloads, and
+  Codex without an identity get no label. Records from before this release show none.
+- **Re-run the installer to label an existing hook.** `npm run install-hook -- --client
+  <claude|codex|antigravity>` updates a registration in place to pass the identity; the plugin's
+  own hook already does. Hooks registered by hand stay unlabeled until then.
+- **Update every writer to 0.4.1 first.** Older writers strip the label on append.
+
 ## v0.4.1 — 2026-10-09
 
 - **A capture never overwrites a record it cannot read.** If a day's session file or a month's

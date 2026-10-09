@@ -2,6 +2,7 @@ import { toInertLine, wordCount, overWordCeiling } from "./sanitize.js";
 import { resolveRefs } from "./refs.js";
 import { appendSession, isDuplicateEntry } from "./session-record.js";
 import { deriveWorkspace } from "./workspace.js";
+import { isClient } from "./client.js";
 /**
  * Capture one session. A summary that is empty after inert-text normalisation is
  * a no-op: no entry is appended and no empty record file is created (SR-004,
@@ -28,6 +29,7 @@ export function captureSession(payload) {
         summary,
         refs,
         ...(workspace ? { workspace } : {}),
+        ...(isClient(payload.client) ? { client: payload.client } : {}),
     };
     // SR-013 idempotence. Claude Code fires the Stop event at the END OF EVERY
     // assistant turn (and around clear/compact), not only at session end, so the

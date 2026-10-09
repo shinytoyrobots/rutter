@@ -40,7 +40,7 @@ t("codex: creates hooks.json with the shared hook, timeout, and a trust-review m
   assert.equal(res.status, 0, res.stderr);
   const cfg = JSON.parse(fs.readFileSync(sb.hooksJson, "utf8"));
   assert.equal(cfg.hooks.Stop.length, 1);
-  assert.equal(cfg.hooks.Stop[0].hooks[0].command, hookPath);
+  assert.equal(cfg.hooks.Stop[0].hooks[0].command, `${hookPath} --client codex`, "carries the explicit client identity");
   assert.equal(cfg.hooks.Stop[0].hooks[0].type, "command");
   assert.match(res.stderr, /\/hooks/);
   assert.match(res.stderr, /did NOT grant trust/);
@@ -65,12 +65,26 @@ t("codex: merges without disturbing unrelated hooks, and is idempotent", () => {
   assert.equal(fs.readFileSync(sb.hooksJson, "utf8"), after, "byte-identical on re-run");
 });
 
-t("codex: an existing registration (e.g. made by hand) is detected, not duplicated", () => {
+t("codex: an existing registration (e.g. made by hand) is detected and gains the identity, not a duplicate", () => {
   const sb = sandbox();
   fs.mkdirSync(sb.codexHome, { recursive: true });
   fs.writeFileSync(sb.hooksJson, JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: "command", command: hookPath, timeout: 30 }] }] } }), "utf8");
-  const before = fs.readFileSync(sb.hooksJson, "utf8");
+  assert.match(install(sb, "--client", "codex").stderr, /updated the Stop hook/);
+  const cfg = JSON.parse(fs.readFileSync(sb.hooksJson, "utf8"));
+  assert.equal(cfg.hooks.Stop.length, 1, "updated in place, not duplicated");
+  assert.deepEqual(cfg.hooks.Stop[0].hooks[0], { type: "command", command: `${hookPath} --client codex`, timeout: 30 });
+  const after = fs.readFileSync(sb.hooksJson, "utf8");
   assert.match(install(sb, "--client", "codex").stderr, /already registered/);
+  assert.equal(fs.readFileSync(sb.hooksJson, "utf8"), after, "and then stable");
+});
+
+t("a registration with a custom command is left alone, with a note about the identity", () => {
+  const sb = sandbox();
+  fs.mkdirSync(sb.codexHome, { recursive: true });
+  const custom = `FOO=1 ${hookPath}`;
+  fs.writeFileSync(sb.hooksJson, JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: "command", command: custom }] }] } }), "utf8");
+  const before = fs.readFileSync(sb.hooksJson, "utf8");
+  assert.match(install(sb, "--client", "codex").stderr, /custom command/);
   assert.equal(fs.readFileSync(sb.hooksJson, "utf8"), before);
 });
 
@@ -100,7 +114,7 @@ t("no argument still targets Claude's settings.json; unknown client or flag fail
   const sb = sandbox();
   assert.equal(install(sb).status, 0);
   const cfg = JSON.parse(fs.readFileSync(path.join(sb.home, ".claude", "settings.json"), "utf8"));
-  assert.deepEqual(cfg.hooks.Stop[0].hooks[0], { type: "command", command: hookPath });
+  assert.deepEqual(cfg.hooks.Stop[0].hooks[0], { type: "command", command: `${hookPath} --client claude` });
   assert.equal(fs.existsSync(sb.hooksJson), false, "Codex config untouched");
   assert.equal(install(sb, "--client", "vim").status, 1);
   assert.equal(install(sb, "--bogus").status, 1);
@@ -118,7 +132,7 @@ t("antigravity: creates ~/.gemini/config/hooks.json keyed by name, with Stop tim
   assert.equal(entry.type, "command");
   assert.equal(entry.timeout, 30);
   assert.equal(cfg["librarian-capture"].Stop.length, 1);
-  assert.ok(entry.command.endsWith(` ${hookPath}`), "still runs the shared hook script");
+  assert.ok(entry.command.endsWith(` ${hookPath} --client agy`), "still runs the shared hook script, with the explicit identity");
   assert.match(entry.command, /^LIBRARIAN_VAULT_PATH="\$\{LIBRARIAN_VAULT_PATH:-[^}]+\}" /, "the vault is baked in as a default an exported value can override");
   assert.match(res.stderr, /VAULT for capture AND reads/);
   assert.match(res.stderr, /mcp_config\.json/);
@@ -130,6 +144,18 @@ t("antigravity: creates ~/.gemini/config/hooks.json keyed by name, with Stop tim
   assert.match(res.stderr, /"LIBRARIAN_VAULT_PATH"/, "prints the MCP env snippet");
   assert.equal(fs.existsSync(path.join(sb.home, ".claude", "settings.json")), false, "Claude config untouched");
   assert.equal(fs.existsSync(sb.hooksJson), false, "Codex config untouched");
+});
+
+t("antigravity: a registration from before the identity existed is updated in place to carry it", () => {
+  const sb = sandbox();
+  assert.equal(install(sb, "--client", "antigravity").status, 0);
+  const cfg = JSON.parse(fs.readFileSync(agyHooks(sb.home), "utf8"));
+  cfg["librarian-capture"].Stop[0].command = cfg["librarian-capture"].Stop[0].command.replace(" --client agy", "");
+  fs.writeFileSync(agyHooks(sb.home), JSON.stringify(cfg), "utf8");
+  assert.equal(install(sb, "--client", "antigravity").status, 0);
+  const after = JSON.parse(fs.readFileSync(agyHooks(sb.home), "utf8"));
+  assert.equal(after["librarian-capture"].Stop.length, 1, "not duplicated");
+  assert.ok(after["librarian-capture"].Stop[0].command.endsWith(" --client agy"));
 });
 
 t("antigravity: merges beside unrelated hooks, and is idempotent", () => {
@@ -269,4 +295,10 @@ t("antigravity: refuses malformed config, a non-object, and a name collision, ch
 
 test("installer refuses when dist/capture-cli.js is missing (skipped when the repo is built)", { skip: built }, () => {
   assert.equal(install(sandbox(), "--client", "codex").status, 1);
+});
+
+test("the plugin hook passes the claude identity and the shared script forwards its arguments", () => {
+  const hooks = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, "..", "hooks", "hooks.json"), "utf8"));
+  assert.match(hooks.hooks.Stop[0].hooks[0].command, /librarian-stop\.sh --client claude$/);
+  assert.match(fs.readFileSync(hookPath, "utf8"), /capture-cli\.js" "\$@"/);
 });

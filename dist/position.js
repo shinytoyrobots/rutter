@@ -3,6 +3,7 @@ import { resolveRefs } from "./refs.js";
 import { appendPositionEvent, isDuplicatePositionEvent, isoMonth, } from "./positions.js";
 import { deriveRefPaths, deriveRevises } from "./position-directive.js";
 import { deriveWorkspace } from "./workspace.js";
+import { isClient } from "./client.js";
 /**
  * Capture one position directive. SR-057 (empty/whitespace stance) is enforced
  * upstream by `parsePositionDirective`, which never yields a payload for that
@@ -29,6 +30,7 @@ export function capturePosition(payload) {
         ...(revises ? { revises } : {}),
         refs,
         ...(workspace ? { workspace } : {}),
+        ...(isClient(payload.client) ? { client: payload.client } : {}),
     };
     // SR-049 idempotence, decided before the durable write exactly as capture.ts
     // decides SR-013 before appendSession -- see positions.ts for the full

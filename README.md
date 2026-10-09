@@ -43,7 +43,8 @@ command-line tool, not the Antigravity IDE.
 
 Point every client at the same notes folder. Each sets it differently. The Claude Code plugin asks
 for it at install. Grok and Codex read `LIBRARIAN_VAULT_PATH` from the shell that launches them.
-Antigravity's installer takes `--vault`. The records do not note which client wrote them.
+Antigravity's installer takes `--vault`. Each record notes which client wrote it, when the hook can
+tell (see *How this differs*).
 
 ## How this differs from memory you already have
 
@@ -110,8 +111,12 @@ Stated here rather than discovered later:
 - **Shared across your tools, not across people.** One person's tools share one memory. Nothing
   here addresses records shared between people, ratification, or whose version of a decision wins.
   Those are the hard problems at team scale and none of them are solved here.
-- **Records do not name the tool that wrote them.** A session entry carries its session ID and
-  workspace, not the client. You can recall what was decided, but not filter by which tool decided it.
+- **Records name the client, not the model.** A session entry or position event carries a `client`
+  label (`claude`, `grok`, `codex`, or `agy`) when the hook can establish it, so you can see which
+  client stopped writing summaries. It is the host, not the model: `agy` runs Gemini and Claude
+  models, and no hook payload says which. A label is left off rather than guessed, so records from
+  before the label existed, hand-registered hooks, and ambiguous turns show none. You cannot filter
+  or search by client yet.
 - **Capture depends on each tool's model following the instructions.** The hook only lifts a line the
   model wrote. Each of the four was checked with a real session. A model
   that skips the line leaves nothing to capture.
@@ -421,7 +426,7 @@ folder; the fifth lives with the plugin:
 - **Session records** in `_librarian/sessions/`: the one-line summaries your AI client writes as a
   session decides or produces something, stored word for word, together with the paths and content
   hashes of the notes it cited, the working directory, the project name derived from it, the
-  session ID, and the git remote URL of that directory if it has one (read from `.git/config`;
+  session ID, which client wrote it (one of four fixed names, never the model), and the git remote URL of that directory if it has one (read from `.git/config`;
   never contacted, and any token, password or query string in it is removed before it is stored).
 - **Position records** in `_librarian/positions/`: the stances your client records on a topic, when
   you form, change or retire one, stored word for word with their dates.

@@ -2,6 +2,7 @@ import { toInertLine, wordCount, overWordCeiling } from "./sanitize.js";
 import { resolveRefs, type VersionedRef } from "./refs.js";
 import { appendSession, isDuplicateEntry, type SessionEntry } from "./session-record.js";
 import { deriveWorkspace } from "./workspace.js";
+import { isClient } from "./client.js";
 
 /**
  * Ambient capture (SCN-001): turn a client-produced session summary into exactly
@@ -23,6 +24,12 @@ export interface CapturePayload {
    * workspace.ts; absent, it is simply omitted (SR-016).
    */
   cwd?: string;
+  /**
+   * Host client that produced the payload, as classified by capture-cli from the
+   * original Stop envelope. Only a canonical value is ever written; anything else
+   * is dropped, so the field is simply absent. Not part of entry identity.
+   */
+  client?: string;
   /** Injectable clock for deterministic tests; defaults to now. */
   now?: Date;
 }
@@ -76,6 +83,7 @@ export function captureSession(payload: CapturePayload): CaptureResult {
     summary,
     refs,
     ...(workspace ? { workspace } : {}),
+    ...(isClient(payload.client) ? { client: payload.client } : {}),
   };
 
   // SR-013 idempotence. Claude Code fires the Stop event at the END OF EVERY
