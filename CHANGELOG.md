@@ -4,6 +4,19 @@ Notable changes to rutter, newest first. Detailed per-ship records — grounds,
 disclosed gaps, and what is being watched — are kept by the maintainer
 outside this repository.
 
+## Unreleased
+
+- **Antigravity as a capture host.** `npm run install-hook -- --client antigravity` registers
+  the Stop hook in `~/.gemini/config/hooks.json`. Antigravity's Stop event carries no reply
+  text, so `capture-cli` reads the current turn's `PLANNER_RESPONSE` records from the
+  transcript (after the last `USER_INPUT`; tool results and echoed prompts are ignored) and
+  skips a turn that ended with an error. The conversation id is the session id and the first
+  workspace path is the working directory. Verified with `agy` 1.3.2: three real turns,
+  records landed in a disposable vault, a directive-free turn captured nothing, a replayed
+  payload was a byte-identical no-op, and empty stdout with exit 0 is accepted.
+- **Known limit: no ambient capture yet.** In testing the model did not write a summary line
+  unprompted, even with the rule in `AGENTS.md`. Directives it is asked to write are captured.
+
 ## v0.3.3 — 2026-10-02
 
 - **The privacy policy now lists everything rutter writes.** It said three kinds of

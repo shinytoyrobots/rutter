@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 
 /**
  * hooks/install-hook.mjs against throwaway config dirs (never the real
- * ~/.claude or ~/.codex): CODEX_HOME for Codex, HOME for Claude.
+ * ~/.claude, ~/.codex or ~/.gemini): CODEX_HOME for Codex, HOME for Claude and Antigravity.
  */
 
 const script = fileURLToPath(new URL("../hooks/install-hook.mjs", import.meta.url));
@@ -104,6 +104,56 @@ t("no argument still targets Claude's settings.json; unknown client or flag fail
   assert.equal(fs.existsSync(sb.hooksJson), false, "Codex config untouched");
   assert.equal(install(sb, "--client", "vim").status, 1);
   assert.equal(install(sb, "--bogus").status, 1);
+});
+
+const agyHooks = (home: string): string => path.join(home, ".gemini", "config", "hooks.json");
+
+t("antigravity: creates ~/.gemini/config/hooks.json keyed by name, with Stop timeout, and prints both-environment guidance", () => {
+  const sb = sandbox();
+  const res = install(sb, "--client", "antigravity");
+  assert.equal(res.status, 0, res.stderr);
+  const cfg = JSON.parse(fs.readFileSync(agyHooks(sb.home), "utf8"));
+  assert.deepEqual(cfg["librarian-capture"], { Stop: [{ type: "command", command: hookPath, timeout: 30 }] });
+  assert.match(res.stderr, /SAME vault/);
+  assert.match(res.stderr, /mcp_config\.json/);
+  assert.match(res.stderr, /"LIBRARIAN_VAULT_PATH"/, "prints the MCP env snippet");
+  assert.equal(fs.existsSync(path.join(sb.home, ".claude", "settings.json")), false, "Claude config untouched");
+  assert.equal(fs.existsSync(sb.hooksJson), false, "Codex config untouched");
+});
+
+t("antigravity: merges beside unrelated hooks, and is idempotent", () => {
+  const sb = sandbox();
+  fs.mkdirSync(path.dirname(agyHooks(sb.home)), { recursive: true });
+  const existing = { other: { Stop: [{ type: "command", command: "echo other" }], PreToolUse: [{ type: "command", command: "echo pre" }] } };
+  fs.writeFileSync(agyHooks(sb.home), JSON.stringify(existing), "utf8");
+  assert.equal(install(sb, "--client", "antigravity").status, 0);
+  const after = fs.readFileSync(agyHooks(sb.home), "utf8");
+  const cfg = JSON.parse(after);
+  assert.deepEqual(cfg.other, existing.other);
+  assert.equal(cfg["librarian-capture"].Stop.length, 1);
+  const again = install(sb, "--client", "antigravity");
+  assert.equal(again.status, 0);
+  assert.match(again.stderr, /already registered/);
+  assert.equal(fs.readFileSync(agyHooks(sb.home), "utf8"), after, "byte-identical on re-run");
+});
+
+t("antigravity: a hand-made registration under another name is detected, not duplicated", () => {
+  const sb = sandbox();
+  fs.mkdirSync(path.dirname(agyHooks(sb.home)), { recursive: true });
+  fs.writeFileSync(agyHooks(sb.home), JSON.stringify({ mine: { Stop: [{ type: "command", command: hookPath }] } }), "utf8");
+  const before = fs.readFileSync(agyHooks(sb.home), "utf8");
+  assert.match(install(sb, "--client", "antigravity").stderr, /already registered/);
+  assert.equal(fs.readFileSync(agyHooks(sb.home), "utf8"), before);
+});
+
+t("antigravity: refuses malformed config, a non-object, and a name collision, changing nothing", () => {
+  const sb = sandbox();
+  fs.mkdirSync(path.dirname(agyHooks(sb.home)), { recursive: true });
+  for (const bad of ["{ not json", "[]", JSON.stringify({ "librarian-capture": { Stop: [{ type: "command", command: "echo mine" }] } })]) {
+    fs.writeFileSync(agyHooks(sb.home), bad, "utf8");
+    assert.equal(install(sb, "--client", "antigravity").status, 1, bad);
+    assert.equal(fs.readFileSync(agyHooks(sb.home), "utf8"), bad);
+  }
 });
 
 test("installer refuses when dist/capture-cli.js is missing (skipped when the repo is built)", { skip: built }, () => {

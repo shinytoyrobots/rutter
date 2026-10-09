@@ -3,6 +3,7 @@
  * Register the librarian Stop hook in a client's hook configuration:
  *   node hooks/install-hook.mjs                  -> ~/.claude/settings.json (Claude Code, Grok)
  *   node hooks/install-hook.mjs --client codex   -> $CODEX_HOME or ~/.codex, hooks.json
+ *   node hooks/install-hook.mjs --client antigravity -> ~/.gemini/config/hooks.json (agy)
  *
  * This is the ONE step of ambient capture that cannot ship inside the server:
  * MCP has no mechanism to install a client hook, so it stays external. It is
@@ -32,14 +33,20 @@ for (let i = 0; i < args.length; i++) {
   } else if (args[i].startsWith("--client=")) {
     client = args[i].slice("--client=".length);
   } else {
-    fail(`unknown argument "${args[i]}" -- usage: install-hook [--client claude|codex]`);
+    fail(`unknown argument "${args[i]}" -- usage: install-hook [--client claude|codex|antigravity]`);
   }
 }
-if (client !== "claude" && client !== "codex") fail(`unknown client "${client}" -- expected claude or codex.`);
+if (client !== "claude" && client !== "codex" && client !== "antigravity") {
+  fail(`unknown client "${client}" -- expected claude, codex, or antigravity.`);
+}
 
 const codexHome = process.env.CODEX_HOME || path.join(os.homedir(), ".codex");
 const settingsPath =
-  client === "codex" ? path.join(codexHome, "hooks.json") : path.join(os.homedir(), ".claude", "settings.json");
+  client === "codex"
+    ? path.join(codexHome, "hooks.json")
+    : client === "antigravity"
+      ? path.join(os.homedir(), ".gemini", "config", "hooks.json")
+      : path.join(os.homedir(), ".claude", "settings.json");
 const hookPath = path.join(import.meta.dirname, "librarian-stop.sh");
 // A path containing spaces must survive the shell the host runs commands through.
 const hookCommand = /[^A-Za-z0-9_@%+=:,./-]/.test(hookPath) ? `'${hookPath.replaceAll("'", "'\\''")}'` : hookPath;
@@ -50,6 +57,78 @@ if (!fs.existsSync(hookPath)) fail(`hook script not found at ${hookPath}`);
 // that fails on every Stop event. Better to refuse than to install a dud.
 const distEntry = path.join(import.meta.dirname, "..", "dist", "capture-cli.js");
 if (!fs.existsSync(distEntry)) fail("dist/capture-cli.js is missing -- run `npm run build` first.");
+
+if (client === "antigravity") installAntigravity();
+
+function installAntigravity() {
+  // agy's hooks.json is keyed by hook NAME, then event: { "<name>": { "Stop": [ {type, command, timeout} ] } }
+  // (not Claude/Codex's { hooks: { Stop: [ { hooks: [...] } ] } }). The Stop hook is non-blocking by
+  // construction: the wrapper exits 0 with empty stdout and never emits decision "continue".
+  const name = "librarian-capture";
+  const mentionsHook = (cfg) =>
+    Object.values(cfg ?? {}).some(
+      (v) =>
+        Array.isArray(v?.Stop) &&
+        v.Stop.some((h) => typeof h?.command === "string" && (h.command.includes(hookPath) || h.command.includes(hookCommand)))
+    );
+  let cfg = {};
+  if (fs.existsSync(settingsPath)) {
+    const raw = fs.readFileSync(settingsPath, "utf8");
+    try {
+      cfg = raw.trim() === "" ? {} : JSON.parse(raw);
+    } catch {
+      fail(`${settingsPath} is not valid JSON -- fix or move it, then re-run (nothing was changed).`);
+    }
+    if (cfg === null || typeof cfg !== "object" || Array.isArray(cfg)) {
+      fail(`${settingsPath} is not a JSON object -- fix it, then re-run (nothing was changed).`);
+    }
+  } else {
+    fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
+  }
+  if (mentionsHook(cfg)) {
+    console.error(`[install-hook] already registered in ${settingsPath}; nothing to do.`);
+    process.exit(0);
+  }
+  if (name in cfg) {
+    fail(`${settingsPath} already has a hook named "${name}" that is not this one -- rename it, then re-run (nothing was changed).`);
+  }
+  // A workspace registration fires alongside the global one (capture dedupes, but report it).
+  const workspaceHooks = path.join(process.cwd(), ".agents", "hooks.json");
+  try {
+    if (fs.existsSync(workspaceHooks) && mentionsHook(JSON.parse(fs.readFileSync(workspaceHooks, "utf8")))) {
+      console.error(`[install-hook] note: ${workspaceHooks} also registers this hook; it will fire twice here (capture dedupes).`);
+    }
+  } catch {
+    /* an unreadable workspace file is not ours to judge */
+  }
+  cfg[name] = { Stop: [{ type: "command", command: hookCommand, timeout: 30 }] };
+  const tmp = `${settingsPath}.librarian-tmp`;
+  fs.writeFileSync(tmp, `${JSON.stringify(cfg, null, 2)}\n`, "utf8");
+  fs.renameSync(tmp, settingsPath);
+
+  const vault = process.env.LIBRARIAN_VAULT_PATH ?? path.join(os.homedir(), "Documents", "knowledge-vault");
+  const db = process.env.LIBRARIAN_DB_PATH ?? path.join(import.meta.dirname, "..", "data", "librarian.db");
+  const stdio = path.join(import.meta.dirname, "..", "dist", "stdio.js");
+  console.error(`[install-hook] registered the Stop hook in ${settingsPath}.`);
+  console.error("[install-hook] TWO environments must name the SAME vault, or records are written to one vault and read from another:");
+  console.error("[install-hook]  1. the hook (capture) inherits the environment agy is launched with: export LIBRARIAN_VAULT_PATH there.");
+  console.error("[install-hook]  2. the MCP server (reads) takes its own env from ~/.gemini/config/mcp_config.json. Add (literal values;");
+  console.error("[install-hook]     variable substitution there is undocumented):");
+  console.error(
+    JSON.stringify(
+      { mcpServers: { rutter: { command: process.execPath, args: [stdio], env: { LIBRARIAN_VAULT_PATH: vault, LIBRARIAN_DB_PATH: db } } } },
+      null,
+      2
+    )
+      .split("\n")
+      .map((l) => `[install-hook]     ${l}`)
+      .join("\n")
+  );
+  console.error(`[install-hook] vault in the snippet above: ${vault}${process.env.LIBRARIAN_VAULT_PATH ? "" : " (default; set LIBRARIAN_VAULT_PATH to change)"}.`);
+  console.error("[install-hook] Check /hooks in agy to review the hook (installing did NOT grant trust, if agy asks for it), then check");
+  console.error("[install-hook] <vault>/_librarian/sessions/ after your next turn.");
+  process.exit(0);
+}
 
 let settings = {};
 if (fs.existsSync(settingsPath)) {

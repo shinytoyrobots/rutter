@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Stop hook for rutter ambient capture (SCN-001): Claude Code, Grok, Codex.
+# Stop hook for rutter ambient capture (SCN-001): Claude Code, Grok, Codex, Antigravity.
 #
 # The host pipes the Stop event JSON (incl. `session_id`, `cwd`, and a
 # transcript path or `last_assistant_message`) to this script on stdin after

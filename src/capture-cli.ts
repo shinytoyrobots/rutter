@@ -6,13 +6,13 @@ import { capturePosition, overStanceWordCeiling, stanceWordCount } from "./posit
 import { parsePositionDirective, findEmptyStancePositionDirective } from "./position-directive.js";
 
 /**
- * Entry point the Stop hook runs (Claude Code, Grok, Codex -- after each turn). It reads a JSON
+ * Entry point the Stop hook runs (Claude Code, Grok, Codex, Antigravity -- after each turn). It reads a JSON
  * payload on stdin and appends AT MOST ONE session entry and AT MOST ONE
  * position event. It performs no inference and no network I/O (INV-6, INV-1)
  * -- it only lifts already-client-written directives out of the transcript
  * and stores them.
  *
- * Four accepted stdin shapes:
+ * Five accepted stdin shapes:
  *   1. A direct capture payload: {"summary": "...", "refs": [...], "sessionId": "...", "cwd": "...", "position": "..."}
  *   2. A Claude Code Stop payload: {"transcript_path": "...", "session_id": "...", "cwd": "..."}
  *      -- from which the last `librarian-session` directive AND the last
@@ -30,6 +30,11 @@ import { parsePositionDirective, findEmptyStancePositionDirective } from "./posi
  *      (snake_case). Handled by the same fallback as (3) with the same
  *      precedence; only directives in the FINAL assistant message are seen.
  *      See codex-compatibility.md.
+ *   5. An Antigravity (`agy`) Stop payload: camelCase `conversationId`,
+ *      `transcriptPath`, `workspacePaths`, `error`, and NO assistant text. It is
+ *      normalized up front (`normalizeAntigravity`): the assistant text of the
+ *      CURRENT turn is read from the transcript and handed to the same message
+ *      fallback as (3)/(4). See antigravity-compatibility.md.
  * Anything else, or an absent directive of a given kind, is a clean no-op for
  * THAT kind (SR-004 for a session summary, the SR-057 analogue for a position).
  *
@@ -71,6 +76,15 @@ interface StopPayload {
   /** Working directory of the session (Claude Code Stop field, also accepted direct). */
   cwd?: string;
   /**
+   * Antigravity Stop fields (camelCase). `transcriptPath` points at a mutable
+   * `transcript_full.jsonl`; `error` is "" on success; `workspacePaths[0]` is the
+   * workspace (the hook process's own cwd is the hooks.json directory, not this).
+   */
+  conversationId?: string;
+  transcriptPath?: string;
+  workspacePaths?: unknown;
+  error?: unknown;
+  /**
    * Direct-payload escape hatch for a position directive, mirroring `summary`
    * above: `<kind> <topic-key>: <stance>` (no `POSITION` keyword and no
    * HTML-comment wrapper needed -- the field name itself already says which
@@ -83,7 +97,9 @@ interface StopPayload {
 
 async function main(): Promise<void> {
   const input = await readStdin();
-  const payload = safeParse(input);
+  const parsed = safeParse(input);
+  if (!parsed) return;
+  const payload = isAntigravityPayload(parsed) ? normalizeAntigravity(parsed) : parsed;
   if (!payload) return;
 
   // Read the transcript AT MOST ONCE, lazily -- only if some caller actually
@@ -343,6 +359,86 @@ function extractText(record: unknown): string {
   if (!Array.isArray(content)) return "";
   return content
     .map((block) => (typeof (block as { text?: unknown }).text === "string" ? (block as { text: string }).text : ""))
+    .join("\n");
+}
+
+// ---------------------------------------------------------------------------
+// Antigravity Stop adapter (antigravity-compatibility.md).
+// ---------------------------------------------------------------------------
+
+/**
+ * Selected by payload SHAPE, never by a transcript path merely being set (the
+ * Grok lesson): camelCase `conversationId` + `transcriptPath`, and none of the
+ * snake_case keys another host (or a direct caller) would use.
+ */
+function isAntigravityPayload(p: StopPayload): boolean {
+  return (
+    typeof p.conversationId === "string" &&
+    typeof p.transcriptPath === "string" &&
+    p.session_id === undefined &&
+    p.transcript_path === undefined &&
+    p.summary === undefined &&
+    p.position === undefined
+  );
+}
+
+/**
+ * Maps an Antigravity Stop payload onto the shape the shared paths already read:
+ * `conversationId` becomes the session id, `workspacePaths[0]` the cwd, and the
+ * current turn's assistant text the message fallback. Returns null (nothing
+ * captured) on a non-empty `error`, or when the transcript is unreadable or
+ * unrecognized -- fail closed, one stderr line. No other guard: our hook never
+ * requests continuation, so it cannot cause re-entry.
+ */
+function normalizeAntigravity(p: StopPayload): StopPayload | null {
+  if (typeof p.error === "string" && p.error !== "") {
+    console.error("[librarian-capture] antigravity turn ended with an error; nothing captured.");
+    return null;
+  }
+  const text = readAntigravityTurnText(p.transcriptPath as string);
+  if (text === null) {
+    console.error("[librarian-capture] antigravity transcript unreadable or unrecognized; nothing captured.");
+    return null;
+  }
+  const cwd = Array.isArray(p.workspacePaths) && typeof p.workspacePaths[0] === "string" ? p.workspacePaths[0] : undefined;
+  return { session_id: p.conversationId, cwd, last_assistant_message: text };
+}
+
+/**
+ * Assistant text of the CURRENT turn from an Antigravity `transcript_full.jsonl`:
+ * `PLANNER_RESPONSE` records after the last `USER_INPUT`. Filtering on `type`, not
+ * `source`: tool results (`GENERIC`) also carry `source: "MODEL"`, and `USER_INPUT`
+ * echoes any directive template the user typed. The transcript accumulates across
+ * turns, so scoping to the last `USER_INPUT` keeps an older turn's directive from
+ * shadowing or duplicating the current one. Returns null when the file is
+ * unreadable or holds no record with a string `type` (unrecognized shape).
+ */
+function readAntigravityTurnText(transcriptPath: string): string | null {
+  let raw: string;
+  try {
+    raw = fs.readFileSync(transcriptPath, "utf8");
+  } catch {
+    return null;
+  }
+  const records: { type: string; content?: unknown }[] = [];
+  for (const line of raw.split("\n")) {
+    if (line.trim() === "") continue;
+    try {
+      const rec = JSON.parse(line) as { type?: unknown; content?: unknown };
+      if (rec && typeof rec.type === "string") records.push({ type: rec.type, content: rec.content });
+    } catch {
+      /* skip unparseable transcript line */
+    }
+  }
+  if (records.length === 0) return null;
+  let start = 0;
+  records.forEach((r, i) => {
+    if (r.type === "USER_INPUT") start = i + 1;
+  });
+  return records
+    .slice(start)
+    .filter((r) => r.type === "PLANNER_RESPONSE" && typeof r.content === "string")
+    .map((r) => r.content as string)
     .join("\n");
 }
 

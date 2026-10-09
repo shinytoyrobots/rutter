@@ -57,7 +57,7 @@ time.
 ## What it does today
 
 - Indexes the notes directory into a local SQLite FTS5 full-text index — a disposable, regenerable cache. Your files stay the source of truth.
-- **Ambient capture.** As a session decides or produces something, your client leaves a line about it, and a Claude Code, Grok, or Codex Stop hook appends that line to `<notes>/_librarian/sessions/<date>.md`, referencing touched notes by content hash. One line per separable outcome rather than one per session — a working session usually leaves three or four — grouped back into a single account of that session when you read it. Durable, git-committable, written by your client.
+- **Ambient capture.** As a session decides or produces something, your client leaves a line about it, and a Claude Code, Grok, Codex, or Antigravity Stop hook appends that line to `<notes>/_librarian/sessions/<date>.md`, referencing touched notes by content hash. One line per separable outcome rather than one per session — a working session usually leaves three or four — grouped back into a single account of that session when you read it. Durable, git-committable, written by your client.
 - **A style contract on that line.** Write for a smart reader in a hurry who wasn't in the session: outcome first, common words over session shorthand, no invented codenames or version tags, about 40 words. The contract is guidance carried in the server's MCP instructions. The server stores whatever it is given, **verbatim** — over-budget summaries are reported on the capture path and then stored as written.
 - **Workspace provenance.** Each entry carries the session's working directory, a project name derived from it, and the git remote URL when there is one, so a day spanning three efforts reads cleanly. Nothing to configure; resolution is pure local file reads — it never runs `git` and never contacts a remote.
 - Four read-only MCP tools:
@@ -96,8 +96,8 @@ Stated here rather than discovered later:
 - **Node ≥ 22** (uses the built-in `node:sqlite` — no native build step; FTS5 included). Verified on Node 26.
 - A directory of markdown notes. Obsidian is what it was built against — wikilinks and frontmatter
   are understood — but nothing requires Obsidian itself.
-- Claude Code, Grok, or Codex, for ambient capture. The MCP tools work with any MCP client; the Stop
-  hook is fired by all three after each turn. Claude Code and Grok read it from
+- Claude Code, Grok, Codex, or Antigravity, for ambient capture. The MCP tools work with any MCP client; the Stop
+  hook is fired by all four after each turn. Claude Code and Grok read it from
   `~/.claude/settings.json`, Codex from `~/.codex/hooks.json` (`npm run install-hook -- --client codex`,
   then trust it with `/hooks`; export `LIBRARIAN_VAULT_PATH` where Codex launches, since its hooks ignore `settings.json`). Claude Code lifts the directive from the transcript; Grok and Codex
   from the Stop event's final assistant message, so with Codex the directive must be in the final reply.
@@ -170,6 +170,7 @@ in [`docs/memory-of-use.md`](./docs/memory-of-use.md).)
 ```bash
 npm run build && npm run install-hook          # adds the hook to ~/.claude/settings.json
 npm run build && npm run install-hook -- --client codex   # Codex: ~/.codex/hooks.json (then trust it via /hooks)
+npm run build && npm run install-hook -- --client antigravity   # Antigravity: ~/.gemini/config/hooks.json
 ```
 
 …or add it to `~/.claude/settings.json` by hand (the hook runs `dist/capture-cli.js`, so
@@ -262,6 +263,19 @@ instead (`claude plugin install rutter@rutter`), pass `--config vault_path=/path
   3. Export `LIBRARIAN_VAULT_PATH` in the shell that launches Codex. Its hooks see only that
      environment, not `~/.claude/settings.json`; without it they write captures to the default folder.
   4. Expect the summary line in Codex's final reply, since that is where its hook looks for it.
+- **Antigravity (`agy`)** is set up by hand from a clone (verified with `agy` 1.3.2, headless runs):
+  1. Install the hook with `npm run install-hook -- --client antigravity`. It prints an `mcpServers`
+     snippet for `~/.gemini/config/mcp_config.json` (or use `agy mcp add --env LIBRARIAN_VAULT_PATH=…`).
+  2. Set the same `LIBRARIAN_VAULT_PATH` in BOTH places: the MCP server's `env`, and the shell that
+     launches `agy` (the hook inherits that environment). If they differ, records are written to one
+     folder and read from another.
+  3. Antigravity's Stop event carries no reply text, so the hook reads the current turn's assistant
+     messages from `agy`'s transcript file (`PLANNER_RESPONSE` records after the last user message). A
+     directive anywhere in the turn's replies is found, and an earlier turn's directive is never re-read.
+  4. **Ambient capture is not verified.** `agy` stores the server's instructions as a file but, in testing,
+     the model did not leave a summary line on its own, even with the capture rule in an `AGENTS.md` it
+     could quote back. A line it is asked to write is captured correctly; the read tools work. Treat
+     capture from Antigravity as explicit-only until that changes.
 - **Maintainers:** `dist/` is committed so the plugin works straight from a clone. Run
   `npm run build` and commit the result whenever `src/` changes.
 
@@ -317,7 +331,7 @@ src/
   app.ts             application seam (domain + instrumentation), used by server + tests
   reindex.ts / search-cli.ts / recent-cli.ts / gate-cli.ts / capture-cli.ts / identity-confirm-cli.ts   CLIs
 hooks/
-  librarian-stop.sh  Claude Code / Grok / Codex Stop hook -> capture-cli
+  librarian-stop.sh  Claude Code / Grok / Codex / Antigravity Stop hook -> capture-cli
   hooks.json         registers that hook when installed as a Claude plugin
 .claude-plugin/      plugin manifest (name, version, how it starts the server, notes-folder option, listing links) and marketplace
 dist/                committed build, so the plugin runs straight from a clone
