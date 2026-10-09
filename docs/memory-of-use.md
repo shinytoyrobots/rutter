@@ -21,13 +21,14 @@ Session memory lives in your vault, as plain, human-readable, git-committable ma
 <vault>/_librarian/sessions/2026-07-24.md
 ```
 
-- **One file per day, one line per outcome.** Each separable thing a session decides or produces
-  adds **one curated line** to that day's file. That line is a *directive* the client leaves (see
+- **One file per day, one line per outcome.** The contract asks the client for one line per
+  separable thing a session decides or produces. That line is a *directive* the client leaves (see
   [Capturing session summaries](#capturing-session-summaries)). It is not the raw transcript, and it
   is not one line per session. A working session usually leaves three or four. Over the first two
   weeks of real capture, one person's use, the average was 3.2 lines per session. Those lines are
   the session's **steps**, and `librarian-recent` groups them back into a single account of that
-  session when you read it.
+  session when you read it. Whether a line offered for capture is actually stored is a separate
+  rule, the duplicate rule below.
 - **Typed frontmatter.** Each record carries a small typed header: the day, each session's identity
   and time, the curated summary, and the notes it touched, each by its **versioned identity**. That
   is the vault-relative path plus a content hash taken when the line was captured. The reference
@@ -36,10 +37,22 @@ Session memory lives in your vault, as plain, human-readable, git-committable ma
   commit it.
 - **It is never auto-deleted.** Records are only ever appended to. rutter has no prune or delete
   path that destroys memory-of-use.
-- **Capture is idempotent.** The Stop hook fires at the end of *every* assistant turn, so the same
-  session's summary is offered for capture many times. An unchanged summary is a no-op: the file is
-  left byte-identical, with no duplicate entry. A *changed* summary is appended as a **revision**
-  after the earlier one. Nothing is ever overwritten or deleted.
+- **Capture is idempotent, and this is the duplicate rule.** The Stop hook fires at the end of
+  *every* assistant turn, so the same line is offered for capture many times. A line is skipped
+  when a line already recorded *anywhere* in `_librarian/sessions/`, on any day, has the same
+  session id, the same summary *after normalization* (see [the style
+  contract](#the-style-contract)), and the same sorted list of resolved reference paths. Order is
+  ignored and duplicates are kept, so `[A]` and `[A, A]` differ. Content hashes and the workspace
+  are not compared, so editing a cited note between firings does not add a twin. A skipped line
+  leaves the file byte-identical. What follows from the rule:
+  - Identical text in a *different* session appends.
+  - Two raw texts that normalize to the same line are one line.
+  - A rephrased line appends after the earlier one, as a **revision**. Nothing is overwritten or
+    deleted.
+  - A capture with no session id, such as a hand-piped `npm run capture` test, always appends.
+
+  Position lines follow the same pattern with their own key; see
+  [Positions](#positions-capturing-a-stance).
 
 ### Which workspace an entry came from
 
@@ -83,14 +96,15 @@ Everything about workspace is best-effort and never blocks a capture:
 added to the same record schema (`session-record@1`). There is no migration and no rewrite of old
 records. A day file can hold a mix of old and new entries.
 
-**Duplicate detection ignores it.** Duplicate detection compares the directive text only. A Stop
-firing whose directory changed (a rename, a subdirectory, or none at all) is still an unchanged
-directive and still a byte-identical no-op. Moving a project does not fork your history.
+**Duplicate detection ignores it.** The duplicate rule compares session id, normalized summary, and
+reference paths, never the workspace. A Stop firing whose directory changed (a rename, a
+subdirectory, or none at all) is still an unchanged line and still a byte-identical no-op. Moving a
+project does not fork your history.
 
 ### Which client wrote it
 
 `client` is another optional field: `claude`, `grok`, `codex`, or `agy`. It names the host, never
-the model, and it is metadata only. The summary and stance stay byte-verbatim.
+the model, and it is metadata only. It changes nothing about how the summary or stance is stored.
 
 The hook compares two things: the raw Stop event payload the host sends (Antigravity's shape,
 Grok's camelCase `lastAssistantMessage`) and the identity the installer passes as `--client`. It
@@ -153,7 +167,8 @@ it](#which-client-wrote-it)). The hosts differ in where the hook looks for the d
 **How the summary is produced (no AI in the server).** The server never summarizes anything, which
 would be inference. Instead your client writes the one-line summary *during* the session as a
 directive, and the hook lifts it out verbatim, from the transcript or from the final reply
-depending on the host. Emit a directive like this whenever a session is worth remembering:
+depending on the host. Normalization (see [the style contract](#the-style-contract)) happens after
+that, when the line is stored. Emit a directive like this whenever a session is worth remembering:
 
 ```text
 <!-- librarian-session {"summary":"Decided to store refs by content-hash; shipped capture.","refs":["Notes/foo.md"]} -->
@@ -185,13 +200,24 @@ The word budget only works because the trigger agrees with it. The contract asks
 separable thing lands. A client told to write one line at the end packs the whole session into it,
 which is exactly the over-stuffed entry the budget exists to prevent.
 
-**The server does not enforce the style contract.** It stores the summary byte-verbatim. It never
-rewrites, shortens, "clarifies", or rejects a line for being dense, and it writes no style warning
-into your record. The capture path prints the word count so drift is visible, then stores exactly
-what it was given. Judging or rewriting prose is inference, and the server runs no model. Silently
-truncating would lose the only copy of what the session meant. A dense summary is a readability
-problem, handled by guidance and by how it is read back, never a data problem solved by editing
-your memory.
+**The server does not enforce the style contract.** Three separate things happen to a line on its
+way into the record, and only the last one ever shortens it:
+
+- **The words are not edited for style.** A dense line is stored as dense. The capture path prints
+  a word-count warning so drift is visible, and writes no warning into your record. The 40-word
+  target and the 60-word ceiling are guidance, not a cut. Judging or rewriting prose is inference,
+  and the server runs no model. Cutting a line for being over budget would silently lose the only
+  copy of what the session meant.
+- **The line is normalized so it sits in the record as one line.** Newlines and tabs become spaces.
+  Control characters, ANSI escape sequences, bidirectional-override characters, and zero-width
+  characters are dropped. Runs of spaces collapse to one, and the ends are trimmed. Ordinary
+  markdown is kept as text. (`toInertLine` in `src/sanitize.ts`.)
+- **A line past 2,000 characters is cut** at 2,000 (`config.maxSummaryChars`). This guards against
+  oversized input and has nothing to do with the style budget; a line within the word budget is
+  nowhere near it.
+
+A dense summary is a readability problem, handled by guidance and by how it is read back, never a
+data problem solved by editing your memory.
 
 Compare:
 
@@ -405,16 +431,20 @@ about 19 lines a day in the author's own use when this was written.
   it. There is no content inspection.
 - `<topic-key>` is free-form and client-chosen, kebab-case by convention but never enforced. An
   off-convention key is reported on stderr and stored as written.
-- `<stance>` is the rest of the line, stored byte-verbatim. A `[[wikilink]]` anywhere in the stance
-  is captured as a versioned reference exactly like a session ref. The text `revises: <event-id>`
-  anywhere in the stance records that this event replaces that earlier one. Neither is stripped out
-  of the stored stance. What you wrote is what is stored, in full.
+- `<stance>` is the rest of the line. It is not rewritten for style; it gets the same one-line
+  normalization and 2,000-character cut as a session summary (see [the style
+  contract](#the-style-contract)). A `[[wikilink]]` anywhere in the stance is captured as a
+  versioned reference exactly like a session ref. The text `revises: <event-id>` anywhere in the
+  stance records that this event replaces that earlier one. Neither is stripped out of the stored
+  stance.
 - Position events are appended to a **wholly separate stream**,
   `<vault>/_librarian/positions/<YYYY-MM>.md`, never to a session record. Emitting one position, or
   many, changes nothing about how session summaries are captured, stored, or read. The reverse
   holds too.
-- The idempotence rule is the same as for a session summary: an unchanged directive re-fired by the
-  same session appends nothing.
+- The duplicate rule has the same shape as a session summary's. A position is skipped when one
+  already recorded in any month has the same session id, kind, topic key, normalized stance,
+  sorted reference paths, and `revises` value. So an unchanged directive re-fired by the same
+  session appends nothing, and a capture with no session id always appends.
 
 Recall is a separate path with its own guarantees. See the next section.
 
@@ -490,7 +520,8 @@ section puts the boundary in one place.
 - **Which paths the client listed** in its directive.
 - **The sha256 of each listed file's bytes when capture ran.** The server computes it. A client
   cannot supply one.
-- **The summary or stance the client wrote,** byte-verbatim.
+- **The summary or stance the client wrote,** not rewritten for style. It is normalized to one
+  line and cut past 2,000 characters (see [the style contract](#the-style-contract)).
 - **When and where the line was captured.** That means the time, and the working directory,
   project, and repo origin when the host reports them. Each record also names the client that wrote
   it, when that can be established.
@@ -517,7 +548,8 @@ section puts the boundary in one place.
 - Grok clips its final message at 32,768 characters, so a long turn can drop a trailing directive.
 - Antigravity captures nothing from a turn that ended in an error, and needs the rule file, or its
   model may not leave summaries.
-- The style contract is advisory. The server stores a dense or over-long summary as written.
+- The style contract is advisory. The server stores a dense or over-budget summary without
+  rewriting it.
 
 **Append-only is a rule rutter follows, not a tamper-proof log.** The server has no code path that
 rewrites, reorders, or deletes a stored line. But the records are plain markdown in your notes
@@ -536,9 +568,10 @@ If you need a history of edits, commit the notes folder to git.
   reconstructs everything from the vault plus `_librarian/`.
 - **Hooks never break a session:** the capture hook always exits cleanly, so a failure inside
   capture cannot interrupt your work.
-- **No AI in the server:** summaries are your client's. The server stores and serves them
-  **verbatim**, including summaries that ignore the style contract entirely. Judging or improving
-  prose would be inference, so the server does neither, at capture or at read time.
+- **No AI in the server:** summaries are your client's. The server stores and serves them without
+  rewriting them for style, including summaries that ignore the style contract entirely. Only the
+  one-line normalization and the 2,000-character cut apply. Judging or improving prose would be
+  inference, so the server does neither, at capture or at read time.
 
 The spec states each of these as an invariant: [`spec/spec.md`](../spec/spec.md).
 

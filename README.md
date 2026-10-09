@@ -5,8 +5,8 @@
 **One memory across Claude Code, Grok, Codex, and Antigravity.** A decision made in one is there when you ask another.
 
 An MCP (Model Context Protocol) server over a folder of markdown notes. At the end of each session your client leaves one
-line about what it decided. The server stores that line byte-verbatim, alongside content-hashed
-references to the notes it was based on.
+line about what it decided. The server stores that line without rewriting it, alongside
+content-hashed references to the notes it cited.
 
 Weeks later you can ask what you concluded. You can also ask whether the files it rested on have
 moved since.
@@ -21,7 +21,7 @@ against the map. The map records what is known. The rutter records what you did 
 > support commitment, no guarantee the next commit won't move something you depend on. Fork it, take
 > the ideas, file an issue if you like. Please don't put anything load-bearing on top of it.
 
-## One memory across your AI coding tools
+## One memory across your AI tools
 
 rutter keeps one set of records for Claude Code, Grok, Codex, and Antigravity. Each client writes its
 session summaries to the same notes folder. Each client reads them back through the same MCP server.
@@ -55,7 +55,8 @@ duplicates, dropping what looks stale.
 Consolidation is a reasonable default. It is also the opposite of what this does.
 
 Nothing here ever rewrites a stored line. Records are append-only, grouped by session when you
-read them, and what comes back out is the bytes that went in.
+read them, and a line is not rewritten for style on the way in: only a one-line normalization and a
+2,000-character cut apply.
 
 The second difference is the one that matters more. A summary on its own is not a record — it is
 an assertion. A summary plus the versioned state of what it was based on is a record, because it
@@ -76,7 +77,8 @@ Two smaller things follow from the design. The store is yours — markdown in yo
 directory, not a vendor's account or a tool's private folder, so it stays portable, greppable,
 git-committable, and readable if this project disappears. It is also why every client you use can
 write to and read from the same records. And because your client writes the
-summary while its context is still loaded, capture costs no inference and no network call. The
+summary while its context is still loaded, capture needs no second model call and no network
+call. The
 trade is that quality depends on your client honoring the style contract, set out in *What the
 server tells the client*.
 
@@ -87,8 +89,8 @@ time.
 ## What it does today
 
 - Indexes the notes directory into a local SQLite FTS5 full-text index — a disposable, regenerable cache. Your files stay the source of truth.
-- **Ambient capture.** As a session decides or produces something, your client leaves a line about it, and a Claude Code, Grok, Codex, or Antigravity Stop hook appends that line to `<notes>/_librarian/sessions/<date>.md`, referencing touched notes by content hash. One line per separable outcome rather than one per session — a working session usually leaves three or four — grouped back into a single account of that session when you read it. Durable, git-committable, written by your client.
-- **A style contract on that line.** Write for a smart reader in a hurry who wasn't in the session: outcome first, common words over session shorthand, no invented codenames or version tags, about 40 words. The contract is guidance carried in the server's MCP instructions. The server stores whatever it is given, **verbatim** — over-budget summaries are reported on the capture path and then stored as written.
+- **Ambient capture.** As a session decides or produces something, your client leaves a line about it, and a Claude Code, Grok, Codex, or Antigravity Stop hook appends that line to `<notes>/_librarian/sessions/<date>.md`, referencing touched notes by content hash. The client is asked for one line per separable outcome rather than one per session — a working session usually leaves three or four — grouped back into a single account of that session when you read it. A line the same session already recorded is skipped (the exact rule is in [`docs/memory-of-use.md`](./docs/memory-of-use.md#where-rutter-keeps-what-it-remembers)). Durable, git-committable, written by your client.
+- **A style contract on that line.** Write for a smart reader in a hurry who wasn't in the session: outcome first, common words over session shorthand, no invented codenames or version tags, about 40 words. The contract is guidance carried in the server's MCP instructions. The server does not rewrite a summary for style — over-budget summaries are reported on the capture path and then stored without edits. It does normalize each line to one line (control characters dropped, whitespace collapsed) and cut it past 2,000 characters; see [the style contract](./docs/memory-of-use.md#the-style-contract).
 - **Workspace provenance.** Each entry carries the session's working directory, a project name derived from it, and the git remote URL when there is one, so a day spanning three efforts reads cleanly. Nothing to configure; resolution is pure local file reads — it never runs `git` and never contacts a remote.
 - Four read-only MCP tools:
   - `librarian-search` — ranked full-text search. Every result carries its path, `type`/`status`/`created` provenance, and a matching snippet. Multi-word queries are AND-matched, so "blue man group" finds notes with all three rather than any. A result you engaged before also carries a quiet prior-engagement note, additive only, never re-ranking.
@@ -97,7 +99,7 @@ time.
   - `librarian-positions` — *"what do I think about X, and did that change?"* Query one of three ways: `topic` for an exact topic key (one answer or an explicit not-found), `query` for free text matched against your recorded stances, or `note` for the positions that reference a note by path. Each answer is the topic's current stance with the dates it was formed and last revised; add `chain: true` for the whole supersession history.
 - **Instructions that travel with the server.** Any connected client is told to reach for `librarian-recent` on recency questions and `librarian-search` on "have I seen this?" questions before reading files directly, and to report recalled summaries in plain language — including entries written before the contract existed, which is the only way dense old records ever read clearly. No per-project client configuration.
 - **Instruments its own use.** A local per-ISO-week count of how often the stateful behavior gets reached for.
-- **Position capture** *(decision-graph Phase A)*. When your client forms, changes, reaffirms, or retires a stance on a topic, it leaves a second, rarer kind of line — a position directive — appended to `<notes>/_librarian/positions/<YYYY-MM>.md`, a wholly separate append-only stream from session records. Routed by directive kind alone (no heuristics), stored byte-verbatim, idempotent per distinct directive.
+- **Position capture** *(decision-graph Phase A)*. When your client forms, changes, reaffirms, or retires a stance on a topic, it leaves a second, rarer kind of line — a position directive — appended to `<notes>/_librarian/positions/<YYYY-MM>.md`, a wholly separate append-only stream from session records. Routed by directive kind alone (no heuristics), not rewritten for style, idempotent per distinct directive.
 - **Position recall** *(decision-graph Phase B)*. `librarian-positions` answers "what do I think about X, and how did that change?" from those streams. A topic's **live position** is the stance on its most recent event; where that event is a `retire`, you get a retired stub carrying the retirement's own recorded text — never the stance it withdrew, and nothing is removed from the history to produce it. Every answer states its provenance: the date the position was **formed** (its original `assert`) and, where there is one, the date it was last **revised** — a reaffirmation re-endorses a stance without moving that date. A position nothing has touched in a long while is marked **dormant**, computed fresh on every read from the events' own timestamps and stored nowhere; a retired position is never marked dormant. The whole thing is a projection: three SQLite tables rebuilt wholesale from `<notes>/_librarian/positions/*.md` at every `npm run reindex`, and rebuilt from nothing else. **Reindex is the only trigger** — a position captured since the last reindex is not recalled until the next one runs, which is a disclosed lag rather than a silent gap, and which is what keeps recall from being able to disturb capture at all.
 - **Note identity survives a rename.** A reference records the note's path *and* its content hash as captured. "Dead" means the path is missing from disk, full stop, regardless of file type — a reference to any confined vault artifact (a `.gitignore`, an exported `.html`, a file under `_librarian/` itself) is live for as long as that file exists, whether or not it's an indexed markdown note. Rename a referenced note without touching its content and the next `npm run reindex` binds the old reference to its new path automatically — no heuristics, no similarity scoring, just an exact content-hash match — and `librarian-recent` / search enrichment quietly resolve through it. If reindex can't tell (the note was also edited, so no current note's hash matches; or more than one current note shares the hash), the reference renders explicitly as unresolved with its candidates on `librarian-recent`, and on search enrichment against any candidate note that happens to be a search result, and stays that way until you confirm it with `npm run identity-confirm`. A reference with no candidates at all (renamed *and* edited) is visible on `librarian-recent` only — that listing is the complete discovery surface for unresolved references; enrichment is candidate-anchored and cannot mention what has no candidate. On the search surface, a mere candidate is never annotated as if it had been engaged with; the unresolved state and its candidates render as a separate, explicit note instead. A confirmed binding is sticky: if the vault later changes such that automatic exact-hash matching would point somewhere else, the confirmed binding still wins, and the disagreement is surfaced ("confirmed X; the hash now matches Y") rather than silently overridden — only re-running `npm run identity-confirm` moves it. The stored session record is never rewritten either way.
 
@@ -143,7 +145,7 @@ Stated here rather than discovered later:
 - A directory of markdown notes. Obsidian is what it was built against — wikilinks and frontmatter
   are understood — but nothing requires Obsidian itself.
 - Claude Code, Grok, Codex, or Antigravity, for ambient capture. The MCP tools work with any MCP client.
-  The table in *One memory across your AI coding tools* shows how each of the four captures and links to its setup. Claude Code
+  The table in *One memory across your AI tools* shows how each of the four captures and links to its setup. Claude Code
   lifts the directive from the transcript, and so does Antigravity (from the current turn). Grok and Codex
   use the Stop event's final assistant message, so with Codex the directive must be in the final reply.
 
@@ -257,7 +259,7 @@ the contract; a test (COR-R-030) fails if this copy drifts from it.
 The paragraph beginning "Write each line" is the **style contract** (see
 [the style contract](./docs/memory-of-use.md#the-style-contract)) — the only thing standing between you
 and a directory full of summaries you can't read in six months. The server will not help here:
-it stores what it is given, verbatim, whatever style it is in. An unfilled template is the
+it does not rewrite what it is given, whatever style it is in. An unfilled template is the
 one exception: a summary still wrapped in `<angle brackets>` is treated as "no directive"
 rather than stored, so copying the directive line without filling it in captures nothing.
 
@@ -432,12 +434,12 @@ file, all of which you can open and read. Four live in a `_librarian/` folder in
 folder; the fifth lives with the plugin:
 
 - **Session records** in `_librarian/sessions/`: the one-line summaries your AI client writes as a
-  session decides or produces something, stored word for word, together with the paths and content
+  session decides or produces something, stored without rewriting (normalized to one line), together with the paths and content
   hashes of the notes it cited, the working directory, the project name derived from it, the
   session ID, which client wrote it (one of four fixed names, never the model), and the git remote URL of that directory if it has one (read from `.git/config`;
   never contacted, and any token, password or query string in it is removed before it is stored).
 - **Position records** in `_librarian/positions/`: the stances your client records on a topic, when
-  you form, change or retire one, stored word for word with their dates.
+  you form, change or retire one, stored the same way with their dates.
 - **A note-identity ledger** (`_librarian/note-identity.md`): when a note you referenced has been
   renamed, which path the reference now points to, as the old and new paths with a content hash.
   It is written when the index is rebuilt or when you confirm a match.

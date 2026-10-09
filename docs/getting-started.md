@@ -1,6 +1,8 @@
 # Getting started: from zero to your first recall
 
-By the end of this lesson your notes will answer *"what was I working on lately?"* The answer comes from records your AI coding sessions (Claude Code, Grok, Codex, or Antigravity) leave behind on their own, unasked. Every tool you set up writes to the same records, so each one can recall what the others decided.
+By the end of this lesson your notes will answer *"what was I working on lately?"* The answer comes from records your AI sessions (in Claude Code, Grok, Codex, or Antigravity) leave behind on their own, unasked, whether the session was research, drafting, planning, or reading over your notes. Every tool you set up writes to the same records, so each one can recall what the others decided.
+
+This lesson is for people who keep their notes as markdown files and are comfortable configuring an AI client: editing a settings file, registering an MCP server, running a few `npm` commands. The tools (`librarian-*`), the environment variables (`LIBRARIAN_*`), and the `_librarian/` folder kept the project's earlier name, *librarian*; they are all parts of rutter.
 
 We will install rutter, index your notes, and write one memory by hand so you see a result in the first few minutes. Then we will turn on ambient capture and watch a real working session record itself.
 
@@ -166,7 +168,7 @@ You should see:
 
 *Output shape verified against code; your date will differ.*
 
-That summary is now stored as you wrote it. Nothing rewrites it, shortens it, or judges it — control characters are stripped and runs of whitespace collapsed, and that is the whole of it.
+That summary is now stored. Nothing judges it or rewrites it for style. It is normalized to sit in the record as one line: control characters are stripped, runs of whitespace collapse, and newlines fold into spaces. A line past 2,000 characters is cut. [The style contract](./memory-of-use.md#the-style-contract) has the full rule.
 
 ## Step 4 — Recall it
 
@@ -180,7 +182,7 @@ npm run recent
 
 *Output shape verified against code; your date and time will differ.*
 
-That is your first recall. The bytes you piped in came back unchanged.
+That is your first recall. A plain one-line summary like this one comes back exactly as you piped it in.
 
 Notice there is no project name in brackets. A payload piped in by hand carries no working directory, so there is no project to name. Ambient captures do carry one, and you will see it in Step 8.
 
@@ -300,9 +302,9 @@ As it finishes, your client leaves a directive line of its own accord:
 <!-- librarian-session {"summary":"Renamed the archive folder and updated the two notes that linked to it.","refs":["Notes/Archive.md"]} -->
 ```
 
-You never write that line yourself — the server's instructions teach your client the form. It is shown here only so you recognize one when it goes past. The summary aims for about 40 words and stops by 60. An empty summary, or one still wrapped in `<angle brackets>`, captures nothing.
+You never write that line yourself — the server's instructions teach your client the form. It is shown here only so you recognize one when it goes past. The summary aims for about 40 words and stops by 60. That aim is guidance for the client; the server does not enforce it. An empty summary, or one still wrapped in `<angle brackets>`, captures nothing.
 
-The Stop event fires at the end of every assistant turn, not at session end. Capture is idempotent per distinct directive, so the same line being re-presented a dozen times appends exactly one record.
+The Stop event fires at the end of every assistant turn, not at session end. Capture is idempotent within a session, so the same line being re-presented a dozen times appends exactly one record. [The duplicate rule](./memory-of-use.md#where-rutter-keeps-what-it-remembers) says exactly what counts as the same line.
 
 **Verify.** A file should now exist for today's UTC day:
 

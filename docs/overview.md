@@ -38,7 +38,7 @@ identity in full, read [`memory-of-use.md`](./memory-of-use.md).
 In August you ask Claude Code whether the ingest path should stay synchronous. You read two notes
 and decide it should. The session leaves one line: *"Decided the ingest path stays synchronous;
 async needs the queue design first."* The line cites `Notes/ingest-design.md`. rutter stores the
-line exactly as written, with a hash of that note's contents when the line was captured.
+line without rewriting it, with a hash of that note's contents when the line was captured.
 
 In October you reorganize your notes. `ingest-design.md` moves to `Architecture/ingest.md`, contents
 untouched. At the next reindex, rutter sees that the old path is gone and finds exactly one note
@@ -87,13 +87,14 @@ the session ran in, and the git remote when there is one. A day spread across th
 reads cleanly.
 
 One line per separable outcome, not one per session. A working session usually leaves three or
-four. Because your client writes while its context is still loaded, capture costs no extra
-inference and no network call.
+four. Because your client writes while its context is still loaded, capture needs no second model
+call and no network call. The line is extra text in the turn the client was already writing.
 
 That line carries a style contract. Lead with what was decided. Prefer common words to the
 session's own shorthand. Aim for about 40 words and stop by 60. The contract is advisory. The
-server stores whatever it is handed, byte-verbatim — it never rewrites, shortens, annotates, or
-rejects a line. It cannot. Judging prose is inference, and there is no model in there to do it.
+server does not rewrite a line for style, because judging prose is inference and there is no model
+in there to do it. It does normalize each line to sit in the record as one line, and it cuts a line
+past 2,000 characters. The [mechanics page](./memory-of-use.md#the-style-contract) has the detail.
 
 **Reading.** The server exposes four read-only tools over MCP (Model Context Protocol), the
 standard way an AI client connects to an outside source of data:
@@ -155,10 +156,11 @@ That sentence is the design. Everything that follows is what it costs.
 
 ## The bets, and what each one costs
 
-### Append-only, and byte-verbatim
+### Append-only, and not rewritten
 
 A stored line is never rewritten. New lines are appended, and grouping happens when you read them
-back. What comes out is what went in. Where a consolidating memory folder converges on one current
+back. A line is not rewritten for style on the way in either; only a one-line normalization and a
+2,000-character cut apply ([detail](./memory-of-use.md#the-style-contract)). Where a consolidating memory folder converges on one current
 answer, this keeps every answer you gave, in order, with the wrong ones intact.
 
 The cost is real, and already visible. The record only grows. Entries written before the style
@@ -203,7 +205,7 @@ rutter does not flag it today. The design is the same rule applied there: show t
 it, and let you decide. It waits on observed use, like the rest of the unbuilt design at the end of
 this page.
 
-So the claim is only the combination: append-only verbatim lines, references carrying content
+So the claim is only the combination: append-only lines not rewritten for style, references carrying content
 hashes, and references the tool cannot place shown to you instead of silently resolved or dropped.
 Each of those exists elsewhere. The square where all three meet appears to be unoccupied, and it is
 the only claim made here.
@@ -233,7 +235,7 @@ A reference is evidence of what a session recorded. It is not proof of what the 
 
 - which paths the client listed;
 - the hash of each file's contents when capture ran, computed by the server;
-- the conclusion the client wrote, byte-verbatim;
+- the conclusion the client wrote, not rewritten for style;
 - when and where the line was captured, and which client wrote it when that can be established.
 
 **It cannot establish:**
