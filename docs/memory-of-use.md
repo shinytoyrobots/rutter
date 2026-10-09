@@ -1,54 +1,50 @@
-# Memory-of-use (S1.5): the mechanics in full
+# Memory-of-use: the mechanics in full
 
-S1 proved retrieval. S1.5 adds the first thing a stateless assistant *can't* have:
-**memory that accrues by itself and surfaces later.** The librarian now quietly
-records what each AI coding session decided or produced, lets you recall recent
-work, annotates search results you've engaged before, and measures whether you
-actually reach for any of it.
+Search alone is something any capable agent can already do. Memory-of-use adds the first thing a
+stateless assistant *can't* have: **memory that accrues by itself and surfaces later.** rutter
+quietly records what each AI session decided or produced, lets you recall recent work, annotates
+search results you have engaged with before, and measures whether you actually reach for any of it.
 
-All of this is local-first: nothing leaves your machine, the server runs no AI
-model (your client is the brain), and it only ever writes inside your vault's
-`_librarian/` overlay and the disposable `data/` index.
+All of this is local-first. Nothing leaves your machine, the server runs no AI model (your client
+is the brain), and it only ever writes inside your vault's `_librarian/` folder and the disposable
+`data/` index. This page says *vault* for your notes folder. The `_librarian/` folder is rutter's own
+layer next to your notes. Tool names, environment variables, and that folder keep rutter's earlier
+name, *librarian*.
 
 ---
 
-## 1. Where the librarian keeps what it remembers
+## Where rutter keeps what it remembers
 
-Session memory lives in your vault, as plain, human-readable, git-committable
-markdown:
+Session memory lives in your vault, as plain, human-readable, git-committable markdown:
 
-```
+```text
 <vault>/_librarian/sessions/2026-07-24.md
 ```
 
-- **One file per day, one line per outcome.** Each separable thing a session decides
-  or produces adds **one curated line** to that day's file — not the raw transcript,
-  and not one line per session. A working session usually leaves three or four; the
-  measured average over the first fortnight of real capture was 3.2. Those lines are
-  its **steps**, and `librarian-recent` groups them back into a single account of that
+- **One file per day, one line per outcome.** Each separable thing a session decides or produces
+  adds **one curated line** to that day's file. That line is a *directive* the client leaves (see
+  [Capturing session summaries](#capturing-session-summaries)). It is not the raw transcript, and it
+  is not one line per session. A working session usually leaves three or four. Over the first two
+  weeks of real capture, one person's use, the average was 3.2 lines per session. Those lines are
+  the session's **steps**, and `librarian-recent` groups them back into a single account of that
   session when you read it.
-- **Typed frontmatter.** Each record carries a small typed header (the day, each
-  session's identity and time, the curated summary, and the notes it touched by
-  versioned identity). The shape is deliberately mdbase-compatible so a future
-  upgrade is a drop-in.
-- **You can read and edit it.** It's your markdown, in your vault. Open it in
-  Obsidian, edit it, commit it.
-- **It is never auto-deleted.** Records are only ever appended to. The librarian
-  has no prune or delete path that destroys memory-of-use. The Claude Code / Grok / Codex / Antigravity Stop
-  hook fires at the end of *every* assistant turn, so the same session's summary
-  is offered for capture many times — capture is **idempotent per directive**: an
-  unchanged summary is a no-op (the file is left byte-identical, no duplicate
-  entry), and a *changed* summary is appended as a **revision** after the earlier
-  one. Nothing is ever overwritten or deleted.
-
-A note reference is stored as a **versioned identity** — the vault-relative path
-plus a content hash taken when the line was captured — so the reference still records
-what the file contained then, even after the note changes later.
+- **Typed frontmatter.** Each record carries a small typed header: the day, each session's identity
+  and time, the curated summary, and the notes it touched, each by its **versioned identity**. That
+  is the vault-relative path plus a content hash taken when the line was captured. The reference
+  still records what the file contained then, even after the note changes later.
+- **You can read and edit it.** It is your markdown, in your vault. Open it in Obsidian, edit it,
+  commit it.
+- **It is never auto-deleted.** Records are only ever appended to. rutter has no prune or delete
+  path that destroys memory-of-use.
+- **Capture is idempotent.** The Stop hook fires at the end of *every* assistant turn, so the same
+  session's summary is offered for capture many times. An unchanged summary is a no-op: the file is
+  left byte-identical, with no duplicate entry. A *changed* summary is appended as a **revision**
+  after the earlier one. Nothing is ever overwritten or deleted.
 
 ### Which workspace an entry came from
 
-Because a single day can span several efforts, each entry also records **where the
-session happened** — automatically, with nothing for you to name or configure:
+Because a single day can span several efforts, each entry also records **where the session
+happened**, automatically, with nothing for you to name or configure:
 
 ```yaml
 - id: 20260726T101500123Z
@@ -59,333 +55,207 @@ session happened** — automatically, with nothing for you to name or configure:
     cwd: /Users/you/Development/personal/rutter
     project: rutter
     repo: https://github.com/you/rutter.git
+  client: claude
 ```
 
-- **`cwd`** — the session's working directory, exactly as the host reported it
-  on the Stop event.
-- **`project`** — derived from that directory: the name of the enclosing git
-  working tree, or the directory's own name when it isn't in a repo. A session run
-  from `rutter/src` is still project `rutter`. It is **never something
-  you supply** — being asked to name it would make capture non-ambient.
-- **`repo`** — the `origin` URL, read straight out of `.git/config`. The librarian
-  never runs `git` (no subprocess) and never contacts the remote (no network); the
-  URL is just a string it found in a file. Any token or password written into the
-  URL (`https://<token>@host/…`) and any `?query` are removed before it is stored,
-  so a credential in your git config is never copied into your notes.
+- **`cwd`** is the session's working directory, exactly as the host reported it on the Stop event.
+- **`project`** is derived from that directory: the name of the enclosing git working tree, or the
+  directory's own name when it is not in a repo. A session run from `rutter/src` is still project
+  `rutter`. It is **never something you supply**, because being asked to name it would make
+  capture non-ambient.
+- **`repo`** is the `origin` URL, read straight out of `.git/config`. rutter never runs `git` (no
+  subprocess) and never contacts the remote (no network). The URL is just a string it found in a
+  file. Any token or password written into the URL (`https://<token>@host/…`) and any `?query` are
+  removed before it is stored, so a credential in your git config is never copied into your notes.
+- **`client`** is covered in the next section.
 
-Everything about this is best-effort and never blocks a capture:
+Everything about workspace is best-effort and never blocks a capture:
 
-- No working directory in the payload → the whole `workspace` field is omitted and
-  the entry is captured as usual.
-- Not inside a repository (or no `origin`) → `repo` is omitted; `cwd` and
-  `project` still land.
-- A `.git` redirect (linked worktree/submodule) is followed only when its target
-  is itself git metadata (a path containing `.git`); anything else is refused and
-  `repo` is omitted — the reader can't be steered into arbitrary directories.
-- **Entries captured before this existed stay valid, untouched.** `workspace` is an
-  *additive-optional* field on the same record schema (`session-record@1`) — there
-  is no migration, no rewrite of old records, and a day file can hold a mix of old
-  and new entries.
-- **Which client wrote it.** `client` is another additive-optional field: `claude`, `grok`,
-  `codex`, or `agy`. It names the host, never the model, and it is metadata only; the summary
-  and stance stay byte-verbatim. The hook reads the original Stop envelope (Antigravity's shape,
-  Grok's camelCase `lastAssistantMessage`) together with the identity the installer passes as
-  `--client`, and writes a label only when the two agree. Conflicts, direct payloads, an
-  unrecognized identity, and Codex without an identity (nothing in its payload separates it from
-  Claude) get no label, so entries from a hook registered by hand before this existed show none;
-  re-run `install-hook` to add it. A stored value this build does not know is kept and ignored,
-  never an error. It is shown in the record's frontmatter, not the body.
-- **It never affects duplicate detection.** Identity is the *directive*, so a Stop
-  firing whose directory changed (a rename, a subdirectory, or none at all) is
-  still an unchanged directive and still a byte-identical no-op. Moving a project
-  does not fork your history.
+- No working directory in the payload means the whole `workspace` field is omitted and the entry is
+  captured as usual. A hand-piped `npm run capture` payload has none unless you add an optional
+  `cwd`. A real Stop event supplies it.
+- Not inside a repository, or no `origin`, means `repo` is omitted. `cwd` and `project` still land.
+- A `.git` redirect (a linked worktree or submodule) is followed only when its target is itself git
+  metadata, meaning a path containing `.git`. Anything else is refused and `repo` is omitted, so the
+  reader cannot be steered into arbitrary directories.
+
+**Entries captured before this existed stay valid, untouched.** `workspace` is an optional field
+added to the same record schema (`session-record@1`). There is no migration and no rewrite of old
+records. A day file can hold a mix of old and new entries.
+
+**Duplicate detection ignores it.** Duplicate detection compares the directive text only. A Stop
+firing whose directory changed (a rename, a subdirectory, or none at all) is still an unchanged
+directive and still a byte-identical no-op. Moving a project does not fork your history.
+
+### Which client wrote it
+
+`client` is another optional field: `claude`, `grok`, `codex`, or `agy`. It names the host, never
+the model, and it is metadata only. The summary and stance stay byte-verbatim.
+
+The hook compares two things: the raw Stop event payload the host sends (Antigravity's shape,
+Grok's camelCase `lastAssistantMessage`) and the identity the installer passes as `--client`. It
+writes a label only when the two agree.
+
+No label is written for conflicts, direct payloads, or an unrecognized identity. Codex without an
+identity gets none either, because nothing in its payload separates it from Claude. Entries from a
+hook registered by hand before this field existed show no label. Re-run `install-hook` to add it.
+A stored value this build does not know is kept and ignored, never an error. The label shows in the
+record's frontmatter, not the body.
 
 ---
 
-## 2. Ambient capture — setting it up
+## Capturing session summaries
 
-Capture is **ambient**: it happens after each turn with no action from you inside
-the session. It is wired through a Claude Code / Grok / Codex / Antigravity **Stop hook**.
+Capture is **ambient**: it happens after each turn with no action from you inside the session. It
+is wired through a **Stop hook**, a hook the host runs when the assistant finishes a turn, in
+Claude Code, Grok, Codex, and Antigravity.
 
-**Setup is the hook** — register the hook (`npm run install-hook`, or by hand; see
-the README). For Claude Code and Grok that registers it in `~/.claude/settings.json`.
-For Codex, build and run `npm run install-hook -- --client codex`, then review and
-trust the hook in Codex with `/hooks` — installing does not grant trust, and an
-untrusted hook never runs. For Antigravity, build and run
-`npm run install-hook -- --client antigravity --vault <your notes folder>`, then run the
-`agy mcp add` line it prints. There is nothing to add to your `CLAUDE.md`. From v3.4.0 the whole
-capture contract lives in `SERVER_INSTRUCTIONS` in `src/server.ts` — the single
-source, quoted rather than restated everywhere else — and the server sends it to
-every client on connect as MCP server instructions. Antigravity does not put those
-instructions in the model's prompt, so its installer also writes a rule file (see
-*Host differences*). Before v3.4.0 the emission trigger and the
-directive syntax existed *only* in a hand-installed `~/.claude/CLAUDE.md` rule,
-which meant ambient capture worked for exactly one person: whoever had installed
-that rule.
+**Setup is the hook.** Register it with `npm run install-hook`, adding `--client codex` or
+`--client antigravity` for those hosts. [Getting started, Step 6](./getting-started.md#step-6--install-the-stop-hook)
+has the per-host commands and checks. Two facts change behavior:
 
-**Host differences.** All four hosts fire the same hook after each turn and store
-the same records, in the same notes folder. That shared folder is how a decision
-captured in one tool is recalled in another. Each record carries a `client` label
-naming the host that wrote it (see below). They differ in where the hook looks for the directive:
+- Codex will not run the hook until you review and trust it with `/hooks`. Installing does not
+  grant trust, and an untrusted hook never runs.
+- Antigravity needs a rule file as well as the hook (see *Host differences*).
 
-- **Claude Code** reads the whole transcript, so a directive anywhere in the
-  session is found.
-- **Grok** reads the Stop event's final assistant message. Grok clips that message
-  at 32,768 characters, so a long turn can drop a trailing directive.
-- **Codex** reads the Stop event's final assistant message and nothing earlier. A
-  directive left in mid-turn commentary is not captured, so the client must put it
-  in the final reply. Codex hooks also see only the environment Codex was launched
-  with, so `LIBRARIAN_VAULT_PATH` must be exported where Codex starts.
-- **Antigravity** (`agy`) sends a Stop event with no reply text. The hook reads the
-  transcript file the event points to and takes the assistant messages from the
-  current turn, which is everything after your last message. A directive anywhere in
-  the turn is found, and an earlier turn's directive is never read again. A turn that
-  ended in an error captures nothing. `agy` does not put MCP server instructions in
-  the prompt. It saves them as a file the model may never read. So the installer also
-  writes an always-on rule file, `~/.gemini/config/rules/rutter-capture.md`, built from
-  the server's own contract text. Without that rule the model did not leave summaries
-  on its own. The installer decides the vault once. It bakes the vault in as the hook's
-  default and prints the same value in the `agy mcp add` line, so writes and reads
-  cannot disagree. An exported `LIBRARIAN_VAULT_PATH` still overrides the hook's
-  default, and each capture logs the vault it wrote to.
+The installer merges into existing hook configuration and never touches your other hooks. It
+refuses to run against an unbuilt repo. The registered script always exits cleanly, so a capture
+failure can never break your session.
 
-On every host, each firing keeps at most one session summary and one position —
-the last of each in the text it reads.
+### Host differences
 
-**How the summary is produced (no AI in the server).** The librarian server never
-summarizes anything — that would be inference, which it does not do. Instead your
-client writes the one-line summary *during* the session as a directive,
-and the hook lifts it out of the transcript verbatim. Emit a directive like this
-whenever a session is worth remembering:
+All four hosts fire the same hook after each turn and store the same records, in the same notes
+folder. That shared folder is how a decision captured in one tool is recalled in another. Each
+record carries a `client` label naming the host that wrote it (see [Which client wrote
+it](#which-client-wrote-it)). The hosts differ in where the hook looks for the directive:
 
-```
+- **Claude Code** reads the whole transcript, so a directive anywhere in the session is found.
+- **Grok** reads the Stop event's final assistant message. Grok clips that message at 32,768
+  characters, so a long turn can drop a trailing directive.
+- **Codex** reads the Stop event's final assistant message and nothing earlier. A directive left in
+  mid-turn commentary is not captured, so the client must put it in the final reply. Codex hooks
+  also see only the environment Codex was launched with, so `LIBRARIAN_VAULT_PATH` must be exported
+  where Codex starts (see [Getting started, Step 2](./getting-started.md#make-the-path-stick)).
+- **Antigravity** (`agy`) sends a Stop event with no reply text. The hook reads the transcript file
+  the event points to and takes the assistant messages from the current turn, which is everything
+  after your last message. A directive anywhere in the turn is found, and an earlier turn's
+  directive is never read again. A turn that ended in an error captures nothing.
+- **Antigravity needs a rule file.** `agy` does not put MCP server instructions in the prompt. It
+  saves them as a file the model may never read. So the installer also writes an always-on rule
+  file, `~/.gemini/config/rules/rutter-capture.md`, built from the server's own contract text.
+  Without that rule the model did not leave summaries on its own. The installer decides the vault
+  once. It bakes the vault in as the hook's default and prints the same value in the `agy mcp add`
+  line, so writes and reads cannot disagree. An exported `LIBRARIAN_VAULT_PATH` still overrides the
+  hook's default, and each capture logs the vault it wrote to.
+
+### The directive
+
+**How the summary is produced (no AI in the server).** The server never summarizes anything, which
+would be inference. Instead your client writes the one-line summary *during* the session as a
+directive, and the hook lifts it out verbatim, from the transcript or from the final reply
+depending on the host. Emit a directive like this whenever a session is worth remembering:
+
+```text
 <!-- librarian-session {"summary":"Decided to store refs by content-hash; shipped capture.","refs":["Notes/foo.md"]} -->
 ```
 
-- `summary` — the one curated line. Required.
-- `refs` — optional vault-relative paths of notes the session touched.
-- The **last** directive in the session wins. If you emit none (or an empty
-  summary), nothing is captured and no empty file is created.
-- A summary still wrapped in `<angle brackets>` is treated as an **unfilled
-  template** and captured as nothing — so pasting the syntax without filling it in
-  is safe, rather than storing `<one plain-English line>` in your record.
+- `summary` is the one curated line. Required.
+- `refs` is an optional list of vault-relative paths of notes the session touched.
+- Each hook firing keeps only the last directive in the text it reads. So emit each line as its
+  outcome lands, and each outcome gets its own firing. Each firing also keeps at most one position
+  (see [Positions](#positions-capturing-a-stance)), the last in the text it reads.
+- If the hook finds no directive, or the summary is empty, nothing is captured and no empty file is
+  created.
+- A summary still wrapped in `<angle brackets>` is treated as an **unfilled template** and captured
+  as nothing. Pasting the syntax without filling it in is safe, rather than storing
+  `<one plain-English line>` in your record.
 
-### The style contract — how the summary should be written
+### The style contract
 
-A summary is authored by a session that is deep in its own context and read weeks
-later by someone who has none of it. Left alone, that produces build-log lines
-full of codenames and version tags that were obvious at the time and are opaque
-now. So the summary carries a **style contract**:
+A summary is written by a session that is deep in its own context, and read weeks later by someone
+who has none of it. Left alone, that produces build-log lines full of codenames and version tags
+that were obvious at the time and are opaque now. So the summary carries a **style contract**:
 
-> Write the line for **a smart reader in a hurry who was not in this session**:
-> lead with **what was decided or produced**, use **common words** rather than
-> session shorthand, and **expand or avoid** codenames, version tags and
-> abbreviations the session invented (terms your vault itself uses are fine).
-> **Aim for about 40 words and stop by 60** — one line, not a build log.
+> Write the line for **a smart reader in a hurry who was not in this session**: lead with **what
+> was decided or produced**, use **common words** rather than session shorthand, and **expand or
+> avoid** codenames, version tags and abbreviations the session invented (terms your vault itself
+> uses are fine). **Aim for about 40 words and stop by 60** — one line, not a build log.
 
-The word budget only works because the *trigger* agrees with it. Before v3.7.0 the
-contract asked for a line per separable thing **and** told the client it got one
-directive at the end of the session. Faced with both, a client waits and packs the
-session into one line — which is what the 141-to-192-word entries of early August
-were. The budget was fighting the trigger. Now the trigger asks for a line as each
-thing lands, and the budget is a constraint on a line that was already meant to be
-small.
+The word budget only works because the trigger agrees with it. The contract asks for a line as each
+separable thing lands. A client told to write one line at the end packs the whole session into it,
+which is exactly the over-stuffed entry the budget exists to prevent.
 
-The word budget is advisory, and deliberately so. An over-long summary is stored
-byte-verbatim like any other — the capture path prints its word count so the drift
-is visible when it happens, and then stores exactly what it was given. Nothing in
-the server edits a summary to fit (SR-023/SR-034); the alternative, silently
-truncating, would lose the one copy of what the session meant.
+**The server does not enforce the style contract.** It stores the summary byte-verbatim. It never
+rewrites, shortens, "clarifies", or rejects a line for being dense, and it writes no style warning
+into your record. The capture path prints the word count so drift is visible, then stores exactly
+what it was given. Judging or rewriting prose is inference, and the server runs no model. Silently
+truncating would lose the only copy of what the session meant. A dense summary is a readability
+problem, handled by guidance and by how it is read back, never a data problem solved by editing
+your memory.
 
 Compare:
 
-```
+```text
 ✗  Landed HK-7/ambient-splice v0.9.3-rc2 behind FLG_SPLICE_V2; idx@4 -> idx@5,
    backfill gated on FKS_DUAL_READ, ZQ-1197 still open, cutover ETA W31.
 ✓  Shipped the ambient capture path behind a feature flag, and started the
    session-index upgrade — the data backfill is still switched off.
 ```
 
-**Where the contract lives — one place: the server's MCP instructions**
-(`SERVER_INSTRUCTIONS`), which every connected client receives on connect. That is
-the single source (SR-027): the README quotes it verbatim and a test fails if the
-copy drifts. It has to fit in 2,048 characters, because Claude Code silently cuts
-a server's instructions there; a test holds the line, and guidance that only matters
-when *reporting* a result lives in the description of the tool that returns it. Nothing goes in your `CLAUDE.md` — a paste-in exists only as the
-README's documented fallback if captures refuse to land.
+### Where the contract lives
 
-**What the server does about style: nothing at all.** It stores the summary
-**byte-verbatim** — it never rewrites, shortens, "clarifies", or rejects a line
-for being dense, and there is no style warning written into your record. That is
-not an oversight, it is the invariant: judging or rewriting prose is inference,
-and the server runs no model (INV-6). A dense summary is a *readability* problem
-handled by guidance and by read-time rendering, never a *data* problem solved by
-editing your memory.
+In one place: the server's MCP instructions (`SERVER_INSTRUCTIONS` in `src/server.ts`). The server
+sends them to every client on connect. The README quotes them verbatim, and a test fails if that
+copy drifts. They have to fit in 2,048 characters, because Claude Code silently cuts a server's
+instructions there, and a test holds the line. Guidance that only matters when *reporting* a result
+lives in the description of the tool that returns it.
 
-**Install the hook.** Build first (`npm run build`), then:
-
-```bash
-npm run install-hook
-```
-
-The installer writes the Stop-hook entry into `~/.claude/settings.json` — merging
-rather than replacing, never touching other hooks, and refusing to run against an
-unbuilt repo. The registered script reads the Stop event on stdin, extracts the
-directive, and appends one entry. It always exits cleanly, so a capture hiccup can
-never break your session.
-
-> **How the client knows.** Capture depends on the client emitting the directive,
-> and the server's MCP instructions establish that on every connect — no standing
-> rule in `CLAUDE.md`, no per-project setup (the pre-v3.4.0 `CLAUDE.md` mechanism is
-> retired; the README keeps a paste-in only as a troubleshooting fallback). You can
-> also capture directly for testing:
-> `echo '{"summary":"...","refs":["Notes/x.md"],"cwd":"/path/to/project"}' | npm run capture`
-> (`cwd` is optional; the real Stop event supplies it, and the hook passes it straight
-> through).
+There is nothing to add to your `CLAUDE.md`. The README keeps a paste-in only as a fallback if
+captures refuse to land. Antigravity is the exception to "on connect": see *Host differences* for its rule file.
 
 ---
 
-## 2a. Position capture — a second, rarer directive (decision-graph Phase A)
+## Recalling recent work
 
-Alongside the session summary, your client can leave a second kind of line: a
-**position directive**, emitted only when a session forms, changes, reaffirms,
-or retires a stance on some topic — expected far less than once per session,
-against the ~19 session-summary outcomes a day the librarian otherwise sees.
+Ask *"what was I working on lately?"* and your client calls the **`librarian-recent`** tool. It
+returns recent session summaries **most-recent-first**, each with its date, its project, and the
+versioned provenance of the notes it references:
 
-```
-<!-- librarian-position POSITION assert my-topic: I think X because of the meeting notes. -->
-```
-
-- `assert | revise | reaffirm | retire` — the directive's kind. Kind is the
-  only thing that routes it; there is no content inspection.
-- `<topic-key>` — free-form, client-chosen, kebab-case by convention but never
-  enforced (an off-convention key is reported on stderr, stored as written).
-- `<stance>` — the rest of the line, stored byte-verbatim. A `[[wikilink]]`
-  anywhere in the stance is captured as a versioned reference exactly like a
-  session ref; the text `revises: <event-id>` anywhere in the stance records
-  an explicit supersession pointer. Neither is stripped out of the stored
-  stance — what you wrote is what is stored, in full.
-- Position events are appended to a **wholly separate stream**,
-  `<notes>/_librarian/positions/<YYYY-MM>.md` — never to a session record.
-  Emitting one, or many, changes nothing about how session summaries are
-  captured, stored, or read; the reverse holds too.
-- Same idempotence discipline as a session summary: an unchanged directive
-  re-fired by the same session appends nothing.
-- Recall is a separate path with its own guarantees — see §2b.
-
----
-
-## 2b. Position recall — `librarian-positions` (decision-graph Phase B)
-
-`librarian-positions` answers *"what do I think about X, and how did that
-change?"* from the streams §2a writes. It is read-only, and it reads a
-**projection**, never the stream files themselves.
-
-**Ask one of three ways.** They are three different questions, so exactly one
-argument at a time:
-
-- `topic` — an exact topic key. A topic key is unique, so this returns **one**
-  topic or an explicit not-found (`Position not found: <key>`), never a list.
-  The miss is an ordinary answer, worded like `librarian-get-note`'s own.
-- `query` — free text matched against your recorded stances, all terms
-  required, as `librarian-search` does for notes. Returns a list.
-- `note` — a vault-relative note path; returns the positions whose references
-  include that note, in **any** recorded version of it. Returns a list.
-
-Free-text and note matching scan a topic's **entire history**, not just its
-current stance: a topic surfaces if any event in its chain matches, however
-long since superseded. What comes back is still the *current* stance — what you
-searched and what you get are separate knobs. Add `chain: true` for the whole
-supersession history, oldest event first.
-
-**Every answer says whose it is and when.** A recalled stance always carries
-the date it was **formed** (its original `assert`) and, where there is one, the
-date it was last **revised**. A `reaffirm` re-endorses a stance without
-changing it, so it never moves the revision date — it shows up in the chain
-instead. The `librarian-positions` tool description tells any connected client
-to report all of this as *your* recorded position rather than restating it as its
-own present-tense conclusion.
-
-**A retired position is a stub, not a deletion.** Where the most recent event
-for a topic is a `retire`, the answer is that retire event's own text —
-typically the reason you withdrew the stance — with `retired <date>` stated as
-a retirement, never as a revision. Nothing is removed from the history to
-produce it: every earlier event is still there under `chain: true`. (And a
-position asserted *again* after a retirement is simply live again; a retirement
-is terminal only while it is the last thing recorded.)
-
-**Dormant is computed, never stored.** A live position nothing has touched for
-a long while is marked dormant, worked out on every read from the events' own
-timestamps. Nothing about dormancy is written to disk or to the index, so the
-rule can change without a migration or a rebuild. A retired position is never
-marked dormant — withdrawing a stance on purpose is not the same fact as
-letting one go quiet.
-
-**Reindex is the only trigger.** The three projection tables
-(`position_events`, `position_refs`, `positions`) are rebuilt wholesale from
-`_librarian/positions/*.md` at every reindex (`npm run reindex`, or the one the
-server runs itself when it starts and finds something changed), exactly like the note
-identity projection in §6, and are never patched incrementally. Consequences,
-both deliberate:
-
-- A position captured since your last reindex is **not** recalled until the
-  next one runs — which happens by itself the next time the server starts. That
-  is a disclosed lag, not a silent gap.
-- Because recall never touches the capture path, capture cannot be disturbed by
-  it. Session records, their bytes, and the position write path are unchanged
-  by the fold running or by any query you make.
-
-Calling `librarian-positions` is logged to `_librarian/stateful-use.jsonl`
-under its own kind, and does **not** count toward the desirability gate (§5).
-
----
-
-## 3. Recall recent work — `librarian-recent`
-
-Ask *"what was I working on lately?"* and Claude calls the **`librarian-recent`**
-tool. It returns recent session summaries **most-recent-first**, each with its
-date, its project, and the versioned provenance of the notes it references:
-
-```
+```text
 2026-07-26 10:15:00 [rutter] — Shipped workspace provenance.
    refs: Notes/foo.md@sha256:…
 2026-07-25 21:40:00 [novel] — Drafted chapter three.
 2026-07-24 09:12:00 — An entry captured before provenance existed.
 ```
 
-- **Project:** shown in brackets when the entry recorded one. An entry without
-  provenance shows nothing there — no "unknown project" placeholder, because that
-  would be noise about the record rather than information about the work.
-- **Project filter:** *"what have I been doing on the novel?"* → `project: "novel"`.
-  Matching is on the recorded project name and is **case-insensitive**, so `Novel`
-  works too. It matches the whole name, not part of it.
-  Entries with no provenance are **excluded** from a filtered answer — the
-  librarian will not match your filter against a summary's wording or a note path
-  to manufacture a result it cannot actually vouch for.
-- **Window:** limit to a recent span, e.g. *"what did I do last week?"* →
-  `window: 7` (the last 7 days).
-- **Count:** cap the number of sessions, e.g. `count: 3` for the three most
-  recent.
-- **Empty state:** with no records yet, it returns a plain
-  *"No recent sessions recorded yet."* message — never an error. A filter that
-  matches nothing says so specifically.
+- **Project** is shown in brackets when the entry recorded one. An entry without provenance shows
+  nothing there. There is no "unknown project" placeholder, because that would be noise about the
+  record rather than information about the work.
+- **Project filter:** *"what have I been doing on the novel?"* becomes `project: "novel"`. Matching
+  is on the recorded project name and is **case-insensitive**, so `Novel` works too. It matches
+  the whole name, not part of it. Entries with no provenance are **excluded** from a filtered
+  answer. rutter will not match your filter against a summary's wording or a note path to
+  manufacture a result it cannot actually vouch for.
+- **Window** limits to a recent span. *"what did I do last week?"* becomes `window: 7`, the last
+  7 days.
+- **Count** caps the number of sessions, for example `count: 3` for the three most recent.
+- **Empty state:** with no records yet, it returns a plain *"No recent sessions recorded yet."*
+  message, never an error. A filter that matches nothing says so specifically.
 
-Filters only ever *remove* entries: the order you get is the same order you would
-have got unfiltered.
+Filters only ever *remove* entries: the order you get is the same order you would have got
+unfiltered.
 
 ### Old, dense entries still read clearly
 
-Records written before the style contract existed are exactly as dense as the day
-they were captured, and they are **never migrated, edited, or re-summarized** —
-memory-of-use is append-only (INV-3), and rewriting your own past record to look
-tidier would be a worse bug than the density.
+Records written before the style contract existed are exactly as dense as the day they were
+captured. They are **never migrated, edited, or re-summarized**. Memory-of-use is append-only, and
+rewriting your own past record to look tidier would be a worse bug than the density.
 
-Instead the server's tool descriptions ask your **client** to *report* recalled
-summaries in plain language for whoever is asking — and that applies to every
-record, not just new ones. So when you ask "what was I working on?", Claude may
-answer in cleaner words than the stored line uses. That is the intended behavior:
-what is on disk is the record, what you are told is the answer. If you want the
-exact stored text, open the day file in Obsidian, or run `npm run recent`, which
+Instead the server's tool descriptions ask your **client** to *report* recalled summaries in plain
+language for whoever is asking, and that applies to every record, not just new ones. So when you
+ask "what was I working on?", your client may answer in cleaner words than the stored line uses.
+That is the intended behavior: what is on disk is the record, and what you are told is the answer.
+If you want the exact stored text, open the day file in Obsidian, or run `npm run recent`, which
 prints the raw stored line.
 
 From the terminal:
@@ -394,177 +264,101 @@ From the terminal:
 npm run recent                        # everything, most-recent-first
 npm run recent -- 3                   # the 3 most recent
 npm run recent -- --days 7            # just the last week
-npm run recent -- --project rutter   # just one project
+npm run recent -- --project rutter    # just one project
 ```
+
+### How your client knows to ask
+
+You do not have to tell your client when to use rutter. The server's MCP instructions route
+recency questions to `librarian-recent`, prior-engagement and content questions to
+`librarian-search` (then `librarian-get-note` to read a note in full), and position questions to
+`librarian-positions`. They also tell the client how to write session and position lines.
+
+The reading-back half travels in the tool descriptions. `librarian-recent` asks the client to
+report recalled summaries in plain language (see *Old, dense entries still read clearly*), and
+`librarian-positions` asks it to attribute a stance to you rather than adopt it. Neither is
+enforced by the server. Both reach every client that connects.
+
+This matters because guidance in a project's `CLAUDE.md` only helps in that project. Instructions
+that ship with the server travel to every client and every directory it is connected from: one
+install, not one per repo. Writing the summary is still your client's job, because writing is
+inference. The instructions for doing it ship with the server too.
+
+The guidance says *when the tools are the right answer*. It does not tell your client to call them
+unprompted. Memory stays quiet until it is relevant.
 
 ---
 
-## 3a. How your client knows to ask
+## Search enrichment
 
-You do not have to tell Claude (or any other MCP client) when to use the
-librarian. The server declares its own **MCP instructions**, which every client
-receives on connect:
+When you run **`librarian-search`** and a result is a note a past session referenced, that one
+result carries a quiet **prior-engagement** note: *what you concluded and when*. For example:
 
-> Recency questions → `librarian-recent`. Prior-engagement and content questions →
-> `librarian-search`. Consult them before reading files directly. Then
-> `librarian-get-note` to read a note in full. Write `librarian-session` summaries
-> to the style contract above, and `librarian-position` lines for stances.
-
-The reading-back half travels in the tool descriptions: `librarian-recent` asks the
-client to report recalled summaries — including old, dense ones — in plain language
-for whoever asked, and `librarian-positions` asks it to attribute a stance to you
-rather than adopt it. So between them the instructions and tool descriptions cover
-both directions of the memory: how a summary should be **written**, and how a
-recalled summary should be **read back**. Neither is enforced by the server; both
-travel to every client that connects.
-
-This matters because guidance in a project's `CLAUDE.md` only helps in that
-project. Instructions that ship *with the server* travel to every client and every
-directory it's connected from — one install, not one per repo. (The one thing that
-does still live in your global `CLAUDE.md` is the *summary directive* from step 2
-above: writing the line is inference, which is your client's job, not the
-server's.)
-
-The guidance says *when the tools are the right answer* — it does not tell your
-client to call them unprompted. Memory stays quiet until it's relevant.
-
----
-
-## 4. Search enrichment — quiet prior-engagement signals
-
-When you run **`librarian-search`** and a result is a note a past session
-referenced, that one result carries a quiet **prior-engagement** note: *what you
-concluded and when*. For example:
-
-```
+```text
 1. Orbital telemetry pipeline — reference · evergreen · 2026-05-02
    Notes/foo.md
    …matching snippet…
    ↩ prior engagement 2026-07-22: "Decided foo is the canonical source."
 ```
 
-- **Silence is intentional.** Results you've never engaged carry **no**
-  annotation. That's by design — the librarian is quiet when unprompted; the
-  absence of a note is not a bug and is never "not seen before" noise.
-- **It never changes your results.** Enrichment is *additive metadata only*: the
-  set of results and their ranking are byte-identical to the plain S1 search. A
-  prior engagement never promotes, demotes, adds, or drops a result.
+- **Silence is intentional.** Results you have never engaged carry **no** annotation. rutter is
+  quiet when unprompted. The absence of a note is not a bug and is never "not seen before" noise.
+- **It never changes your results.** Enrichment is *additive metadata only*. The set of results and
+  their ranking are byte-identical to a plain search with no enrichment. A prior engagement never
+  promotes, demotes, adds, or drops a result.
 
-See [§6](#6-note-identity--surviving-a-vault-rename) for two more things this
-surface renders, additively, when note identity is involved: a candidate note
-for a reference the identity pass couldn't resolve on its own, and a conflict
-between a confirmed binding and a fresher automatic detection.
+[Note identity](#note-identity) describes two more things this surface renders when a reference
+cannot be resolved on its own: a candidate note for it, and a conflict between a confirmed binding
+and a fresher automatic detection.
 
 ---
 
-## 5. Measuring the desirability gate
+## Note identity
 
-S1.5 exists behind a kill gate: *does ambient memory-of-use actually pull you
-toward stateful behavior?* The gate target is **reaching for a stateful behavior
-unprompted ≥3×/week for 2 weeks.**
+A reference records two things about a note at the moment it was captured: its vault-relative path
+and a content hash. Rename the note later and the path stops resolving, but the hash is still
+there, so rutter can tell *what* the reference meant even after *where* it lives has moved.
 
-*Unprompted* names intent, not call origin *(spec v3.11.0)*. "What have I been
-working on?" answered via `librarian-recent` is unprompted use even though the
-model executes the call — memory reached through conversation is still memory
-reached. What doesn't count is a call made only because the server instructions
-tell clients to prefer these tools, with no human question behind it.
+At every `npm run reindex`, rutter checks each recorded reference whose path no longer resolves.
+*Resolves* means a file exists on disk at that path, inside the vault, of any type. A reference can
+legitimately point at a non-note file (a `.gitignore`, an exported `.html`, a `.yaml` config,
+anything under `_librarian/` itself), because capture hashes whatever bytes are there. Such a
+reference is live for as long as the file exists. The identity pass never treats "not an indexed
+markdown note" as dead. Only a path that is actually *missing*, deleted or moved with no trace at
+the old location, is checked further:
 
-Every time you invoke `librarian-recent`, or run a search that surfaces at least
-one prior-engagement signal, the librarian appends one timestamped event to a
-local, append-only log (`_librarian/stateful-use.jsonl`). A single search counts
-as exactly one event no matter how many signals it surfaced.
+- **Exactly one current note's content hash matches what was recorded.** The note was renamed with
+  its content untouched. rutter binds the old path to the new one, deterministically, and appends
+  the binding to a ledger (`_librarian/note-identity.md`). No heuristics, no similarity score, no
+  model. A hash either matches or it does not.
+- **Zero matches, or more than one.** rutter does not guess. Zero means the note was renamed *and*
+  edited, so no current note's hash matches. More than one means duplicate content exists, and
+  picking one would invent an answer the vault does not give. Either way the reference renders
+  explicitly as **unresolved**, with every candidate it found. It is never silently dropped and
+  never silently bound to a guess.
 
-`librarian-positions` writes to the same log, under its own kind, and is
-**excluded from the count** — the gate measures whether S1.5's ambient
-memory-of-use pulls you toward stateful behavior, and folding a later effort's
-read surface into that number would answer a different question than the one
-the gate was set up to ask. The log still records the calls, so they remain
-available to look at; they just do not move the gate figure.
+`librarian-recent` and search enrichment resolve bound references through the ledger at read time.
+The session record you see still says what you wrote. The ref line shows the note's current path,
+or `[UNRESOLVED -- candidates: ...]` when rutter genuinely does not know. Nothing on this path ever
+rewrites the stored session entry. Resolution happens only when it is displayed.
 
-Read the per-ISO-week count to evaluate the gate:
-
-```bash
-npm run gate                       # counts across all history
-npm run gate 2026-07-13 2026-07-26 # counts within a date range
-```
-
-Output is one line per ISO week, marking weeks that met the ≥3 target:
-
-```
-stateful-use per ISO week (gate target: >=3):
-  2026-W29: 2
-  2026-W30: 4  ✓
-```
-
-> Classifying an invocation as *unprompted* — attributing it to a live human
-> question versus standing server instructions alone — is left to manual
-> wish-log review; the log captures every invocation with a timestamp so that
-> review is possible.
-
----
-
-## 6. Note identity — surviving a vault rename
-
-A reference records two things about a note at the moment it was touched: its vault-relative
-path, and a content hash. Rename the note later and the path stops resolving — but the hash is
-still there, so the librarian can tell *what* the reference meant even after *where* it lives has
-moved.
-
-Every `npm run reindex` runs an identity pass over every recorded reference whose path no longer
-resolves — and "resolves" means exactly what it sounds like: a file exists on disk at that path,
-inside the vault, of ANY type. A reference can legitimately point at a non-note artifact (a
-`.gitignore`, an exported `.html`, a `.yaml` config, anything under `_librarian/` itself) since
-capture hashes whatever bytes are actually there; such a reference is live for as long as that
-file exists, and the identity pass never treats "not an indexed markdown note" as "dead." Only a
-path that is actually MISSING — deleted or moved with no trace at the old location — enters the
-rest of this section, note or not:
-
-- **Exactly one current note's content hash matches what was recorded** — the note was renamed,
-  content untouched. The librarian binds the old path to the new one, deterministically, and
-  appends the binding to a ledger (`_librarian/note-identity.md`). No heuristics, no similarity
-  score, no model — a hash either matches or it doesn't.
-- **Zero matches, or more than one** — the librarian does not guess. Zero means the note was
-  renamed *and* edited (so no current note's hash matches); more than one means duplicate content
-  exists and picking one would be inventing an answer the vault doesn't actually give. Either way
-  the reference renders explicitly as **unresolved**, with every candidate it found — never
-  silently dropped, never silently bound to a guess.
-
-`librarian-recent` and search enrichment resolve bound references through the ledger at read
-time: the session record you see still says what you wrote, but the ref line shows the note's
-current path, or `[UNRESOLVED -- candidates: ...]` when the librarian genuinely doesn't know.
-Nothing on this path ever rewrites the stored session entry — resolution happens only when it is
-displayed.
-
-Both surfaces render the unresolved case, but they render it differently, because they have
-different things to attach it to:
+The two surfaces render the unresolved case differently, because they have different things to
+attach it to:
 
 - **`librarian-recent`** shows the dead reference itself, so it renders the ref line the same way
   either way: `Notes/old.md@sha256:... [UNRESOLVED -- candidates: Notes/dup1.md, Notes/dup2.md]`.
-- **Search enrichment** has no "dead reference" object to annotate — it only ever annotates a
-  search RESULT, which is a live, currently-indexed note. So when one of an unresolved
-  reference's candidates happens to also be a search result, THAT result carries a separate
-  `unresolvedReference` annotation naming the dead ref and every candidate — distinct from the
-  ordinary prior-engagement note, and never rendered as one. A note that is merely a *candidate*
-  for an old reference is not the same claim as a note that a session record actually engaged, and
-  the two are never conflated: a candidate result is never annotated with `priorEngagement` on the
-  strength of a candidacy alone. If none of an unresolved reference's candidates are among a given
-  search's results, nothing about that search changes — enrichment only ever annotates results
-  that are already there (SR-009/SR-010 hold exactly as before). One consequence worth being
-  explicit about: a reference with **no candidates at all** (the note was renamed *and* edited,
-  so no current note matches its recorded hash) has nothing enrichment could ever attach it to,
-  and is therefore visible on `librarian-recent` only. `librarian-recent` is the complete
-  discovery surface for unresolved references of every kind; search enrichment is a
-  candidate-anchored extra, not a second complete listing.
-
-**Confirmed bindings are sticky, and disagreements are surfaced, not silently settled either
-way.** Suppose you confirm `Notes/old.md` to `Notes/keep.md`, and later the vault changes so that
-exact-hash matching would, on its own, now point `Notes/old.md` at a *different* note (say a
-stray file lands with the exact bytes that were last recorded for `old.md`). The confirmed
-binding still wins — a later piece of automation never outvotes a human decision — and reindex
-appends nothing new for that reference. But the disagreement itself is not hidden: both read
-surfaces render it explicitly, alongside the confirmed target: `confirmed Notes/keep.md; the hash
-now matches Notes/stray.md`. The only thing that ever moves a confirmed binding is a fresh
-`npm run identity-confirm` run.
+- **Search enrichment** has no "dead reference" object to annotate. It only annotates a search
+  *result*, which is a live, currently indexed note. So when one of an unresolved reference's
+  candidates is also a search result, *that* result carries a separate `unresolvedReference`
+  annotation. The annotation names the dead reference and every candidate. It is distinct from the
+  ordinary prior-engagement note and is never rendered as one. Being a *candidate* for an old
+  reference is a different claim from being a note a session actually engaged, so the two are never
+  conflated. A result is never given a prior-engagement note on the strength of candidacy alone.
+  If none of an unresolved reference's candidates are among a search's results, nothing about that
+  search changes. A reference with **no candidates at all** has nothing enrichment could attach it
+  to, so it appears on `librarian-recent` only. That listing is the complete discovery surface for
+  unresolved references. Search enrichment is an extra that appears only when a candidate is
+  already in the results, not a second complete listing.
 
 If a reference stays unresolved, resolve it by hand:
 
@@ -572,28 +366,121 @@ If a reference stays unresolved, resolve it by hand:
 npm run identity-confirm -- Notes/old-name.md Notes/new-name.md
 ```
 
-This is a **local terminal command only** — it is never exposed as an MCP tool, so a connected
+This is a **local terminal command only**. It is never exposed as an MCP tool, so a connected
 client can never rewrite what a dead reference means on its own. It checks that the target you
-name actually exists in the vault right now (existence, not a hash match — the whole point is
-resolving the case where the hash no longer matches), then appends a `detected: confirmed` entry
-to the same ledger. Confirmed bindings are sticky in general, not just against a still-ambiguous
-vault: once you've resolved a reference, no LATER automatic detection — ambiguous or a clean
-single-candidate match pointing somewhere else — ever moves it back or overrides it; see above for
-how that disagreement is surfaced instead of silently settled. The only thing that supersedes a
-confirmed binding is running `npm run identity-confirm` again.
+name exists in the vault right now. It checks existence, not a hash match, because the point is to
+resolve cases where the hash no longer matches. It then appends a `detected: confirmed` entry to
+the same ledger.
 
-The ledger is append-only, same as everything else here (INV-3): a note renamed more than once
-gets a fresh binding each time, computed directly against what was originally recorded — never by
-chaining through an earlier binding — with the newest *automatic* entry winning at read time.
-Confirmed entries are the one exception to "newest wins": once a pair is confirmed, only a later
-confirmation moves it, never a later automatic detection (see above). Earlier entries are never
-rewritten, reordered, or removed. The identity projection tables in the SQLite cache are, like the
-rest of the index, fully disposable: delete `data/librarian.db` and reindex, and they rebuild from
-the vault and the ledger alone (INV-4).
+**A confirmed binding is sticky.** Once you confirm a binding, no later automatic detection moves
+or overrides it, whether that detection is ambiguous or a clean single match pointing somewhere
+else. Suppose you confirmed `Notes/old.md` to `Notes/keep.md`, and later a stray file lands with
+exactly the bytes last recorded for `old.md`. Reindex appends nothing new for that reference. Both
+read surfaces show the disagreement next to the confirmed target: `confirmed Notes/keep.md; the
+hash now matches Notes/stray.md`. Only running `npm run identity-confirm` again changes a confirmed
+binding.
+
+The ledger is append-only, like everything else here. A note renamed more than once gets a fresh
+binding each time. Each binding is computed directly against what was originally recorded, never by
+chaining through an earlier binding, and the newest *automatic* entry wins at read time. Confirmed
+entries are the exception, as described above. Earlier entries are never rewritten, reordered, or
+removed. The identity tables in the SQLite index are, like the rest of the index, fully
+disposable: delete `data/librarian.db` and reindex, and they rebuild from the vault and the ledger
+alone.
 
 ---
 
-## 7. What rutter can and cannot establish
+## Positions: capturing a stance
+
+Alongside the session summary, your client can leave a second kind of line: a **position
+directive**. It emits one only when a session forms, changes, reaffirms, or retires a stance on a
+topic, which should happen in far fewer sessions than not. For scale, session summaries ran at
+about 19 lines a day in the author's own use when this was written.
+
+```text
+<!-- librarian-position POSITION assert my-topic: I think X because of the meeting notes. -->
+```
+
+- `assert | revise | reaffirm | retire` is the directive's kind. Kind is the only thing that routes
+  it. There is no content inspection.
+- `<topic-key>` is free-form and client-chosen, kebab-case by convention but never enforced. An
+  off-convention key is reported on stderr and stored as written.
+- `<stance>` is the rest of the line, stored byte-verbatim. A `[[wikilink]]` anywhere in the stance
+  is captured as a versioned reference exactly like a session ref. The text `revises: <event-id>`
+  anywhere in the stance records that this event replaces that earlier one. Neither is stripped out
+  of the stored stance. What you wrote is what is stored, in full.
+- Position events are appended to a **wholly separate stream**,
+  `<vault>/_librarian/positions/<YYYY-MM>.md`, never to a session record. Emitting one position, or
+  many, changes nothing about how session summaries are captured, stored, or read. The reverse
+  holds too.
+- The idempotence rule is the same as for a session summary: an unchanged directive re-fired by the
+  same session appends nothing.
+
+Recall is a separate path with its own guarantees. See the next section.
+
+---
+
+## Positions: recalling a stance
+
+`librarian-positions` answers *"what do I think about X, and how did that change?"* from the stream
+that position capture writes. It is read-only. It reads a **derived table** in the index, rebuilt
+from the position files at each reindex, never the files themselves.
+
+**Ask one of three ways.** They are three different questions, so pass exactly one argument at a
+time:
+
+- `topic` is an exact topic key. A topic key is unique, so this returns **one** topic or an
+  explicit not-found (`Position not found: <key>`), never a list. The miss is an ordinary answer,
+  worded like `librarian-get-note`'s own.
+- `query` is free text matched against your recorded stances, all terms required, as
+  `librarian-search` does for notes. It returns a list.
+- `note` is a vault-relative note path. It returns the positions whose references include that
+  note, in **any** recorded version of it. It returns a list.
+
+Free-text and note matching scan a topic's **entire history**, not just its current stance. A topic
+surfaces if any event in its chain matches, however long since superseded. What comes back is still
+the *current* stance, so what you searched and what you get are separate knobs. Add `chain: true`
+for the topic's full history: every event that replaced or reaffirmed an earlier one, oldest first.
+
+**Every answer says whose it is and when.** A recalled stance always carries the date it was
+**formed** (its original `assert`) and, where there is one, the date it was last **revised**. A
+`reaffirm` re-endorses a stance without changing it, so it never moves the revision date. It shows
+up in the chain instead. The `librarian-positions` tool description tells any connected client to
+report all of this as *your* recorded position, rather than restating it as its own present-tense
+conclusion.
+
+**A retired position is a stub, not a deletion.** Where the most recent event for a topic is a
+`retire`, the answer is that retire event's own text, typically the reason you withdrew the stance,
+with `retired <date>` stated as a retirement, never as a revision. Nothing is removed from the
+history to produce it. Every earlier event is still there under `chain: true`. A position asserted
+*again* after a retirement is simply live again. A retirement is terminal only while it is the last
+thing recorded.
+
+**Dormant is computed, never stored.** A live position that nothing has touched for a long while is
+marked dormant. That is worked out on every read from the events' own timestamps. Nothing about
+dormancy is written to disk or to the index, so the rule can change without a migration or a
+rebuild. A retired position is never marked dormant. Withdrawing a stance on purpose is not the
+same fact as letting one go quiet.
+
+**Reindex is the only trigger.** The three index tables that hold positions (`position_events`,
+`position_refs`, `positions`) are rebuilt wholesale from `_librarian/positions/*.md` at every
+reindex, the same way as the identity tables in [Note identity](#note-identity). A reindex runs
+when you call `npm run reindex`, or when the server starts and finds something changed. The tables
+are never patched incrementally. Two consequences, both deliberate:
+
+- A position captured since your last reindex is **not** recalled until the next one runs. That
+  happens by itself the next time the server starts. It is a disclosed lag, not a silent gap.
+- Because recall never touches the capture path, capture cannot be disturbed by it. Session
+  records, their bytes, and the position write path are unchanged by a reindex rebuilding those
+  tables or by any query you make.
+
+Calling `librarian-positions` is logged to `_librarian/stateful-use.jsonl` under its own kind, and
+does **not** count toward the usage gate (see [Measuring whether it gets
+used](#measuring-whether-it-gets-used)).
+
+---
+
+## What rutter can and cannot establish
 
 A reference is evidence of what a session recorded. It is not proof of what the session read. This
 section puts the boundary in one place.
@@ -604,9 +491,9 @@ section puts the boundary in one place.
 - **The sha256 of each listed file's bytes when capture ran.** The server computes it. A client
   cannot supply one.
 - **The summary or stance the client wrote,** byte-verbatim.
-- **When and where the line was captured.** That means the time, and the working directory, project,
-  and repo origin when the host reports them. Each record also names the client that wrote it, when
-  that can be established.
+- **When and where the line was captured.** That means the time, and the working directory,
+  project, and repo origin when the host reports them. Each record also names the client that wrote
+  it, when that can be established.
 
 **What it cannot establish:**
 
@@ -617,14 +504,15 @@ section puts the boundary in one place.
   found it (see the list below).
 - **That a file did not change between the session reading it and capture.** The hash is taken when
   the hook runs, after the turn. If the session edited a note, the hash is of the edited file.
-- **Whether a note at an unchanged path has changed since.** The hash is stored, so you can compare.
-  rutter does not report it yet.
+- **Whether a note at an unchanged path has changed since.** The hash is stored, so you can
+  compare. rutter does not report it yet.
 
 **What capture depends on.** Each item is stated earlier on this page. They are collected here:
 
 - The hook only lifts a line the model wrote. A client that skips the directive leaves nothing to
   capture. An empty summary, or one still wrapped in `<angle brackets>`, captures nothing.
-- Each firing keeps one session summary and one position: the last of each in the text the hook reads.
+- Each firing keeps one session summary and one position: the last of each in the text the hook
+  reads.
 - Codex reads the final reply only, so a directive in earlier commentary is lost.
 - Grok clips its final message at 32,768 characters, so a long turn can drop a trailing directive.
 - Antigravity captures nothing from a turn that ended in an error, and needs the rule file, or its
@@ -633,23 +521,68 @@ section puts the boundary in one place.
 
 **Append-only is a rule rutter follows, not a tamper-proof log.** The server has no code path that
 rewrites, reorders, or deletes a stored line. But the records are plain markdown in your notes
-folder. Anyone with write access, including you in Obsidian, can edit them, and nothing detects
-it. If you need a history of edits, commit the notes folder to git.
+folder. Anyone with write access, including you in Obsidian, can edit them, and nothing detects it.
+If you need a history of edits, commit the notes folder to git.
+
+### Guarantees
+
+- **Local-first:** no network calls, ever. Repository identity is resolved by reading
+  `.git/config`. There is no `git` subprocess, and a remote URL is recorded as text, never fetched.
+- **Notes are never touched:** rutter only writes under `_librarian/` and `data/`. It never
+  creates, modifies, or deletes vault notes.
+- **No hard-delete:** memory-of-use records are only appended. Old records are never re-summarized
+  or tidied up to match a newer convention.
+- **Rebuildable:** `data/librarian.db` is a disposable cache. Delete it and `npm run reindex`
+  reconstructs everything from the vault plus `_librarian/`.
+- **Hooks never break a session:** the capture hook always exits cleanly, so a failure inside
+  capture cannot interrupt your work.
+- **No AI in the server:** summaries are your client's. The server stores and serves them
+  **verbatim**, including summaries that ignore the style contract entirely. Judging or improving
+  prose would be inference, so the server does neither, at capture or at read time.
+
+The spec states each of these as an invariant: [`spec/spec.md`](../spec/spec.md).
 
 ---
 
-## Guarantees
+## Measuring whether it gets used
 
-- **Local-first (INV-1):** no network calls, ever. Repository identity is resolved
-  by reading `.git/config` — no `git` subprocess, and a remote URL is recorded as
-  text, never fetched.
-- **Store immutability (INV-2):** the librarian only writes under `_librarian/`
-  and `data/`; it never creates, modifies, or deletes vault notes.
-- **No hard-delete (INV-3):** memory-of-use records are only appended. Old records
-  are never re-summarized or tidied up to match a newer convention.
-- **Rebuildable (INV-4):** `data/librarian.db` is a disposable cache; delete it
-  and `npm run reindex` reconstructs everything from the vault + `_librarian/`.
-- **No AI in the server (INV-6):** summaries are your client's; the server stores
-  and serves them **verbatim** — including summaries that ignore the style
-  contract entirely. Judging or improving prose would be inference, so the
-  server does neither, at capture or at read time.
+Memory-of-use is on trial. The project set a usage test it can fail: *does ambient memory-of-use
+actually pull you toward reaching for it?* The target is reaching for a stateful behavior
+unprompted at least three times a week, for two weeks. The first reading, in August 2026,
+[passed](./gate-verdict-2026-08.md), and the gate keeps running. It reads one person's usage.
+
+*Unprompted* names intent, not call origin. "What have I been working on?" answered via
+`librarian-recent` is unprompted use even though the model executes the call. The assistant is the
+delivery mechanism, and memory reached through conversation is still memory reached. What does not
+count is a call made only because the server instructions tell clients to prefer these tools, with
+no human question behind it.
+
+Every time you invoke `librarian-recent`, or run a search that surfaces at least one
+prior-engagement signal, rutter appends one timestamped event to a local, append-only log
+(`_librarian/stateful-use.jsonl`). A single search counts as exactly one event no matter how many
+signals it surfaced.
+
+`librarian-positions` writes to the same log under its own kind, and is **excluded from the
+count**. The gate measures whether session memory pulls you toward using it, and counting
+position queries, a feature added later, would answer a different question. The calls are still logged, so
+you can inspect them. They just do not move the gate figure.
+
+Read the per-ISO-week count to evaluate the gate:
+
+```bash
+npm run gate                       # counts across all history
+npm run gate 2026-07-13 2026-07-26 # counts within a date range
+```
+
+Output is one line per ISO week, marking weeks that met the target:
+
+```text
+stateful-use per ISO week (gate target: >=3):
+  2026-W29: 2
+  2026-W30: 4  ✓
+```
+
+> Deciding whether a call was *unprompted*, meaning a live human question rather than the standing
+> server instructions alone, is left to manual review of the log. The log captures every invocation
+> with a timestamp so that review is possible. The project is prepared to conclude that the
+> stateful behavior does not get reached for.

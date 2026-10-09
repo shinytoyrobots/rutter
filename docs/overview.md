@@ -246,7 +246,7 @@ A reference is evidence of what a session recorded. It is not proof of what the 
 
 Append-only is an application rule, not tamper-proof auditing. Anyone with write access to your
 notes folder can edit the records, and nothing detects it. The full list of capture dependencies is
-in [`memory-of-use.md`](./memory-of-use.md#7-what-rutter-can-and-cannot-establish).
+in [`memory-of-use.md`](./memory-of-use.md#what-rutter-can-and-cannot-establish).
 
 ## What it deliberately is not
 
@@ -289,8 +289,8 @@ steps.
 ## Further reading
 
 - [`getting-started.md`](./getting-started.md) — clone to first recall, in eight verified steps.
-- [`memory-of-use.md`](./memory-of-use.md) — capture, recall, enrichment, the gate and note identity
-  in full mechanical detail.
+- [`memory-of-use.md`](./memory-of-use.md) — capture, recall, enrichment, note identity, positions,
+  the trust boundary, and the usage gate, in full mechanical detail.
 - [`roadmap.md`](./roadmap.md) — current sequencing, and what is deliberately not being built.
 - [`../spec/spec.md`](../spec/spec.md) — the executable spec: Given-When-Then scenarios, the
   requirements derived from them, the tests that grade each one, and what every amendment rejected.
