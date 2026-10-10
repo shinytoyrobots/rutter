@@ -3,6 +3,7 @@
 **Written:** 2026-08-03
 **Amended:** 2026-08-05 — gate axis reframed from call origin to intent (Phase 0, kill
 conditions); discursive-librarian direction added (Phase 5).
+**Amended:** 2026-10-10 — unprompted recall noted as a future possibility, outside Phase 5.
 **Status:** proposal, not ratified. `spec/spec.md` remains the executable source of truth;
 nothing here is a requirement until it lands there.
 **Purpose:** high-level sequencing for work after the S1.5 desirability gate. Phases are
@@ -220,6 +221,34 @@ is real and acted on. A personality on a write-only record is a costume.
 `docs/gate-verdict-2026-08.md` (Phase 0) and `docs/read-value-verdict-2026-08.md`
 (read-value, decided qualitatively). This clears the gate; Phase 5 is still a
 direction, not scheduled, until someone decides to build it.
+
+---
+
+## Future possibility — unprompted recall (not phased)
+
+Added 2026-10-10. Noted so the idea isn't lost; deliberately **not** part of Phase 5,
+which stays about how the librarian answers when asked.
+
+The idea: an opt-in mode where rutter offers a past record without being asked, when the
+current conversation clearly connects to it — e.g. one line, *"Possibly related:
+2026-09-14, decided X (notes cited)."* This goes beyond the inspiration; Stephenson's
+Librarian answers, it does not volunteer.
+
+Likely shape, if ever built: a deterministic prompt hook (full-text search over the
+prompt, no model) that hands the client one line of context on a strong match, leaving
+the client to decide whether to mention it. Instruction-only nudging is the cheaper
+alternative but is unreliable and unmeasurable.
+
+Guardrails it would need: off by default; strong matches only; at most one line per
+prompt and each record at most once per session; provenance on every suggestion.
+
+**Before any build:**
+- Clarify constitution principle 3. "Surface only when relevant" arguably permits this
+  and opting in arguably counts as "invited", but "never at-you" should be settled in
+  writing, not by reading.
+- Tag these calls separately in instrumentation (pulled by: unprompted). Otherwise they
+  are exactly the "consulted only under standing instruction" calls the first kill
+  condition counts against the tool.
 
 ---
 
