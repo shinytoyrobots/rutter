@@ -22,7 +22,7 @@ The fix, in two parts:
 
   Rebuilding on a mismatch would be unsafe. Suppose client A is running on vault A, and client B starts against the same explicit `LIBRARIAN_DB_PATH` with vault B. If B rebuilt the database, A would silently start reading B's notes, because A only checks ownership at start-up. Refusing keeps the first owner's index intact.
 
-  A database with no recorded vault, built before this change, is claimed by the first server to open it. `reindex --force` reassigns a database deliberately. With the per-vault default path, a mismatch only happens when someone points two vaults at one explicit path.
+  A database with no recorded vault, built before this change, may hold another vault's index. The count and timestamp checks can't tell, because a different vault with the same number of notes, all older than the last index, looks current. So claiming always means a full rebuild: the first server to open such a database rebuilds it from its own vault, and records ownership only after the rebuild succeeds. Until then it serves no indexed results. If the rebuild fails, the database stays unowned and the tools return the error. `reindex --force` reassigns a database the same way: rebuild first, then record the new owner. With the per-vault default path, a mismatch only happens when someone points two vaults at one explicit path.
 
 The database is a regenerable cache, so the new location needs no migration. An explicit `LIBRARIAN_DB_PATH` and the plugin's `CLAUDE_PLUGIN_DATA` mapping still take precedence.
 
@@ -45,7 +45,15 @@ In `package.json` → `bin`, point both `rutter-memory` and `rutter` at `dist/cl
 - Claude Code and Codex would gain a second Stop hook beside the broken one. If both paths exist, capture would run twice.
 - Antigravity refuses, because the named entry `rutter` exists with a command it doesn't recognize (line 120).
 
-The fix: treat any command whose script path ends in `/hooks/librarian-stop.sh` as ours, wherever it lives. On re-run, rewrite that entry to the current path, keep its `--client` and vault settings, and print the old and new paths. Commands a user customized beyond the known shapes stay untouched, as today. The docs then keep the caveat: after switching Node versions, re-run `install-hook`.
+The fix: treat any command whose script path ends in `/hooks/librarian-stop.sh` as ours, wherever it lives. On re-run, rewrite that entry to the current path, keep its `--client`, and print the old and new paths.
+
+Capture and recall must agree on one vault. The installer resolves a single vault, in this order:
+1. An explicit `--vault`.
+2. The vault the existing hook already sets, since that is where capture has been writing.
+3. `LIBRARIAN_VAULT_PATH`.
+4. The default.
+
+It writes that vault into the rewritten hook, and into the MCP config it prints. This order applies to Antigravity, the only client whose hook command carries a vault (`LIBRARIAN_VAULT_PATH=…` in the command). Claude Code and Codex hooks carry none. They inherit the client's environment, and `--vault` stays Antigravity-only, as today. For those clients the installer only prints the vault that environment resolves to, so the user can match it in the server registration. It also prints the vault it chose and why. When `--vault` replaces a different preserved vault, it says so, because earlier captures stay in the old vault. Commands a user customized beyond the known shapes stay untouched, as today. The docs then keep the caveat: after switching Node versions, re-run `install-hook`.
 
 **4. Package contents and metadata** (`package.json`):
 - `"name": "rutter-memory"`, version `0.6.0`. Bump `.claude-plugin/plugin.json` to match, and regenerate `package-lock.json` so its top-level and root-package entries carry the new name and version.
@@ -103,9 +111,10 @@ Before PR A merges, all local and nothing published:
 - New tests:
   - The database-path default: inside `node_modules` vs a clone vs an explicit env var.
   - Two vaults: two different vault paths get two different default databases. A database built from vault A, opened with vault B, is refused: it is neither rebuilt nor read, and the error names the owning vault.
-  - Concurrent clients: server A runs on vault A against an explicit database path. Server B starts on vault B against the same path and refuses. A's searches still return vault A's notes afterward. A database with no recorded vault is claimed on first open, and `reindex --force` reassigns one.
+  - Concurrent clients: server A runs on vault A against an explicit database path. Server B starts on vault B against the same path and refuses. A's searches still return vault A's notes afterward. `reindex --force` reassigns a database by rebuilding it first.
+  - Legacy claim: build an unowned database from vault A, then open it with vault B, which has the same note count and older modified times. The server rebuilds from vault B before answering, and a search for a note only in vault A returns nothing. A failed rebuild leaves the database unowned, and the tools return the error.
   - The Antigravity installer's printed config has no `LIBRARIAN_DB_PATH` unless one was set.
-  - Two install prefixes: install the hook from prefix A, re-run `install-hook` from prefix B, for each of `claude`, `codex` and `antigravity`. Each config ends with exactly one rutter Stop hook, pointing at prefix B.
+  - Two install prefixes: install the hook from prefix A, re-run `install-hook` from prefix B, for each of `claude`, `codex` and `antigravity`. Each config ends with exactly one rutter Stop hook, pointing at prefix B. The vault in the rewritten hook matches the vault in the printed server config. For Antigravity, running again with an explicit `--vault` replaces the preserved vault in both.
   - CLI dispatcher routing: `serve` is the default, and unknown subcommands exit non-zero with usage.
 - `npm pack --dry-run`: only `dist/`, `hooks/` and the listed docs ship, and `hooks/librarian-stop.sh` stays executable.
 - Install the tarball into a scratch prefix (`npm install -g --prefix <scratch> ./rutter-memory-0.6.0.tgz`):
