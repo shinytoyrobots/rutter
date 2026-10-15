@@ -68,6 +68,20 @@ test("an unchanged entry compares equal to the server.json it came from, though 
   assert.deepEqual(differences(withDefaults, asServed(shipped).server), []);
 });
 
+test("an explicit false in server.json against true in the Registry is a difference, not hidden by dropping defaults", () => {
+  const local = structuredClone(shipped) as Entry & { packages: { environmentVariables: Record<string, unknown>[] }[] };
+  local.packages[0]!.environmentVariables[1]!.isSecret = false;
+  const remote = structuredClone(local);
+  remote.packages[0]!.environmentVariables[1]!.isSecret = true;
+  assert.deepEqual(differences(local, asServed(remote).server), ["packages[0].environmentVariables[1].isSecret"]);
+});
+
+test("a field only the Registry has is a difference too", () => {
+  const remote = structuredClone(shipped) as Entry & { packages: Record<string, unknown>[] };
+  remote.packages[0]!.runtimeHint = "bunx";
+  assert.deepEqual(differences(shipped, asServed(remote).server), ["packages[0].runtimeHint"]);
+});
+
 test("a changed field is a difference, named by its path", () => {
   const changed = structuredClone(shipped);
   changed.description = "something else";

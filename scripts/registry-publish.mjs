@@ -55,23 +55,28 @@ export function normalize(value) {
 }
 
 /**
- * Where the published entry differs from the local server.json, as dotted paths. Every
- * field server.json sets must match; fields only the Registry has are ignored, in case it
- * fills in values server.json leaves out.
+ * Where the published entry differs from the local server.json, as dotted paths. Both sides
+ * are normalized first, then must match exactly, in both directions: a field on only one
+ * side is a difference. So `isSecret: false` locally against `isSecret: true` in the Registry
+ * is caught (the false is dropped, the true is not). The Registry stores what was published
+ * and adds no fields of its own to `.server` (checked live 2026-10-15: `registryBaseUrl`
+ * appears only on entries whose publisher set it), so a two-way match is safe.
  */
 export function differences(local, remote, at = "") {
   const l = normalize(local);
   const r = normalize(remote);
-  if (l === undefined) return [];
-  if (Array.isArray(l)) {
-    if (!Array.isArray(r) || r.length !== l.length) return [at || "(root)"];
+  const here = at || "(root)";
+  if (l === undefined || r === undefined) return l === r ? [] : [here];
+  if (Array.isArray(l) || Array.isArray(r)) {
+    if (!Array.isArray(l) || !Array.isArray(r) || r.length !== l.length) return [here];
     return l.flatMap((v, i) => differences(v, r[i], `${at}[${i}]`));
   }
-  if (typeof l === "object") {
-    if (!r || typeof r !== "object" || Array.isArray(r)) return [at || "(root)"];
-    return Object.keys(l).flatMap((k) => differences(l[k], r[k], at ? `${at}.${k}` : k));
+  if (typeof l === "object" || typeof r === "object") {
+    if (typeof l !== "object" || typeof r !== "object") return [here];
+    const keys = [...new Set([...Object.keys(l), ...Object.keys(r)])].sort();
+    return keys.flatMap((k) => differences(l[k], r[k], at ? `${at}.${k}` : k));
   }
-  return l === r ? [] : [at || "(root)"];
+  return l === r ? [] : [here];
 }
 
 /**
