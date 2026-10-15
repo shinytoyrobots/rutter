@@ -111,14 +111,36 @@ export function createServer(opts: ServerOptions = {}): McpServer {
   // Checked on EVERY call, not only at startup: if another vault takes this database over
   // (`reindex --force`), this server must stop answering from it at once rather than serve
   // that vault's notes as this one's. One indexed lookup per call.
-  const refusal = (): { content: { type: "text"; text: string }[] } | undefined => {
-    // A startup error only stands while the database is unowned: once this vault owns it
+  type Reply = { content: { type: "text"; text: string }[] };
+  const refusal = (): Reply | undefined => {
+    // A startup error only stands while this vault does not own the database: once it does
     // (a later `reindex` succeeded), the index is good to serve.
     const owner = ownership(db);
     const text =
-      owner.status === "foreign" ? foreignVaultMessage(owner.owner) : owner.status === "unowned" ? opts.indexError?.() : undefined;
+      owner.status === "foreign"
+        ? foreignVaultMessage(owner.owner)
+        : owner.status === "claiming"
+          ? (opts.indexError?.() ?? `rutter's index at ${config.dbPath} is being rebuilt from ${config.vaultPath}; try again in a moment.`)
+          : owner.status === "unowned"
+            ? opts.indexError?.()
+            : undefined;
     return text === undefined ? undefined : { content: [{ type: "text" as const, text }] };
   };
+  // The ownership check and every read behind one reply run in ONE read transaction, so they
+  // see the same snapshot: another process cannot hand the index to a different vault between
+  // the check and the lookup. The handlers never await, so their whole body runs before the
+  // synchronous COMMIT below -- no other call can start a transaction on this connection meanwhile.
+  const guarded =
+    <A>(handler: (args: A) => Promise<Reply>) =>
+    (args: A): Promise<Reply> => {
+      db.exec("BEGIN");
+      try {
+        const refused = refusal();
+        return refused ? Promise.resolve(refused) : handler(args);
+      } finally {
+        db.exec("COMMIT");
+      }
+    };
 
   server.registerTool(
     "librarian-search",
@@ -135,15 +157,13 @@ export function createServer(opts: ServerOptions = {}): McpServer {
       },
       annotations: { readOnlyHint: true },
     },
-    async ({ query, limit, type, status, domain }) => {
-      const refused = refusal();
-      if (refused) return refused;
+    guarded(async ({ query, limit, type, status, domain }) => {
       const { results } = runSearch(query, { limit, type, status, domain }, db);
       if (results.length === 0) {
         return { content: [{ type: "text" as const, text: `No notes matched "${query}".` }] };
       }
       return { content: [{ type: "text" as const, text: results.map(formatSearchResult).join("\n\n") }] };
-    }
+    })
   );
 
   server.registerTool(
@@ -157,9 +177,7 @@ export function createServer(opts: ServerOptions = {}): McpServer {
       },
       annotations: { readOnlyHint: true },
     },
-    async ({ path: notePath }) => {
-      const refused = refusal();
-      if (refused) return refused;
+    guarded(async ({ path: notePath }) => {
       const note = getNote(notePath, db);
       if (!note) {
         return { content: [{ type: "text" as const, text: `Note not found: ${notePath}` }] };
@@ -173,7 +191,7 @@ export function createServer(opts: ServerOptions = {}): McpServer {
           },
         ],
       };
-    }
+    })
   );
 
   server.registerTool(
@@ -196,9 +214,7 @@ export function createServer(opts: ServerOptions = {}): McpServer {
       },
       annotations: { readOnlyHint: true },
     },
-    async ({ window, count, project, detail }) => {
-      const refused = refusal();
-      if (refused) return refused;
+    guarded(async ({ window, count, project, detail }) => {
       // One stateful-use event per invocation regardless of filters (SR-011 via
       // runRecent) -- a project filter changes membership, never instrumentation.
       const { sessions, empty } = runRecent({ windowDays: window, count, project, detail });
@@ -211,7 +227,7 @@ export function createServer(opts: ServerOptions = {}): McpServer {
       return {
         content: [{ type: "text" as const, text: sessions.map((s) => formatRecentSession(s, db)).join("\n\n") }],
       };
-    }
+    })
   );
 
   server.registerTool(
@@ -234,9 +250,7 @@ export function createServer(opts: ServerOptions = {}): McpServer {
       },
       annotations: { readOnlyHint: true },
     },
-    async ({ topic, query, note, chain }) => {
-      const refused = refusal();
-      if (refused) return refused;
+    guarded(async ({ topic, query, note, chain }) => {
       const selected = selectPositionQuery({ topic, query, note });
       if (!selected.ok) return text(selected.message);
 
@@ -254,7 +268,7 @@ export function createServer(opts: ServerOptions = {}): McpServer {
       }
       if (result.topics.length === 0) return text(noPositionMatches(selected.query));
       return text(renderTopicList(result.topics));
-    }
+    })
   );
 
   return server;

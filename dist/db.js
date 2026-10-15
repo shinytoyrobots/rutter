@@ -6,6 +6,8 @@ export function openDb(dbPath = config.dbPath) {
     fs.mkdirSync(path.dirname(dbPath), { recursive: true });
     const db = new DatabaseSync(dbPath);
     db.exec("PRAGMA journal_mode = WAL;");
+    // Several servers can share one index; wait briefly for another's write rather than fail.
+    db.exec("PRAGMA busy_timeout = 5000;");
     initSchema(db);
     return db;
 }

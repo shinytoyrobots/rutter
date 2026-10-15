@@ -1,7 +1,7 @@
 import { reindex } from "./indexer.js";
 import { config } from "./config.js";
 import { openDb } from "./db.js";
-import { ownership, foreignVaultMessage } from "./vault-owner.js";
+import { ownership, foreignVaultMessage, markClaiming, withRebuildLock } from "./vault-owner.js";
 
 // `reindex [--force]`. An index recorded for another vault is refused untouched;
 // `--force` hands it to this vault, by rebuilding first and recording the new owner
@@ -13,16 +13,27 @@ if (unknown !== undefined) {
   process.exit(2);
 }
 const db = openDb();
-const owner = ownership(db);
-if (owner.status === "foreign" && !args.includes("--force")) {
-  console.error(`[rutter] ${foreignVaultMessage(owner.owner)}`);
+// The ownership decision and the rebuild run under one lock, so no other process can
+// claim or rebuild the index between the check and the work.
+const outcome = withRebuildLock(db, () => {
+  const owner = ownership(db);
+  if (owner.status === "foreign" && !args.includes("--force")) return { refused: foreignVaultMessage(owner.owner) };
+  if (owner.status === "foreign") {
+    console.error(`[rutter] --force: rebuilding ${config.dbPath} from ${config.vaultRealPath}; it belonged to ${owner.owner}.`);
+  }
+  // Changing hands: mark it first, so the previous owner refuses from the first replaced row.
+  if (owner.status !== "owned") markClaiming(db);
+  return { stats: reindex(db) };
+});
+if (outcome === undefined) {
+  console.error(`[rutter] another process is rebuilding ${config.dbPath} right now; try again when it finishes.`);
   process.exit(1);
 }
-if (owner.status === "foreign") {
-  console.error(`[rutter] --force: rebuilding ${config.dbPath} from ${config.vaultRealPath}; it belonged to ${owner.owner}.`);
+if ("refused" in outcome) {
+  console.error(`[rutter] ${outcome.refused}`);
+  process.exit(1);
 }
-
-const stats = reindex(db);
+const stats = outcome.stats;
 console.log(
   `[rutter] reindex complete: ${stats.notes} notes indexed, ${stats.skipped} skipped, ${stats.ms}ms\n` +
     `  vault: ${config.vaultPath}\n  index: ${config.dbPath}`

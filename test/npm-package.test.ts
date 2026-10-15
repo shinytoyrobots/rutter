@@ -14,7 +14,7 @@ import { route } from "../src/cli-route.js";
 import { openDb } from "../src/db.js";
 import { reindex } from "../src/indexer.js";
 import { ensureIndex } from "../src/startup-index.js";
-import { readOwner } from "../src/vault-owner.js";
+import { readOwner, recordOwner, markClaiming, ownership, withRebuildLock } from "../src/vault-owner.js";
 import { createServer } from "../src/server.js";
 
 /**
@@ -196,7 +196,10 @@ test("a failed claim leaves the database unowned, and the server's tools return 
     },
   });
   assert.throws(() => ensureIndex(dying), /simulated claim failure/);
-  assert.equal(readOwner(db), undefined, "no owner recorded for a rebuild that did not finish");
+  assert.equal(ownership(db).status, "claiming", "never recorded as owned by a rebuild that did not finish");
+  assert.equal(ownership(db, "/some/other/vault").status, "foreign", "and every other vault still refuses it");
+  assert.equal(ensureIndex(db).built, true, "this vault's next start retries the claim");
+  assert.equal(ownership(db).status, "owned");
 
   const server = createServer({ indexError: () => "rutter could not build its index: simulated claim failure" });
   const client = new Client({ name: "npm-test", version: "0.0.0" });
@@ -215,6 +218,49 @@ test("a failed claim leaves the database unowned, and the server's tools return 
     await client.close();
     await server.close();
   }
+});
+
+test("a takeover marks the index before touching any table, so the previous owner refuses throughout -- and after a failure", () => {
+  const db = openDb(scratchDb());
+  recordOwner(db, "/vault/a");
+  const dying = new Proxy(db, {
+    get(target, prop) {
+      if (prop === "prepare") {
+        return (sql: string) => {
+          // Fail once the notes are committed: the old owner must not be serving them.
+          if (/INSERT OR REPLACE INTO index_meta/.test(sql)) {
+            assert.equal(ownership(target, "/vault/a").status, "foreign", "A refuses while B's notes are in the tables");
+            throw new Error("simulated failure after the notes committed");
+          }
+          return target.prepare(sql);
+        };
+      }
+      const value = Reflect.get(target, prop) as unknown;
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+  assert.throws(() =>
+    withRebuildLock(db, () => {
+      markClaiming(db);
+      return reindex(dying);
+    })
+  );
+  assert.equal(ownership(db, "/vault/a").status, "foreign", "still refused by A after the failed takeover");
+});
+
+test("the rebuild lock: a live holder makes others leave the index alone; a dead holder's lock is taken over", () => {
+  const db = openDb(scratchDb());
+  db.prepare("INSERT OR REPLACE INTO index_owner (key, value) VALUES ('rebuild', ?)").run(String(process.ppid));
+  const busy = ensureIndex(db);
+  assert.equal(busy.built, false);
+  assert.match(busy.warning ?? "", /another process is rebuilding/);
+  assert.equal(readOwner(db), undefined, "no claim was made while another process held the lock");
+
+  db.prepare("INSERT OR REPLACE INTO index_owner (key, value) VALUES ('rebuild', '2147483646')").run();
+  assert.equal(ensureIndex(db).built, true, "a lock left by a process that no longer exists does not block forever");
+  assert.equal(ownership(db).status, "owned");
+  const lock = db.prepare("SELECT value FROM index_owner WHERE key = 'rebuild'").get() as { value: string };
+  assert.equal(lock.value, "", "released when done");
 });
 
 test("reindex records the owner only after every phase succeeded", () => {

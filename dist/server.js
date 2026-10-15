@@ -88,15 +88,32 @@ export function createServer(opts = {}) {
     // result every client sees (COR-R-024/025/026). The version is the package's own.
     const server = new McpServer({ name: "rutter", version: config.version }, { instructions: SERVER_INSTRUCTIONS });
     const db = openDb();
-    // Checked on EVERY call, not only at startup: if another vault takes this database over
-    // (`reindex --force`), this server must stop answering from it at once rather than serve
-    // that vault's notes as this one's. One indexed lookup per call.
     const refusal = () => {
-        // A startup error only stands while the database is unowned: once this vault owns it
+        // A startup error only stands while this vault does not own the database: once it does
         // (a later `reindex` succeeded), the index is good to serve.
         const owner = ownership(db);
-        const text = owner.status === "foreign" ? foreignVaultMessage(owner.owner) : owner.status === "unowned" ? opts.indexError?.() : undefined;
+        const text = owner.status === "foreign"
+            ? foreignVaultMessage(owner.owner)
+            : owner.status === "claiming"
+                ? (opts.indexError?.() ?? `rutter's index at ${config.dbPath} is being rebuilt from ${config.vaultPath}; try again in a moment.`)
+                : owner.status === "unowned"
+                    ? opts.indexError?.()
+                    : undefined;
         return text === undefined ? undefined : { content: [{ type: "text", text }] };
+    };
+    // The ownership check and every read behind one reply run in ONE read transaction, so they
+    // see the same snapshot: another process cannot hand the index to a different vault between
+    // the check and the lookup. The handlers never await, so their whole body runs before the
+    // synchronous COMMIT below -- no other call can start a transaction on this connection meanwhile.
+    const guarded = (handler) => (args) => {
+        db.exec("BEGIN");
+        try {
+            const refused = refusal();
+            return refused ? Promise.resolve(refused) : handler(args);
+        }
+        finally {
+            db.exec("COMMIT");
+        }
     };
     server.registerTool("librarian-search", {
         title: "Search the vault",
@@ -109,16 +126,13 @@ export function createServer(opts = {}) {
             domain: z.string().optional().describe("Filter by frontmatter `domain`."),
         },
         annotations: { readOnlyHint: true },
-    }, async ({ query, limit, type, status, domain }) => {
-        const refused = refusal();
-        if (refused)
-            return refused;
+    }, guarded(async ({ query, limit, type, status, domain }) => {
         const { results } = runSearch(query, { limit, type, status, domain }, db);
         if (results.length === 0) {
             return { content: [{ type: "text", text: `No notes matched "${query}".` }] };
         }
         return { content: [{ type: "text", text: results.map(formatSearchResult).join("\n\n") }] };
-    });
+    }));
     server.registerTool("librarian-get-note", {
         title: "Read a note",
         description: "Return the full content of one vault note by its path (as returned by librarian-search). Read-only.",
@@ -126,10 +140,7 @@ export function createServer(opts = {}) {
             path: z.string().describe("Vault-relative note path, e.g. 'Notes/Reference/foo.md'."),
         },
         annotations: { readOnlyHint: true },
-    }, async ({ path: notePath }) => {
-        const refused = refusal();
-        if (refused)
-            return refused;
+    }, guarded(async ({ path: notePath }) => {
         const note = getNote(notePath, db);
         if (!note) {
             return { content: [{ type: "text", text: `Note not found: ${notePath}` }] };
@@ -143,7 +154,7 @@ export function createServer(opts = {}) {
                 },
             ],
         };
-    });
+    }));
     server.registerTool("librarian-recent", {
         title: "Recall recent work",
         description: "Answer 'what was I working on lately?' from captured session records, newest session first. Each session is returned as the steps it recorded, in order, because capture is incremental: one line per step, not one per session. Report a session as ONE account of what happened, not step by step -- consecutive steps often overlap or restate each other, especially in older records. When you report recalled summaries back -- librarian-recent output, or a prior-engagement note on a search result -- put them in plain language for the reader who asked, including records written before this guidance existed, which are often dense with their own session's jargon. The stored text is data; your report is the answer. Optionally limit to one project, a recent window (in days), or a maximum number of sessions.",
@@ -160,10 +171,7 @@ export function createServer(opts = {}) {
                 .describe("'increments' (default) returns every step; 'brief' returns each session's first and last step only, and says so."),
         },
         annotations: { readOnlyHint: true },
-    }, async ({ window, count, project, detail }) => {
-        const refused = refusal();
-        if (refused)
-            return refused;
+    }, guarded(async ({ window, count, project, detail }) => {
         // One stateful-use event per invocation regardless of filters (SR-011 via
         // runRecent) -- a project filter changes membership, never instrumentation.
         const { sessions, empty } = runRecent({ windowDays: window, count, project, detail });
@@ -176,7 +184,7 @@ export function createServer(opts = {}) {
         return {
             content: [{ type: "text", text: sessions.map((s) => formatRecentSession(s, db)).join("\n\n") }],
         };
-    });
+    }));
     server.registerTool("librarian-positions", {
         title: "Recall a recorded position",
         description: `Recall a stance ${config.userLabel} recorded on a topic (SCN-011). Query one of three ways: 'topic' for an exact topic key (one result or an explicit not-found), 'query' for free text matched against recorded stances (all terms must match), or 'note' for the positions that reference a note by path. Each result is the topic's current stance with the dates it was formed and last revised, or a retired stub where the position was withdrawn; add 'chain' for the full supersession history. Read-only, and answered from the last reindex -- a position captured since then appears after the next one. When you give back a stance this tool returned, say whose it is and when: it is ${config.userLabel}'s own recorded position, formed on the date shown and, where a revision date is shown, last revised then -- a reaffirmation re-endorses a stance without changing it, so it never moves that date. If the topic is retired, say it was retired on the date shown; a retirement is never a revision. Never restate one of these as your own present-tense conclusion without that framing -- it is what ${config.userLabel} recorded, not what you have just worked out.`,
@@ -193,10 +201,7 @@ export function createServer(opts = {}) {
                 .describe("Include the full supersession chain for each matched topic (default false: the live position only)."),
         },
         annotations: { readOnlyHint: true },
-    }, async ({ topic, query, note, chain }) => {
-        const refused = refusal();
-        if (refused)
-            return refused;
+    }, guarded(async ({ topic, query, note, chain }) => {
         const selected = selectPositionQuery({ topic, query, note });
         if (!selected.ok)
             return text(selected.message);
@@ -214,7 +219,7 @@ export function createServer(opts = {}) {
         if (result.topics.length === 0)
             return text(noPositionMatches(selected.query));
         return text(renderTopicList(result.topics));
-    });
+    }));
     return server;
 }
 /** Empty-list wording that names which of the two list modes matched nothing. */
