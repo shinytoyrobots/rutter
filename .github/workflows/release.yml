@@ -1,10 +1,14 @@
-# Publishes rutter-memory to npm when a v* tag is pushed. Releases go through here, never
+# Stages rutter-memory on npm when a v* tag is pushed. Releases go through here, never
 # from a laptop. See docs/npm-plan.md, item 5.
 #
-# Authentication: v0.6.0 publishes with the NPM_TOKEN repository secret, because npm
-# trusted publishing can only be set up on a package that already exists. Once trusted
-# publishing is configured for this workflow and the secret is deleted, the same step
-# publishes through GitHub OIDC with no token.
+# Authentication: npm trusted publishing (GitHub OIDC). There is no token: npm accepts
+# this one workflow in this one repository, and nothing else.
+#
+# Approval: the workflow STAGES the release rather than publishing it. The version waits
+# on npmjs.com, invisible to installs, until the maintainer approves it there with 2FA.
+# A compromised account, action or workflow can therefore stage a release but never ship
+# one. The trusted publisher on npm is set to allow staging only, so a plain
+# `npm publish` here is refused (403 "OIDC permission denied for this action").
 name: release
 
 on:
@@ -26,11 +30,10 @@ jobs:
           node-version: "22"
           registry-url: "https://registry.npmjs.org"
 
-      # Node 22 ships npm 10, which cannot publish through trusted publishing. Without this,
-      # the first (token) release would work and every release after the token is removed
-      # would fail.
-      - name: Upgrade npm for trusted publishing
-        run: npm install -g npm@^11.5.1
+      # Node 22 ships npm 10, which has neither trusted publishing nor `npm stage`.
+      # 11.19.0 is the version `npm stage publish` was checked against.
+      - name: Upgrade npm for trusted publishing and staging
+        run: npm install -g npm@^11.19.0
 
       - run: npm ci
       - run: npm run build
@@ -57,7 +60,6 @@ jobs:
             console.log(`all version fields match v${tag}`);
           '
 
-      - name: Publish
-        run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # Staged, not published: approve it on npmjs.com (or `npm stage approve <id>`) to release.
+      - name: Stage for approval
+        run: npm stage publish --provenance --access public

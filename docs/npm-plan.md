@@ -80,6 +80,8 @@ npm authentication: the first publish needs a publishing token, because npm trus
 After v0.6.0 is live, switch to trusted publishing:
 1. On the package's npm settings page, add `shinytoyrobots/rutter` + `release.yml` as the trusted publisher.
 2. Explicitly allow that publisher to run `npm publish`. Allowing staged publishing alone does not authorize this workflow.
+
+   *As built (2026-10-15):* Robin chose manual approval instead. The trusted publisher allows staging only, and the workflow runs `npm stage publish`. Each release waits on npmjs.com until it is approved with 2FA. A plain `npm publish` under that setting is refused with 403 "OIDC permission denied for this action", which is how the first v0.6.1 run failed.
 3. Delete the `NPM_TOKEN` secret, so the workflow has no token to fall back on.
 4. Ship a patch release (v0.6.1) through the workflow. A release PR first bumps `package.json`, `package-lock.json` and `.claude-plugin/plugin.json` to 0.6.1 and adds a CHANGELOG line. Tagging an unbumped commit would fail the version check. Confirm the release succeeds and `npm view rutter-memory` shows provenance.
 5. Only then revoke the token on npm. If step 4 fails, the token still exists to restore while the settings are fixed.
@@ -92,7 +94,7 @@ After v0.6.0 is live, switch to trusted publishing:
 
 ## Ongoing release rule
 
-From v0.6.0 on, the Claude Code plugin follows `main`, while npm users get only tagged versions. Tag every merge that changes how rutter behaves, including dependency security bumps, or the two groups drift apart. Published npm versions can't be removed after 72 hours, only deprecated.
+From v0.6.0 on, the Claude Code plugin follows `main`, while npm users get only tagged versions. Tag every merge that changes how rutter behaves, including dependency security bumps, or the two groups drift apart. A tag only stages the release: it reaches npm users once it is approved on npmjs.com, so a release is not done until that approval. Published npm versions can't be removed after 72 hours, only deprecated.
 
 ## Sequence
 

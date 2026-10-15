@@ -6,9 +6,15 @@ outside this repository.
 
 ## v0.6.1 — 2026-10-15
 
-- **Published from GitHub with no stored npm token.** This release is the first published
-  through npm trusted publishing: the release workflow proves to npm which repository and
-  workflow it is, and npm accepts nothing else. rutter itself is unchanged from 0.6.0.
+- **Published from GitHub with no stored npm token, and approved by hand.** This release is
+  the first through npm trusted publishing: the release workflow proves to npm which
+  repository and workflow it is, and npm accepts nothing else. The workflow only stages a
+  release; it goes live once the maintainer approves it on npmjs.com with two-factor
+  authentication, so a compromised workflow cannot ship one.
+- **No more npm warning about the commands.** The `rutter-memory` and `rutter` command paths
+  in `package.json` drop their leading `./`, which npm reported as invalid. Both commands were
+  always published; 0.6.0 has them.
+- rutter itself is unchanged from 0.6.0.
 
 ## v0.6.0 — 2026-10-15
 
