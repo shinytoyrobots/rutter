@@ -4,6 +4,12 @@ Notable changes to rutter, newest first. Detailed per-ship records — grounds,
 disclosed gaps, and what is being watched — are kept by the maintainer
 outside this repository.
 
+## v0.6.1 — 2026-10-15
+
+- **Published from GitHub with no stored npm token.** This release is the first published
+  through npm trusted publishing: the release workflow proves to npm which repository and
+  workflow it is, and npm accepts nothing else. rutter itself is unchanged from 0.6.0.
+
 ## v0.6.0 — 2026-10-15
 
 - **rutter is on npm as `rutter-memory`.** `npx -y rutter-memory` runs the server with no clone
