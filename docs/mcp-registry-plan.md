@@ -21,11 +21,11 @@ Outcome: the Registry lists `io.github.shinytoyrobots/rutter`, pointing at the n
   "description": "Recall past decisions and the notes your AI sessions cited, from a local markdown folder.",
   "websiteUrl": "https://ruttermemory.com",
   "repository": { "url": "https://github.com/shinytoyrobots/rutter", "source": "github" },
-  "version": "0.6.1",
+  "version": "0.6.2",
   "packages": [{
     "registryType": "npm",
     "identifier": "rutter-memory",
-    "version": "0.6.1",
+    "version": "0.6.2",
     "transport": { "type": "stdio" },
     "environmentVariables": [
       { "name": "LIBRARIAN_VAULT_PATH", "description": "Folder of markdown notes (an Obsidian vault works)", "isRequired": true, "format": "filepath" },
@@ -36,7 +36,7 @@ Outcome: the Registry lists `io.github.shinytoyrobots/rutter`, pointing at the n
 ```
 The `io.github.shinytoyrobots/` namespace is proved by GitHub login, so it needs no DNS setup. Check the field names against the live schema with `mcp-publisher validate` before merging.
 
-The version shown is the next release after v0.6.0. Use whatever version the first release carrying `server.json` actually has.
+The version shown assumes v0.6.1 is the npm plan's trusted-publishing check. Use whatever version the first release carrying `server.json` actually has.
 
 **2. Extend the release workflow** (`.github/workflows/release.yml`, from the npm plan), with steps after `npm publish`:
 - Add `server.json` to the version-agreement check.
