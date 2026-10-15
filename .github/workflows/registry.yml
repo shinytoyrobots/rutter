@@ -1,0 +1,64 @@
+# Lists approved rutter releases in the official MCP Registry. See docs/mcp-registry-plan.md,
+# item 2, and scripts/registry-publish.mjs, which does the work.
+#
+# This can't run inside release.yml: that workflow only stages a version on npm, and the
+# Registry refuses a version npm doesn't serve yet. A release reaches the Registry after the
+# maintainer approves it on npmjs.com, when this is run by hand or on its daily schedule.
+#
+# Safe to run any time, as often as you like: every version is looked up before it is
+# published, so a version already listed with matching metadata is left alone.
+#
+# Authentication: GitHub OIDC (`mcp-publisher login github-oidc`), which proves this
+# repository owns the io.github.shinytoyrobots/ namespace. There is no token.
+name: registry
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release to list, like 0.6.2. Leave empty to list every approved release missing from the Registry."
+        required: false
+        type: string
+  schedule:
+    - cron: "17 7 * * *"
+
+permissions:
+  id-token: write
+  contents: read
+
+# Manual and scheduled runs share one queue, and a run in progress is never cancelled, so two
+# runs can't both find a version missing and both try to publish it.
+concurrency:
+  group: registry-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The release tags, each with the server.json it shipped.
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install mcp-publisher (pinned and checksum-verified)
+        env:
+          VERSION: v1.8.1
+          SHA256: a06c9096dcb9727c13555b6be26c7effa707b01f06a4c561ba7a3635443cf2cc
+        run: |
+          curl -fsSL -o mcp-publisher.tar.gz \
+            "https://github.com/modelcontextprotocol/registry/releases/download/${VERSION}/mcp-publisher_linux_amd64.tar.gz"
+          echo "${SHA256}  mcp-publisher.tar.gz" | sha256sum -c -
+          tar xzf mcp-publisher.tar.gz mcp-publisher
+          rm mcp-publisher.tar.gz
+
+      - name: Publish approved releases missing from the Registry
+        env:
+          VERSION: ${{ inputs.version }}
+          MCP_PUBLISHER: ./mcp-publisher
+        run: node scripts/registry-publish.mjs

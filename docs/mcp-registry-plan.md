@@ -36,7 +36,7 @@ Outcome: the Registry lists `io.github.shinytoyrobots/rutter`, pointing at the n
 ```
 The `io.github.shinytoyrobots/` namespace is proved by GitHub login, so it needs no DNS setup. Check the field names against the live schema with `mcp-publisher validate` before merging.
 
-v0.6.1 is already on npm, so the first release carrying `server.json` is v0.6.2 or later. Use whatever version that release actually has.
+v0.6.1 is already on npm, but its tag has no `server.json`, so the workflow below never lists it. *As built (2026-10-15):* Robin chose to cut v0.6.2 straight away, with no change to rutter itself, as the first Registry release.
 
 **2. A separate Registry workflow, `.github/workflows/registry.yml`.** The Registry steps can't go in `release.yml`. That workflow only *stages* the npm release (`npm stage publish`), and the version stays invisible to installs until Robin approves it on npmjs.com with 2FA. The Registry checks that the npm version exists and carries the right `mcpName`, so publishing from the release job would fail every time. The Registry step has to run after approval, in its own workflow.
 
@@ -52,7 +52,7 @@ v0.6.1 is already on npm, so the first release carrying `server.json` is v0.6.2 
   3. **For each candidate, oldest first:**
      1. If the version isn't in npm's public list, log "v<version>: not approved on npm yet" and skip it. That is the normal state between tag and approval, not an error.
      2. Read `server.json` from that tag (`git show v<version>:server.json`), not from `main`, and confirm both of its version fields equal the candidate version.
-     3. Look up that exact version in the Registry (`GET /v0/servers/{url-encoded name}/versions/{version}`; confirm the path against the live API).
+     3. Look up that exact version in the Registry (`GET /v0/servers/{url-encoded name}/versions/{version}`, with the slash in the name as `%2F`; a missing version is a 404. Checked against the live API and the Registry source, v1.8.1, on 2026-10-15).
         - **Not found:** check out the tag, then `mcp-publisher publish`. Install `mcp-publisher` at a pinned version and run `mcp-publisher login github-oidc` once, before the loop. If the publish fails with the duplicate-version error, something else published the version between the lookup and the publish (the concurrency group should prevent this, but a publish from outside the workflow can't be ruled out). Don't fail on that alone: look the version up again and apply the "Found" rules below.
         - **Found:** compare it with the tag's `server.json` (see "Comparing metadata" below). If equal, log "v<version>: already published" and move on.
         - **Found but different:** record a failure for that version and carry on with the rest. The Registry refuses a name and version that already exist, even with identical metadata, so a published version can't be corrected. The fix is a new release.
@@ -65,7 +65,7 @@ v0.6.1 is already on npm, so the first release carrying `server.json` is v0.6.2 
 
 Check this against one real published entry before relying on it (see Verification). If the Registry turns out to fill in defaults rather than omit them, the same normalization still works.
 
-The duplicate check is what makes reruns safe. Without it, a second run for the same version fails with the Registry's duplicate-version error. With it, every run publishes each approved version once and leaves the rest alone. Because the daily run walks every eligible tag, it is a real backstop: if Robin approves one or several releases and doesn't trigger the workflow, the Registry catches up within a day and no version is skipped. Publishing oldest first keeps the Registry's history in order. If the Registry marks the most recently *published* entry as latest rather than the highest version, publishing a gap after a newer release would mislabel it, so check how it sets `isLatest` before relying on backfill.
+The duplicate check is what makes reruns safe. Without it, a second run for the same version fails with the Registry's duplicate-version error. With it, every run publishes each approved version once and leaves the rest alone. Because the daily run walks every eligible tag, it is a real backstop: if Robin approves one or several releases and doesn't trigger the workflow, the Registry catches up within a day and no version is skipped. Publishing oldest first keeps the Registry's history in order. Catching up on an older version can't mislabel it as current: the Registry marks the highest version as latest (`isLatest`), not the most recently published one (checked in its source, v1.8.1).
 
 **If the Registry step fails, the npm release stands.** Rerun `registry.yml` only, by hand with the version as input. Never rerun `release.yml` to fix a Registry failure: that would try to stage an npm version that already exists.
 
@@ -93,10 +93,8 @@ The duplicate check is what makes reruns safe. Without it, a second run for the 
 Before merging:
 - `mcp-publisher validate` passes on `server.json`.
 - The version-agreement check fails on a deliberately mismatched `server.json` and passes when versions agree.
-- The single-version Registry lookup path in `registry.yml` matches the live API: it returns an existing entry (any listed server will do) and a not-found for a version that doesn't exist.
 - The metadata comparison, run against a real published entry that has an optional field set to its default, treats the entry's `.server` as equal to its source `server.json`, and as different when one field is changed.
 - With no version input, the candidate list on today's repo is empty (no tag has `server.json` yet), and the run passes.
-- The Registry's rule for `isLatest` is known: highest version, or most recently published.
 - Duplicate-error fallback: keep the per-version logic in a script the workflow calls, so it can be tested with stand-ins. With a stand-in `mcp-publisher` that exits with the duplicate-version error, and a lookup that first says "not found" and then returns a matching entry, the script reports "already published" and passes. With a non-matching entry on the second lookup, it records a failure.
 
 Between tag and approval:

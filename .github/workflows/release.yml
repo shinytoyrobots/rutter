@@ -51,6 +51,8 @@ jobs:
               "package-lock.json": lock.version,
               "package-lock.json packages[\"\"]": lock.packages?.[""]?.version,
               ".claude-plugin/plugin.json": read(".claude-plugin/plugin.json").version,
+              "server.json": read("server.json").version,
+              "server.json packages[0]": read("server.json").packages?.[0]?.version,
             };
             const wrong = Object.entries(found).filter(([, v]) => v !== tag);
             if (wrong.length) {

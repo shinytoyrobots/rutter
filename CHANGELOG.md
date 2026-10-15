@@ -4,6 +4,14 @@ Notable changes to rutter, newest first. Detailed per-ship records — grounds,
 disclosed gaps, and what is being watched — are kept by the maintainer
 outside this repository.
 
+## v0.6.2 — 2026-10-15
+
+- **rutter is listed in the official MCP Registry** as `io.github.shinytoyrobots/rutter`,
+  pointing at the npm package `rutter-memory`. MCP clients and directory sites that read the
+  Registry can now find it. `server.json` at the repository root holds the listing, and each
+  approved release updates it automatically.
+- rutter itself is unchanged from 0.6.1.
+
 ## v0.6.1 — 2026-10-15
 
 - **Published from GitHub with no stored npm token, and approved by hand.** This release is

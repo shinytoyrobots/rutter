@@ -6,9 +6,9 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createServer } from "../src/server.js";
 
-// One release number, in four places: package.json (the source), the plugin manifest
-// the directory shows and pins users to, the version the server announces to every
-// client, and the newest CHANGELOG heading. They used to disagree (server 0.5.0,
+// One release number, in five places: package.json (the source), the plugin manifest
+// the directory shows and pins users to, the MCP Registry entry (server.json), the
+// version the server announces to every client, and the newest CHANGELOG heading. They used to disagree (server 0.5.0,
 // package and manifest 0.2.0) because the server's was a literal nobody bumped.
 
 const root = path.join(import.meta.dirname, "..");
@@ -19,6 +19,12 @@ test("package.json, the plugin manifest, the server and the CHANGELOG all name t
   assert.match(pkg, /^\d+\.\d+\.\d+$/, "package.json carries a plain semver");
   assert.equal(readJson(".claude-plugin/plugin.json").version, pkg, "plugin manifest matches package.json");
   assert.equal(readJson("package-lock.json").version, pkg, "the lockfile matches package.json");
+  const registry = JSON.parse(fs.readFileSync(path.join(root, "server.json"), "utf8")) as {
+    version: string;
+    packages: { version: string }[];
+  };
+  assert.equal(registry.version, pkg, "the MCP Registry entry (server.json) matches package.json");
+  assert.equal(registry.packages[0]?.version, pkg, "the Registry entry's npm package version matches package.json");
 
   const server = createServer();
   const client = new Client({ name: "test-client", version: "0.0.0" });
