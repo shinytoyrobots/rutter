@@ -1,0 +1,34 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.shinytoyrobots/rutter",
+  "title": "rutter",
+  "description": "Recall past decisions and the notes your AI sessions cited, from a local markdown folder.",
+  "websiteUrl": "https://ruttermemory.com",
+  "repository": {
+    "url": "https://github.com/shinytoyrobots/rutter",
+    "source": "github"
+  },
+  "version": "0.6.2",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "rutter-memory",
+      "version": "0.6.2",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "LIBRARIAN_VAULT_PATH",
+          "description": "Folder of markdown notes (an Obsidian vault works)",
+          "isRequired": true,
+          "format": "filepath"
+        },
+        {
+          "name": "LIBRARIAN_USER_LABEL",
+          "description": "Name the server uses for whose work this is; defaults to 'the user'"
+        }
+      ]
+    }
+  ]
+}
