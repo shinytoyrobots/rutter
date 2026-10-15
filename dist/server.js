@@ -89,16 +89,16 @@ export function createServer(opts = {}) {
     const server = new McpServer({ name: "rutter", version: config.version }, { instructions: SERVER_INSTRUCTIONS });
     const db = openDb();
     const refusal = () => {
-        // A startup error only stands while this vault does not own the database: once it does
-        // (a later `reindex` succeeded), the index is good to serve.
+        // Only an index this vault owns is ever read. Unowned (never built, or built before
+        // ownership existed, so possibly another vault's) and mid-rebuild both refuse; a startup
+        // error, if there was one, says why. Once a rebuild succeeds the index serves again.
         const owner = ownership(db);
-        const text = owner.status === "foreign"
-            ? foreignVaultMessage(owner.owner)
-            : owner.status === "claiming"
-                ? (opts.indexError?.() ?? `rutter's index at ${config.dbPath} is being rebuilt from ${config.vaultPath}; try again in a moment.`)
-                : owner.status === "unowned"
-                    ? opts.indexError?.()
-                    : undefined;
+        const text = owner.status === "owned"
+            ? undefined
+            : owner.status === "foreign"
+                ? foreignVaultMessage(owner.owner)
+                : (opts.indexError?.() ??
+                    `rutter's index at ${config.dbPath} is being built from ${config.vaultPath}; try again in a moment.`);
         return text === undefined ? undefined : { content: [{ type: "text", text }] };
     };
     // The ownership check and every read behind one reply run in ONE read transaction, so they

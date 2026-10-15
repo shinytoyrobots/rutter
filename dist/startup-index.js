@@ -102,6 +102,10 @@ export function ensureIndex(db) {
         const verdict = indexVerdict(database);
         if (!verdict.stale)
             return verdict.warning ? { built: false, warning: verdict.warning } : { built: false };
+        // Even a rebuild of our own index is marked first: other servers on this vault then
+        // refuse while the tables are half-built, instead of answering from them, and keep
+        // refusing if the rebuild fails, until one succeeds.
+        markClaiming(database);
         return { built: true, reason: verdict.reason, stats: reindex(database) };
     });
     return result ?? { built: false, warning: "another process is rebuilding this index right now; leaving it to finish" };

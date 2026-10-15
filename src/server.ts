@@ -113,17 +113,17 @@ export function createServer(opts: ServerOptions = {}): McpServer {
   // that vault's notes as this one's. One indexed lookup per call.
   type Reply = { content: { type: "text"; text: string }[] };
   const refusal = (): Reply | undefined => {
-    // A startup error only stands while this vault does not own the database: once it does
-    // (a later `reindex` succeeded), the index is good to serve.
+    // Only an index this vault owns is ever read. Unowned (never built, or built before
+    // ownership existed, so possibly another vault's) and mid-rebuild both refuse; a startup
+    // error, if there was one, says why. Once a rebuild succeeds the index serves again.
     const owner = ownership(db);
     const text =
-      owner.status === "foreign"
-        ? foreignVaultMessage(owner.owner)
-        : owner.status === "claiming"
-          ? (opts.indexError?.() ?? `rutter's index at ${config.dbPath} is being rebuilt from ${config.vaultPath}; try again in a moment.`)
-          : owner.status === "unowned"
-            ? opts.indexError?.()
-            : undefined;
+      owner.status === "owned"
+        ? undefined
+        : owner.status === "foreign"
+          ? foreignVaultMessage(owner.owner)
+          : (opts.indexError?.() ??
+            `rutter's index at ${config.dbPath} is being built from ${config.vaultPath}; try again in a moment.`);
     return text === undefined ? undefined : { content: [{ type: "text" as const, text }] };
   };
   // The ownership check and every read behind one reply run in ONE read transaction, so they

@@ -21,8 +21,9 @@ const outcome = withRebuildLock(db, () => {
   if (owner.status === "foreign") {
     console.error(`[rutter] --force: rebuilding ${config.dbPath} from ${config.vaultRealPath}; it belonged to ${owner.owner}.`);
   }
-  // Changing hands: mark it first, so the previous owner refuses from the first replaced row.
-  if (owner.status !== "owned") markClaiming(db);
+  // Marked before any table changes, so every server -- a previous owner, or another on
+  // this vault -- refuses while the tables are half-built, and after a failure.
+  markClaiming(db);
   return { stats: reindex(db) };
 });
 if (outcome === undefined) {

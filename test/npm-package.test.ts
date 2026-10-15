@@ -180,6 +180,22 @@ t("an index with no recorded vault is rebuilt from this vault before it answers 
   assert.equal(ownerOf(db), b);
 });
 
+test("a server never reads an index this vault does not own, even with no startup error to report", async () => {
+  // E.g. another process holds the rebuild lock and has not yet claimed a legacy index.
+  const server = createServer();
+  const client = new Client({ name: "npm-test", version: "0.0.0" });
+  const [ct, st] = InMemoryTransport.createLinkedPair();
+  await Promise.all([server.connect(st), client.connect(ct)]);
+  try {
+    assert.equal(readOwner(openDb()), undefined);
+    const res = (await client.callTool({ name: "librarian-get-note", arguments: { path: "x.md" } })) as { content: { text: string }[] };
+    assert.match(res.content[0]!.text, /is being built from/);
+  } finally {
+    await client.close();
+    await server.close();
+  }
+});
+
 test("a failed claim leaves the database unowned, and the server's tools return the error", async () => {
   const db = openDb(scratchDb());
   // A rebuild that dies after every phase but before completing.
@@ -261,6 +277,36 @@ test("the rebuild lock: a live holder makes others leave the index alone; a dead
   assert.equal(ownership(db).status, "owned");
   const lock = db.prepare("SELECT value FROM index_owner WHERE key = 'rebuild'").get() as { value: string };
   assert.equal(lock.value, "", "released when done");
+});
+
+test("a routine rebuild of this vault's own index is marked first, so it is never read half-built, even if it fails", () => {
+  const db = openDb(scratchDb());
+  reindex(db);
+  assert.equal(ownership(db).status, "owned");
+  const note = path.join(process.env.LIBRARIAN_VAULT_PATH!, "routine-rebuild.md");
+  fs.writeFileSync(note, "# R\nroutine", "utf8");
+  const ahead = new Date(Date.now() + 60_000);
+  fs.utimesSync(note, ahead, ahead);
+  const dying = new Proxy(db, {
+    get(target, prop) {
+      if (prop === "prepare") {
+        return (sql: string) => {
+          if (/INSERT OR REPLACE INTO index_meta/.test(sql)) {
+            assert.equal(ownership(target).status, "claiming", "other servers on this vault refuse mid-rebuild");
+            throw new Error("simulated routine failure");
+          }
+          return target.prepare(sql);
+        };
+      }
+      const value = Reflect.get(target, prop) as unknown;
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+  assert.throws(() => ensureIndex(dying), /simulated routine failure/);
+  assert.equal(ownership(db).status, "claiming", "a failed rebuild is not served as current");
+  assert.equal(ensureIndex(db).built, true, "the next start repairs it");
+  assert.equal(ownership(db).status, "owned");
+  fs.rmSync(note);
 });
 
 test("reindex records the owner only after every phase succeeded", () => {
