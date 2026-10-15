@@ -18,7 +18,11 @@ A single shared location would be wrong too. Every npm install on a machine woul
 
 The fix, in two parts:
 - **Per-vault default path.** When the package root sits inside a `node_modules` directory, default to `$XDG_DATA_HOME/rutter/<vault-id>/librarian.db`, falling back to `~/.local/share/rutter/<vault-id>/librarian.db`. Here `<vault-id>` is the first 16 hex characters of the sha256 of the vault's resolved real path. A clone keeps `data/`, so existing setups don't move.
-- **Vault identity in the index.** `reindex` writes the resolved vault path to `index_meta`. The start-up check treats a missing or different path as stale and rebuilds. This also protects two clients pointed at one explicit `LIBRARIAN_DB_PATH` with different vaults.
+- **Vault identity in the index, enforced by refusal.** `reindex` writes the resolved vault path to `index_meta`. When the server or `reindex` opens a database recorded for a *different* vault, it refuses. It neither rebuilds nor reads the database, and says on stderr which vault owns it and how to fix it: use the default path, or a separate `LIBRARIAN_DB_PATH`. Every tool call then returns that same message.
+
+  Rebuilding on a mismatch would be unsafe. Suppose client A is running on vault A, and client B starts against the same explicit `LIBRARIAN_DB_PATH` with vault B. If B rebuilt the database, A would silently start reading B's notes, because A only checks ownership at start-up. Refusing keeps the first owner's index intact.
+
+  A database with no recorded vault, built before this change, is claimed by the first server to open it. `reindex --force` reassigns a database deliberately. With the per-vault default path, a mismatch only happens when someone points two vaults at one explicit path.
 
 The database is a regenerable cache, so the new location needs no migration. An explicit `LIBRARIAN_DB_PATH` and the plugin's `CLAUDE_PLUGIN_DATA` mapping still take precedence.
 
@@ -27,7 +31,7 @@ The database is a regenerable cache, so the new location needs no migration. An 
 - `install-hook [--client …] [--vault …]`: runs `hooks/install-hook.mjs` with the same arguments.
 - `reindex` and `recent`: the compiled `dist/reindex.js` and `dist/recent-cli.js`.
 
-In `package.json` → `bin`, add `rutter-memory` pointing at `dist/cli.js`, and keep `rutter` → `dist/stdio.js` so existing configs keep working.
+In `package.json` → `bin`, point both `rutter-memory` and `rutter` at `dist/cli.js`, which starts with `#!/usr/bin/env node`. Keeping the `rutter` command means existing configs that call it keep working. Pointing it at the dispatcher matters because `dist/stdio.js` has no shebang and can't run directly as an npm executable. A bare `rutter` still starts the server, since `serve` is the default. Configs that run `node dist/stdio.js` explicitly, like the Claude Code plugin, are unaffected.
 
 **3. Capture needs a stable hook path, so the docs say install globally.** `hooks/install-hook.mjs` writes the absolute path of `hooks/librarian-stop.sh` into the host's hook config. The npx cache path is temporary, so a hook registered from it would stop working without warning. The docs therefore split two uses:
 - **Recall only:** `npx -y rutter-memory` in the MCP config.
@@ -44,7 +48,7 @@ In `package.json` → `bin`, add `rutter-memory` pointing at `dist/cli.js`, and 
 The fix: treat any command whose script path ends in `/hooks/librarian-stop.sh` as ours, wherever it lives. On re-run, rewrite that entry to the current path, keep its `--client` and vault settings, and print the old and new paths. Commands a user customized beyond the known shapes stay untouched, as today. The docs then keep the caveat: after switching Node versions, re-run `install-hook`.
 
 **4. Package contents and metadata** (`package.json`):
-- `"name": "rutter-memory"`, version `0.6.0`. Bump `.claude-plugin/plugin.json` to match.
+- `"name": "rutter-memory"`, version `0.6.0`. Bump `.claude-plugin/plugin.json` to match, and regenerate `package-lock.json` so its top-level and root-package entries carry the new name and version.
 - `"files": ["dist", "hooks", "README.md", "LICENSE", "CHANGELOG.md"]`. Without this, `src/`, `test/`, `docs/`, `spec/` and `assets/` would ship.
 - `"mcpName": "io.github.shinytoyrobots/rutter"`. npm ignores it. The MCP Registry checks that the published package carries this exact name, so shipping it now means the Registry plan needs no extra npm release.
 - `"homepage": "https://ruttermemory.com"`, plus `keywords` (mcp, mcp-server, memory, markdown, obsidian, claude-code, codex).
@@ -53,7 +57,7 @@ The fix: treat any command whose script path ends in `/hooks/librarian-stop.sh` 
 - `permissions: id-token: write, contents: read`.
 - Set up Node 22.14.0 or later with the npm registry URL, then `npm install -g npm@^11.5.1`. Node 22 ships npm 10, which can't do trusted publishing. Without the upgrade, the first token-based release would succeed and every release after the token is removed would fail.
 - `npm ci`, `npm run build`, `npm test`.
-- A step that fails if the tag and the versions in `package.json` and `.claude-plugin/plugin.json` disagree.
+- A step that fails if the tag disagrees with the version in `package.json`, `package-lock.json` (both entries) or `.claude-plugin/plugin.json`.
 - `npm publish --provenance --access public`.
 
 npm authentication: the first publish needs a publishing token, because npm trusted publishing (GitHub OIDC) can only be set up on a package that already exists. Robin creates it:
@@ -67,7 +71,7 @@ After v0.6.0 is live, switch to trusted publishing:
 1. On the package's npm settings page, add `shinytoyrobots/rutter` + `release.yml` as the trusted publisher.
 2. Explicitly allow that publisher to run `npm publish`. Allowing staged publishing alone does not authorize this workflow.
 3. Delete the `NPM_TOKEN` secret, so the workflow has no token to fall back on.
-4. Ship a patch release (v0.6.1) through the workflow. Confirm it succeeds and `npm view rutter-memory` shows provenance.
+4. Ship a patch release (v0.6.1) through the workflow. A release PR first bumps `package.json`, `package-lock.json` and `.claude-plugin/plugin.json` to 0.6.1 and adds a CHANGELOG line. Tagging an unbumped commit would fail the version check. Confirm the release succeeds and `npm view rutter-memory` shows provenance.
 5. Only then revoke the token on npm. If step 4 fails, the token still exists to restore while the settings are fixed.
 
 **6. Docs** (a separate PR after the package is live, so no instruction points at a package that doesn't exist):
@@ -88,7 +92,9 @@ From v0.6.0 on, the Claude Code plugin follows `main`, while npm users get only 
 | 2 | Robin | Create or log in to the npm account (two-factor on); create the publishing token (item 5) and save it as `NPM_TOKEN`; merge PR A |
 | 3 | Robin | Push tag `v0.6.0`; the workflow publishes to npm |
 | 4 | Claude | Verify the live package (see Verification); PR B: docs (item 6) and gh-pages port |
-| 5 | Robin | Merge PR B; set up trusted publishing with direct publish allowed, delete the secret, tag v0.6.1, and revoke the token only after that release succeeds |
+| 5 | Robin | Merge PR B; set up trusted publishing with direct publish allowed, and delete the secret |
+| 6 | Claude | PR C: release bump to 0.6.1 (manifests, lockfile, CHANGELOG) |
+| 7 | Robin | Merge PR C, tag v0.6.1, and revoke the token only after that release succeeds |
 
 ## Verification
 
@@ -96,12 +102,14 @@ Before PR A merges, all local and nothing published:
 - `npm run typecheck`, `npm test`.
 - New tests:
   - The database-path default: inside `node_modules` vs a clone vs an explicit env var.
-  - Two vaults: two different vault paths get two different default databases. A database built from vault A, opened with vault B, is rebuilt rather than reused.
+  - Two vaults: two different vault paths get two different default databases. A database built from vault A, opened with vault B, is refused: it is neither rebuilt nor read, and the error names the owning vault.
+  - Concurrent clients: server A runs on vault A against an explicit database path. Server B starts on vault B against the same path and refuses. A's searches still return vault A's notes afterward. A database with no recorded vault is claimed on first open, and `reindex --force` reassigns one.
   - The Antigravity installer's printed config has no `LIBRARIAN_DB_PATH` unless one was set.
   - Two install prefixes: install the hook from prefix A, re-run `install-hook` from prefix B, for each of `claude`, `codex` and `antigravity`. Each config ends with exactly one rutter Stop hook, pointing at prefix B.
   - CLI dispatcher routing: `serve` is the default, and unknown subcommands exit non-zero with usage.
 - `npm pack --dry-run`: only `dist/`, `hooks/` and the listed docs ship, and `hooks/librarian-stop.sh` stays executable.
 - Install the tarball into a scratch prefix (`npm install -g --prefix <scratch> ./rutter-memory-0.6.0.tgz`):
+  - Both installed commands, `rutter-memory` and `rutter`, run directly from the prefix's `bin/` and start the server.
   - `rutter-memory` starts the server. An MCP `tools/list` returns the four `librarian-*` tools, the database is created under the XDG path, and nothing is written into the package folder.
   - `rutter-memory install-hook --client codex` with a scratch `CODEX_HOME` writes the global-prefix hook path. Piping a sample Codex Stop payload (with a `librarian-session` line in `last_assistant_message`) to that hook writes an entry into a scratch vault.
 

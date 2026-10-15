@@ -46,7 +46,7 @@ The version shown assumes v0.6.1 is the npm plan's trusted-publishing check. Use
 
 If the Registry step fails, the npm release stands. Re-run the workflow job or publish the metadata by hand from CI. Registry updates are idempotent per version.
 
-**3. Release rule addition:** every release bumps `server.json` (both `version` fields) together with `package.json` and `.claude-plugin/plugin.json`. The workflow refuses a mismatch.
+**3. Release rule addition:** every release bumps `server.json` (both `version` fields) together with `package.json`, `package-lock.json` and `.claude-plugin/plugin.json`. Each release goes through a bump PR before its tag. The workflow refuses a mismatch.
 
 **4. Other directories** (manual, after the Registry entry is live):
 - **PulseMCP and Glama:** confirm rutter appears. Submit by hand only if it doesn't after a week.
