@@ -4,6 +4,7 @@ import { openDb } from "./db.js";
 import { walkMarkdown, countOverlayMarkdown } from "./vault.js";
 import { reindex } from "./indexer.js";
 import { config } from "./config.js";
+import { ownership, foreignVaultMessage } from "./vault-owner.js";
 function readMeta(db, key) {
     const row = db.prepare("SELECT value FROM index_meta WHERE key = ?").get(key);
     const n = row ? Number(row.value) : NaN;
@@ -79,9 +80,22 @@ export function indexVerdict(db) {
     }
     return { stale: false };
 }
-/** Rebuild the index if (and only if) it is missing or out of date. */
+/**
+ * Rebuild the index if (and only if) it is missing or out of date -- or claim it, with a
+ * full rebuild, when it records no vault. An index recorded for another vault is refused
+ * untouched (see vault-owner.ts).
+ */
 export function ensureIndex(db) {
     const database = db ?? openDb();
+    const owner = ownership(database);
+    if (owner.status === "foreign")
+        return { built: false, refused: foreignVaultMessage(owner.owner) };
+    if (owner.status === "unowned") {
+        const reason = readMeta(database, "indexed_at") === undefined
+            ? "the index has not been built yet"
+            : "the index records no vault, so it was rebuilt from this one";
+        return { built: true, reason, stats: reindex(database) };
+    }
     const verdict = indexVerdict(database);
     if (!verdict.stale)
         return verdict.warning ? { built: false, warning: verdict.warning } : { built: false };

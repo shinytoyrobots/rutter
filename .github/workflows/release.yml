@@ -1,0 +1,63 @@
+# Publishes rutter-memory to npm when a v* tag is pushed. Releases go through here, never
+# from a laptop. See docs/npm-plan.md, item 5.
+#
+# Authentication: v0.6.0 publishes with the NPM_TOKEN repository secret, because npm
+# trusted publishing can only be set up on a package that already exists. Once trusted
+# publishing is configured for this workflow and the secret is deleted, the same step
+# publishes through GitHub OIDC with no token.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+
+      # Node 22 ships npm 10, which cannot publish through trusted publishing. Without this,
+      # the first (token) release would work and every release after the token is removed
+      # would fail.
+      - name: Upgrade npm for trusted publishing
+        run: npm install -g npm@^11.5.1
+
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+
+      - name: Check the tag matches every version field
+        run: |
+          node --input-type=module -e '
+            import fs from "node:fs";
+            const tag = process.env.GITHUB_REF_NAME.replace(/^v/, "");
+            const read = (p) => JSON.parse(fs.readFileSync(p, "utf8"));
+            const lock = read("package-lock.json");
+            const found = {
+              "package.json": read("package.json").version,
+              "package-lock.json": lock.version,
+              "package-lock.json packages[\"\"]": lock.packages?.[""]?.version,
+              ".claude-plugin/plugin.json": read(".claude-plugin/plugin.json").version,
+            };
+            const wrong = Object.entries(found).filter(([, v]) => v !== tag);
+            if (wrong.length) {
+              for (const [file, v] of wrong) console.error(`${file} has ${v}, but the tag is v${tag}`);
+              process.exit(1);
+            }
+            console.log(`all version fields match v${tag}`);
+          '
+
+      - name: Publish
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

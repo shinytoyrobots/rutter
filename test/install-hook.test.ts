@@ -302,3 +302,111 @@ test("the plugin hook passes the claude identity and the shared script forwards 
   assert.match(hooks.hooks.Stop[0].hooks[0].command, /librarian-stop\.sh --client claude$/);
   assert.match(fs.readFileSync(hookPath, "utf8"), /capture-cli\.js" "\$@"/);
 });
+
+// ---------------------------------------------------------------------------
+// npm installs (docs/npm-plan.md items 3a and 3b)
+// ---------------------------------------------------------------------------
+
+t("antigravity: the printed server config sets LIBRARIAN_DB_PATH only when one was set", () => {
+  const sb = sandbox();
+  const e = { ...process.env, HOME: sb.home } as Record<string, string | undefined>;
+  delete e.LIBRARIAN_DB_PATH;
+  const unset = spawnSync(process.execPath, [script, "--client", "antigravity"], { env: e as NodeJS.ProcessEnv, encoding: "utf8" });
+  assert.equal(unset.status, 0, unset.stderr);
+  assert.doesNotMatch(unset.stderr, /LIBRARIAN_DB_PATH/, "neither the agy mcp add line nor the JSON carries a database path");
+  const sb2 = sandbox();
+  const set = spawnSync(process.execPath, [script, "--client", "antigravity"], {
+    env: { ...process.env, HOME: sb2.home, LIBRARIAN_DB_PATH: "/chosen/librarian.db" },
+    encoding: "utf8",
+  });
+  assert.match(set.stderr, /--env LIBRARIAN_DB_PATH=\/chosen\/librarian\.db/);
+  assert.match(set.stderr, /"LIBRARIAN_DB_PATH": "\/chosen\/librarian\.db"/);
+});
+
+/**
+ * A copy of the installable package at `<prefix>/lib/node_modules/rutter-memory`, the way
+ * `npm install -g --prefix <prefix>` lays it out. Switching Node versions with nvm moves a
+ * global install between prefixes like these.
+ */
+function prefixInstall(label: string): { installer: string; hook: string } {
+  const pkg = path.join(vaultRoot, "prefixes", `${label}-${n++}`, "lib", "node_modules", "rutter-memory");
+  const repo = path.join(import.meta.dirname, "..");
+  fs.cpSync(path.join(repo, "hooks"), path.join(pkg, "hooks"), { recursive: true });
+  fs.cpSync(path.join(repo, "dist"), path.join(pkg, "dist"), { recursive: true });
+  fs.copyFileSync(path.join(repo, "package.json"), path.join(pkg, "package.json"));
+  fs.symlinkSync(path.join(repo, "node_modules"), path.join(pkg, "node_modules"));
+  // Real paths: the installer names its hook by its own module location, which has symlinks resolved.
+  const real = fs.realpathSync(pkg);
+  return { installer: path.join(real, "hooks", "install-hook.mjs"), hook: path.join(real, "hooks", "librarian-stop.sh") };
+}
+
+function installFrom(installer: string, sb: { home: string; codexHome: string }, extraEnv: Record<string, string> = {}, ...args: string[]) {
+  const e = { ...process.env, HOME: sb.home, CODEX_HOME: sb.codexHome, ...extraEnv } as Record<string, string | undefined>;
+  if (!("LIBRARIAN_VAULT_PATH" in extraEnv)) delete e.LIBRARIAN_VAULT_PATH;
+  return spawnSync(process.execPath, [installer, ...args], { env: e as NodeJS.ProcessEnv, encoding: "utf8" });
+}
+
+for (const client of ["claude", "codex"] as const) {
+  t(`${client}: re-running install-hook from a new prefix moves the one hook there, keeping its --client`, () => {
+    const sb = sandbox();
+    const a = prefixInstall("a");
+    const b = prefixInstall("b");
+    const cfgPath = client === "codex" ? sb.hooksJson : path.join(sb.home, ".claude", "settings.json");
+    assert.equal(installFrom(a.installer, sb, {}, "--client", client).status, 0);
+    const moved = installFrom(b.installer, sb, {}, "--client", client);
+    assert.equal(moved.status, 0, moved.stderr);
+    assert.ok(moved.stderr.includes(`moved it from ${a.hook} to ${b.hook}`), moved.stderr);
+    assert.match(moved.stderr, /vault the hook will use/);
+    const hooks = JSON.parse(fs.readFileSync(cfgPath, "utf8")).hooks.Stop.flatMap((g: { hooks: { command: string }[] }) => g.hooks);
+    assert.equal(hooks.length, 1, "exactly one rutter Stop hook");
+    assert.equal(hooks[0].command, `${b.hook} --client ${client}`);
+    const after = fs.readFileSync(cfgPath, "utf8");
+    assert.match(installFrom(b.installer, sb, {}, "--client", client).stderr, /already registered/);
+    assert.equal(fs.readFileSync(cfgPath, "utf8"), after, "then stable");
+  });
+}
+
+t("claude: a config already holding the hook at two old paths ends with one, at the new path", () => {
+  const sb = sandbox();
+  const a = prefixInstall("a");
+  const b = prefixInstall("b");
+  const c = prefixInstall("c");
+  const settings = path.join(sb.home, ".claude", "settings.json");
+  fs.mkdirSync(path.dirname(settings), { recursive: true });
+  const other = { hooks: [{ type: "command", command: "echo unrelated" }] };
+  fs.writeFileSync(
+    settings,
+    JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: "command", command: `${a.hook} --client grok` }] }, other, { hooks: [{ type: "command", command: b.hook }] }] } }),
+    "utf8"
+  );
+  const res = installFrom(c.installer, sb);
+  assert.equal(res.status, 0, res.stderr);
+  const stop = JSON.parse(fs.readFileSync(settings, "utf8")).hooks.Stop;
+  assert.deepEqual(stop, [{ hooks: [{ type: "command", command: `${c.hook} --client grok` }] }, other], "the first kept (with its own --client), the duplicate dropped, the unrelated hook untouched");
+  assert.match(res.stderr, /removed 1 more registration/);
+});
+
+t("antigravity: a new prefix rewrites the hook in place and keeps the vault it was using; --vault then replaces it in both", () => {
+  const sb = sandbox();
+  const a = prefixInstall("a");
+  const b = prefixInstall("b");
+  const kept = path.join(sb.home, "kept-vault");
+  const fresh = path.join(sb.home, "fresh-vault");
+  assert.equal(installFrom(a.installer, sb, {}, "--client", "antigravity", "--vault", kept).status, 0);
+
+  // A different LIBRARIAN_VAULT_PATH in this shell must not quietly move capture.
+  const moved = installFrom(b.installer, sb, { LIBRARIAN_VAULT_PATH: path.join(sb.home, "shell-vault") }, "--client", "antigravity");
+  assert.equal(moved.status, 0, moved.stderr);
+  const entries = JSON.parse(fs.readFileSync(agyHooks(sb.home), "utf8"))["librarian-capture"].Stop;
+  assert.equal(entries.length, 1);
+  assert.equal(entries[0].command, `LIBRARIAN_VAULT_PATH="\${LIBRARIAN_VAULT_PATH:-${kept}}" ${b.hook} --client agy`);
+  assert.ok(moved.stderr.includes(`moved from ${a.hook} to ${b.hook}`), moved.stderr);
+  assert.ok(moved.stderr.includes(`VAULT for capture AND reads: ${kept}  (from the existing hook)`));
+  assert.ok(moved.stderr.includes(`"LIBRARIAN_VAULT_PATH": "${kept}"`), "the printed server config carries the same vault");
+
+  const replaced = installFrom(b.installer, sb, {}, "--client", "antigravity", "--vault", fresh);
+  assert.equal(replaced.status, 0, replaced.stderr);
+  assert.ok(agyCommand(sb.home).includes(`:-${fresh}}"`));
+  assert.ok(replaced.stderr.includes(`"LIBRARIAN_VAULT_PATH": "${fresh}"`));
+  assert.ok(replaced.stderr.includes(`Sessions captured so far stay in ${kept}`), "says earlier captures stay behind");
+});

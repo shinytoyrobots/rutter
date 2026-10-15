@@ -62,6 +62,25 @@ const hookCommand = /[^A-Za-z0-9_@%+=:,./-]/.test(hookPath) ? `'${hookPath.repla
 
 if (!fs.existsSync(hookPath)) fail(`hook script not found at ${hookPath}`);
 
+// A registration is ours wherever it lives, not only at this install's path: switching Node
+// versions (nvm and friends) moves a global install, and a hook left at the old path would
+// otherwise look foreign -- stacking a second hook beside it, or refusing outright. Only the
+// shapes this installer writes are recognized; anything else is a user's custom command.
+const unquote = (v) => (v.startsWith("'") ? v.slice(1, -1).replaceAll("'\\''", "'") : v);
+/** `<script>[ --client <name>]`, the script bare or single-quoted and ending in /hooks/librarian-stop.sh. */
+function parseOurs(command) {
+  const m = typeof command === "string" ? command.match(/^('(?:[^']|'\\'')*'|[^\s']+)(?: --client (\S+))?$/) : null;
+  if (!m) return null;
+  const script = unquote(m[1]);
+  return script.endsWith("/hooks/librarian-stop.sh") ? { script, client: m[2] } : null;
+}
+/** Antigravity's shape: the same, optionally behind a baked-in vault default. */
+function parseAgy(command) {
+  const m = typeof command === "string" ? command.match(/^LIBRARIAN_VAULT_PATH="\$\{LIBRARIAN_VAULT_PATH:-([^}"]*)\}" (.*)$/s) : null;
+  const parsed = parseOurs(m ? m[2] : command);
+  return parsed && { ...parsed, vault: m ? m[1] : undefined };
+}
+
 // The hook runs dist/capture-cli.js, so an unbuilt repo would register a hook
 // that fails on every Stop event. Better to refuse than to install a dud.
 const distEntry = path.join(import.meta.dirname, "..", "dist", "capture-cli.js");
@@ -75,32 +94,9 @@ async function installAntigravity() {
   // construction: the wrapper exits 0 with empty stdout and never emits decision "continue".
   const name = "librarian-capture";
 
-  // ONE vault for both sides. The MCP server's vault is persisted config (its `env` block), but a hook
-  // has no config of its own: it inherits the shell agy was launched from. When those two disagreed,
-  // captures went to the default vault while reads came from another (seen in testing). So the vault is
-  // decided once, here, and written into BOTH: baked into the hook command as the default for
-  // LIBRARIAN_VAULT_PATH (a value exported at launch still wins), and into the MCP snippet.
   const expandHome = (v) => (v === "~" ? os.homedir() : v.startsWith("~/") ? path.join(os.homedir(), v.slice(2)) : v);
-  const vaultSource = vaultArg !== undefined ? "--vault" : process.env.LIBRARIAN_VAULT_PATH ? "LIBRARIAN_VAULT_PATH in this shell" : "default";
-  const vaultRaw = vaultArg !== undefined ? vaultArg : process.env.LIBRARIAN_VAULT_PATH || path.join(os.homedir(), "Documents", "knowledge-vault");
-  if (vaultRaw.trim() === "") fail("--vault needs a path.");
-  const vault = path.resolve(expandHome(vaultRaw.trim()));
-  // The path is embedded in a double-quoted shell default; refuse characters that would change its meaning.
-  if (/["$`\\\n\r]/.test(vault)) fail(`vault path ${JSON.stringify(vault)} contains a quote, $, backtick, backslash or newline; pass a plainer path.`);
-  const db = process.env.LIBRARIAN_DB_PATH ?? path.join(import.meta.dirname, "..", "data", "librarian.db");
-  // `--client agy` is the explicit identity: capture labels records with the host client, and an
-  // argument survives every host's hook runner where an environment prefix might not.
-  const command = `LIBRARIAN_VAULT_PATH="\${LIBRARIAN_VAULT_PATH:-${vault}}" ${hookCommand} --client agy`;
-
-  // Quote for a copy-pasted shell line: a path with a space or other metacharacter must stay one argument.
-  const sq = (v) => (/[^A-Za-z0-9_@%+=:,./-]/.test(v) ? `'${v.replaceAll("'", "'\\''")}'` : v);
-
-  const mentionsHook = (cfg) =>
-    Object.values(cfg ?? {}).some(
-      (v) =>
-        Array.isArray(v?.Stop) &&
-        v.Stop.some((h) => typeof h?.command === "string" && (h.command.includes(hookPath) || h.command.includes(hookCommand)))
-    );
+  const isOursCmd = (c) => typeof c === "string" && (parseAgy(c) !== null || c.includes(hookPath) || c.includes(hookCommand));
+  const mentionsHook = (cfg) => Object.values(cfg ?? {}).some((v) => Array.isArray(v?.Stop) && v.Stop.some((h) => isOursCmd(h?.command)));
   let cfg = {};
   if (fs.existsSync(settingsPath)) {
     const raw = fs.readFileSync(settingsPath, "utf8");
@@ -115,24 +111,59 @@ async function installAntigravity() {
   } else {
     fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
   }
-  const hookRegistered = mentionsHook(cfg);
-  if (!hookRegistered && name in cfg) {
+  const ours = Array.isArray(cfg[name]?.Stop) ? cfg[name].Stop : undefined;
+  const namedIsOurs = ours !== undefined && ours.some((h) => isOursCmd(h?.command));
+  if (name in cfg && !namedIsOurs) {
     fail(`${settingsPath} already has a hook named "${name}" that is not this one -- rename it, then re-run (nothing was changed).`);
   }
+  const foreign = Object.entries(cfg).find(([k, v]) => k !== name && Array.isArray(v?.Stop) && v.Stop.some((h) => isOursCmd(h?.command)));
+  const vaultIn = (cmd) => {
+    const m = cmd.match(/LIBRARIAN_VAULT_PATH="\$\{LIBRARIAN_VAULT_PATH:-([^}"]*)\}"/) ?? cmd.match(/LIBRARIAN_VAULT_PATH=("?)([^"\s]+)\1(?:\s|$)/);
+    return m ? path.resolve(expandHome((m[2] ?? m[1]).trim())) : undefined;
+  };
+  const foreignCmd = foreign?.[1].Stop.find((h) => isOursCmd(h?.command))?.command;
+  const ownCmd = ours?.find((h) => isOursCmd(h?.command))?.command;
+
+  // ONE vault for both sides. The MCP server's vault is persisted config (its `env` block), but a hook
+  // has no config of its own: it inherits the shell agy was launched from. When those two disagreed,
+  // captures went to the default vault while reads came from another (seen in testing). So the vault is
+  // decided once, here, and written into BOTH: baked into the hook command as the default for
+  // LIBRARIAN_VAULT_PATH (a value exported at launch still wins), and into the MCP snippet.
+  // Order: --vault, then the vault the existing hook already sets (where capture has been writing, so a
+  // re-run after a Node switch does not quietly move it), then this shell's LIBRARIAN_VAULT_PATH, then
+  // the default.
+  const preserved = (ownCmd && vaultIn(ownCmd)) ?? (foreignCmd && vaultIn(foreignCmd)) ?? undefined;
+  const vaultSource =
+    vaultArg !== undefined
+      ? "--vault"
+      : preserved !== undefined
+        ? "the existing hook"
+        : process.env.LIBRARIAN_VAULT_PATH
+          ? "LIBRARIAN_VAULT_PATH in this shell"
+          : "default";
+  const vaultRaw =
+    vaultArg !== undefined ? vaultArg : preserved ?? (process.env.LIBRARIAN_VAULT_PATH || path.join(os.homedir(), "Documents", "knowledge-vault"));
+  if (vaultRaw.trim() === "") fail("--vault needs a path.");
+  const vault = path.resolve(expandHome(vaultRaw.trim()));
+  // The path is embedded in a double-quoted shell default; refuse characters that would change its meaning.
+  if (/["$`\\\n\r]/.test(vault)) fail(`vault path ${JSON.stringify(vault)} contains a quote, $, backtick, backslash or newline; pass a plainer path.`);
+  // Only an explicitly set database path is passed on. Otherwise the server picks its own default (a
+  // per-vault index for an npm install, `data/` in a clone); baking in `<package>/data/` would put an
+  // npm install's index inside node_modules.
+  const db = process.env.LIBRARIAN_DB_PATH?.trim() || undefined;
+  // `--client agy` is the explicit identity: capture labels records with the host client, and an
+  // argument survives every host's hook runner where an environment prefix might not.
+  const command = `LIBRARIAN_VAULT_PATH="\${LIBRARIAN_VAULT_PATH:-${vault}}" ${hookCommand} --client agy`;
+
+  // Quote for a copy-pasted shell line: a path with a space or other metacharacter must stay one argument.
+  const sq = (v) => (/[^A-Za-z0-9_@%+=:,./-]/.test(v) ? `'${v.replaceAll("'", "'\\''")}'` : v);
+
   // A registration under ANOTHER name is left alone, but if it bakes in a different vault it would keep
   // capturing there while the MCP entry printed below reads from this one -- the mismatch this installer
   // exists to prevent. Refuse before changing anything (the rule included); its owner updates or removes it.
-  const foreign = Object.entries(cfg).find(
-    ([k, v]) =>
-      k !== name &&
-      Array.isArray(v?.Stop) &&
-      v.Stop.some((h) => typeof h?.command === "string" && (h.command.includes(hookPath) || h.command.includes(hookCommand)))
-  );
   if (foreign) {
-    const cmd = foreign[1].Stop.find((h) => typeof h?.command === "string" && h.command.includes(hookPath)).command;
-    const m = cmd.match(/LIBRARIAN_VAULT_PATH="\$\{LIBRARIAN_VAULT_PATH:-([^}"]*)\}"/) ?? cmd.match(/LIBRARIAN_VAULT_PATH=("?)([^"\s]+)\1(?:\s|$)/);
-    const theirs = m ? path.resolve(expandHome((m[2] ?? m[1]).trim())) : null;
-    if (theirs !== null && theirs !== vault) {
+    const theirs = vaultIn(foreignCmd);
+    if (theirs !== undefined && theirs !== vault) {
       fail(
         `${settingsPath} already registers this hook as "${foreign[0]}" with vault ${theirs}, but you chose ${vault}. ` +
           `Update or remove that entry (or pass --vault ${theirs}), then re-run (nothing was changed).`
@@ -141,14 +172,18 @@ async function installAntigravity() {
   }
   const ruleStatus = await installAntigravityRule();
 
-  // Our own entry is refreshed in place when the vault (or the script path) changed, so re-running
-  // with a different --vault actually moves capture; a registration under another name is left alone.
-  const ours = cfg[name]?.Stop;
-  const oursIsThis = Array.isArray(ours) && ours.some((h) => typeof h?.command === "string" && h.command.includes(hookPath));
+  // Our own entry is refreshed in place when the vault or the script path changed, so re-running with a
+  // different --vault actually moves capture, and re-running from a new install repairs a hook left at
+  // the old path. A registration under another name is left alone.
+  const oldScript = ownCmd ? parseAgy(ownCmd)?.script : undefined;
   let hookStatus;
-  if (hookRegistered && !oursIsThis) {
+  if (foreign && !namedIsOurs) {
+    const theirScript = parseAgy(foreignCmd)?.script;
     hookStatus = `already registered under another name in ${settingsPath}; left unchanged (its vault is whatever it sets, NOT ${vault})`;
-  } else if (oursIsThis && ours.length === 1 && ours[0].command === command && ours[0].type === "command" && ours[0].timeout === 30) {
+    if (theirScript !== undefined && theirScript !== hookPath) {
+      hookStatus += `. It runs ${theirScript}, not this install's ${hookPath}; update "${foreign[0]}" if that path no longer exists`;
+    }
+  } else if (namedIsOurs && ours.length === 1 && ours[0].command === command && ours[0].type === "command" && ours[0].timeout === 30) {
     hookStatus = `already registered in ${settingsPath}; unchanged`;
   } else {
     // A workspace registration fires alongside the global one (capture dedupes, but report it).
@@ -164,7 +199,14 @@ async function installAntigravity() {
     const tmp = `${settingsPath}.librarian-tmp`;
     fs.writeFileSync(tmp, `${JSON.stringify(cfg, null, 2)}\n`, "utf8");
     fs.renameSync(tmp, settingsPath);
-    hookStatus = `${oursIsThis ? "updated" : "registered"} the Stop hook in ${settingsPath}`;
+    hookStatus = `${namedIsOurs ? "updated" : "registered"} the Stop hook in ${settingsPath}`;
+    if (oldScript !== undefined && oldScript !== hookPath) hookStatus += ` (moved from ${oldScript} to ${hookPath})`;
+  }
+  if (vaultArg !== undefined && preserved !== undefined && preserved !== vault) {
+    console.error(
+      `[install-hook] note: capture moves from ${preserved} to ${vault}. Sessions captured so far stay in ${preserved}; ` +
+        "they are not copied."
+    );
   }
 
   const stdio = path.join(import.meta.dirname, "..", "dist", "stdio.js");
@@ -177,12 +219,12 @@ async function installAntigravity() {
   console.error("[install-hook] LIBRARIAN_VAULT_PATH still overrides it, and each capture's stderr line names the vault it wrote to.");
   console.error("[install-hook] Reads (the MCP server) use the vault in its own env block. Register it with the SAME value:");
   console.error(
-    `[install-hook]     agy mcp add --env ${sq(`LIBRARIAN_VAULT_PATH=${vault}`)} --env ${sq(`LIBRARIAN_DB_PATH=${db}`)} rutter ${sq(process.execPath)} ${sq(stdio)}`
+    `[install-hook]     agy mcp add --env ${sq(`LIBRARIAN_VAULT_PATH=${vault}`)}${db ? ` --env ${sq(`LIBRARIAN_DB_PATH=${db}`)}` : ""} rutter ${sq(process.execPath)} ${sq(stdio)}`
   );
   console.error("[install-hook]   or put this in ~/.gemini/config/mcp_config.json (literal values; substitution there is undocumented):");
   console.error(
     JSON.stringify(
-      { mcpServers: { rutter: { command: process.execPath, args: [stdio], env: { LIBRARIAN_VAULT_PATH: vault, LIBRARIAN_DB_PATH: db } } } },
+      { mcpServers: { rutter: { command: process.execPath, args: [stdio], env: { LIBRARIAN_VAULT_PATH: vault, ...(db ? { LIBRARIAN_DB_PATH: db } : {}) } } } },
       null,
       2
     )
@@ -246,31 +288,60 @@ if (!Array.isArray(settings.hooks.Stop)) {
   fail(`${settingsPath} has a non-array hooks.Stop -- fix it, then re-run (nothing was changed).`);
 }
 
+// The vault a Claude Code or Codex hook writes to is not in its command: it inherits the environment
+// the client is launched from. Say which vault that is here, so the server registration can match it.
+const envVault = process.env.LIBRARIAN_VAULT_PATH?.trim();
+const vaultNote = () =>
+  console.error(
+    `[install-hook] vault the hook will use: ${envVault ? `${envVault} (LIBRARIAN_VAULT_PATH in this shell)` : "~/Documents/knowledge-vault (the default)"}` +
+      " -- whatever LIBRARIAN_VAULT_PATH is when the client starts. Register the MCP server with the same value."
+  );
+
 // The command we register carries the explicit client identity (`--client claude|codex`), which
 // capture uses to label the records it writes. Compare parsed command strings, not serialized JSON:
 // a path containing `"` or `\` is escaped in the serialized form and would never match, appending a
-// duplicate. A registration of ours made before the identity existed (the bare script path) is
-// updated in place rather than skipped or duplicated.
-const identified = `${hookCommand} --client ${client}`;
-const isOurs = (h) => typeof h?.command === "string" && (h.command.includes(hookPath) || h.command.includes(hookCommand));
-const existing = settings.hooks.Stop.flatMap((group) => (Array.isArray(group?.hooks) ? group.hooks : [])).find(isOurs);
-if (existing) {
-  if (existing.command === identified) {
+// duplicate. Any registration in a shape this installer writes counts as ours, at this path or an old
+// one (a Node version switch moves a global install): the first is rewritten to this path, keeping
+// its `--client`, and any others are removed so exactly one hook fires.
+const known = [];
+let custom = false;
+for (const group of settings.hooks.Stop) {
+  for (const h of Array.isArray(group?.hooks) ? group.hooks : []) {
+    const parsed = parseOurs(h?.command);
+    if (parsed) known.push({ group, hook: h, parsed });
+    else if (typeof h?.command === "string" && (h.command.includes(hookPath) || h.command.includes(hookCommand))) custom = true;
+  }
+}
+if (known.length === 0 && custom) {
+  console.error(
+    `[install-hook] already registered in ${settingsPath} with a custom command; left unchanged. Add \`--client ${client}\` to it ` +
+      `if you want records labeled with the client.`
+  );
+  vaultNote();
+  process.exit(0);
+}
+if (known.length > 0) {
+  const [keep, ...extra] = known;
+  const target = `${hookCommand} --client ${keep.parsed.client ?? client}`;
+  if (extra.length === 0 && keep.hook.command === target) {
     console.error(`[install-hook] already registered in ${settingsPath}; nothing to do.`);
+    vaultNote();
     process.exit(0);
   }
-  if (existing.command !== hookPath && existing.command !== hookCommand && !/^\S*librarian-stop\.sh'? --client \S+$/.test(existing.command)) {
-    console.error(
-      `[install-hook] already registered in ${settingsPath} with a custom command; left unchanged. Add \`--client ${client}\` to it ` +
-        `if you want records labeled with the client.`
-    );
-    process.exit(0);
-  }
-  existing.command = identified;
+  keep.hook.command = target;
+  for (const { group, hook } of extra) group.hooks = group.hooks.filter((h) => h !== hook);
+  settings.hooks.Stop = settings.hooks.Stop.filter((group) => !Array.isArray(group?.hooks) || group.hooks.length > 0);
   const updatedTmp = `${settingsPath}.librarian-tmp`;
   fs.writeFileSync(updatedTmp, `${JSON.stringify(settings, null, 2)}\n`, "utf8");
   fs.renameSync(updatedTmp, settingsPath);
-  console.error(`[install-hook] updated the Stop hook in ${settingsPath} to label records as "${client}".`);
+  console.error(`[install-hook] updated the Stop hook in ${settingsPath} to label records as "${keep.parsed.client ?? client}".`);
+  if (keep.parsed.script !== hookPath) console.error(`[install-hook] moved it from ${keep.parsed.script} to ${hookPath}.`);
+  if (extra.length > 0) {
+    console.error(
+      `[install-hook] removed ${extra.length} more registration(s) of this hook (${extra.map((e) => e.parsed.script).join(", ")}), so capture runs once.`
+    );
+  }
+  vaultNote();
   process.exit(0);
 }
 
@@ -284,7 +355,7 @@ if (client === "codex") {
   }
 }
 
-const entry = { type: "command", command: identified };
+const entry = { type: "command", command: `${hookCommand} --client ${client}` };
 if (client === "codex") {
   entry.timeout = 30;
   entry.statusMessage = "Librarian: capturing session memory";
@@ -296,8 +367,8 @@ fs.writeFileSync(tmp, `${JSON.stringify(settings, null, 2)}\n`, "utf8");
 fs.renameSync(tmp, settingsPath);
 
 console.error(`[install-hook] registered the Stop hook in ${settingsPath}.`);
+vaultNote();
 if (client === "codex") {
-  console.error(`[install-hook] vault the hook will use: ${process.env.LIBRARIAN_VAULT_PATH ?? "~/Documents/knowledge-vault (default)"}.`);
   console.error("[install-hook] Codex hooks read LIBRARIAN_VAULT_PATH from the environment Codex is launched with, not from config.toml.");
   console.error("[install-hook] Codex does not run a new hook until you trust it: start Codex, run /hooks, review the");
   console.error("[install-hook] Librarian Stop hook and trust it (installing did NOT grant trust). Then check");

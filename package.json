@@ -1,9 +1,20 @@
 {
-  "name": "rutter",
-  "version": "0.5.0",
+  "name": "rutter-memory",
+  "version": "0.6.0",
+  "mcpName": "io.github.shinytoyrobots/rutter",
   "type": "module",
   "description": "One memory across Claude Code, Grok, Codex, and Antigravity: a record of what your AI sessions decided, and the versioned references behind it. MCP server over a folder of markdown notes.",
   "license": "MIT",
+  "homepage": "https://ruttermemory.com",
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "memory",
+    "markdown",
+    "obsidian",
+    "claude-code",
+    "codex"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/shinytoyrobots/rutter.git"
@@ -12,8 +23,16 @@
     "node": ">=22"
   },
   "bin": {
-    "rutter": "./dist/stdio.js"
+    "rutter-memory": "./dist/cli.js",
+    "rutter": "./dist/cli.js"
   },
+  "files": [
+    "dist",
+    "hooks",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",

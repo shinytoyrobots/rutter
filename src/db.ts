@@ -71,6 +71,13 @@ export function initSchema(db: DB): void {
     -- Additive (rolling back is "drop this table"); like everything here it is a
     -- disposable cache, never a source of truth.
     ${INDEX_META_DDL}
+    -- Which vault this index was built from (see src/vault-owner.ts). Kept apart from
+    -- index_meta on purpose: a rebuild clears index_meta first, and ownership must not
+    -- lapse while one runs, or a second server could claim the file mid-rebuild.
+    CREATE TABLE IF NOT EXISTS index_owner (
+      key   TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
   `);
   initPositionSchema(db);
 }
