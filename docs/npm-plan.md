@@ -1,12 +1,14 @@
-# rutter on npm and the MCP Registry
+# rutter on npm
+
+Companion plan: [MCP Registry listing](mcp-registry-plan.md). That plan starts only after this one has shipped.
 
 ## Context
 
-Outside Claude Code, setting up rutter means `git clone`, `npm install` and `npm run build`. That stops casual trials, and it keeps rutter out of the directories where people look for MCP servers. The official MCP Registry stores metadata only: each entry has to point at a published package. PulseMCP reportedly copies from the Registry automatically, so publishing to npm unlocks the rest.
+Outside Claude Code, setting up rutter means `git clone`, `npm install` and `npm run build`. That stops casual trials, and it keeps rutter out of the directories where people look for MCP servers, which only list published packages.
 
 The unscoped name `rutter` on npm belongs to an unrelated router library. **`rutter-memory` is free** (checked 2026-10-15). The brand stays rutter, and only the package name changes.
 
-Outcome: `npx -y rutter-memory` runs the server, `npm install -g rutter-memory` gives a stable hook path for capture, and the Registry lists `io.github.shinytoyrobots/rutter`.
+Outcome: `npx -y rutter-memory` runs the server, and `npm install -g rutter-memory` gives a stable hook path for capture.
 
 ## What has to change, and why
 
@@ -30,39 +32,14 @@ Caveat to document: with nvm or another Node version manager, switching Node ver
 **4. Package contents and metadata** (`package.json`):
 - `"name": "rutter-memory"`, version `0.6.0`. Bump `.claude-plugin/plugin.json` to match.
 - `"files": ["dist", "hooks", "README.md", "LICENSE", "CHANGELOG.md"]`. Without this, `src/`, `test/`, `docs/`, `spec/` and `assets/` would ship.
-- `"mcpName": "io.github.shinytoyrobots/rutter"`. The Registry checks that the npm package carries this exact name.
+- `"mcpName": "io.github.shinytoyrobots/rutter"`. npm ignores it. The MCP Registry checks that the published package carries this exact name, so shipping it now means the Registry plan needs no extra npm release.
 - `"homepage": "https://ruttermemory.com"`, plus `keywords` (mcp, mcp-server, memory, markdown, obsidian, claude-code, codex).
 
-**5. Registry metadata, `server.json` at the repo root:**
-```json
-{
-  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.shinytoyrobots/rutter",
-  "title": "rutter",
-  "description": "Recall past decisions and the notes your AI sessions cited, from a local markdown folder.",
-  "websiteUrl": "https://ruttermemory.com",
-  "repository": { "url": "https://github.com/shinytoyrobots/rutter", "source": "github" },
-  "version": "0.6.0",
-  "packages": [{
-    "registryType": "npm",
-    "identifier": "rutter-memory",
-    "version": "0.6.0",
-    "transport": { "type": "stdio" },
-    "environmentVariables": [
-      { "name": "LIBRARIAN_VAULT_PATH", "description": "Folder of markdown notes (an Obsidian vault works)", "isRequired": true, "format": "filepath" },
-      { "name": "LIBRARIAN_USER_LABEL", "description": "Name the server uses for whose work this is; defaults to 'the user'", "isRequired": false }
-    ]
-  }]
-}
-```
-Check the field names against the live schema with `mcp-publisher validate` before merging. The schema is still in preview and may change.
-
-**6. Publish from GitHub, never from a laptop.** This follows Robin's global rule. Add `.github/workflows/release.yml`, triggered when a `v*` tag is pushed:
+**5. Publish from GitHub, never from a laptop.** This follows Robin's global rule. Add `.github/workflows/release.yml`, triggered when a `v*` tag is pushed:
 - `permissions: id-token: write, contents: read`.
 - Set up Node 22 with the npm registry URL, then `npm ci`, `npm run build`, `npm test`.
+- A step that fails if the tag and the versions in `package.json` and `.claude-plugin/plugin.json` disagree.
 - `npm publish --provenance --access public`.
-- Install `mcp-publisher`, run `mcp-publisher login github-oidc`, then `mcp-publisher publish`.
-- A step that fails if the tag, `package.json` version and `server.json` versions disagree.
 
 npm authentication: the first publish needs a publishing token, because npm trusted publishing (GitHub OIDC) can only be set up on a package that already exists. Robin creates it:
 - npmjs.com → Access Tokens → Generate New Token → **Granular Access Token**.
@@ -73,22 +50,25 @@ npm authentication: the first publish needs a publishing token, because npm trus
 
 After v0.6.0 is live: on the package's npm settings page, add `shinytoyrobots/rutter` + `release.yml` as the trusted publisher, then revoke the token and delete the secret. The workflow then publishes with OIDC alone.
 
-**7. Docs** (a separate PR after the package is live, so no instruction points at a package that doesn't exist):
-- `docs/getting-started.md`: Codex, Grok and Antigravity paths swap clone and build for `npm install -g rutter-memory` plus `rutter-memory install-hook`. Keep "from a clone" as a contributor path. Add a recall-only `npx` snippet. The Claude Code plugin path is unchanged.
+**6. Docs** (a separate PR after the package is live, so no instruction points at a package that doesn't exist):
+- `docs/getting-started.md`: Codex and Antigravity paths swap clone and build for `npm install -g rutter-memory` plus `rutter-memory install-hook`, and register the server as `rutter-memory` rather than an absolute path. Keep "from a clone" as a contributor path. Add a recall-only `npx` snippet, the Node-version-switch caveat, and a short "upgrading" section. The Claude Code and Grok paths are unchanged.
 - `README.md` install section to match.
 - This edits a ported page, so the gh-pages re-port, `sources.json` rehash, `sitemap.xml` lastmod bump and `llms.txt` review all apply (see the gh-pages publish process).
 - `CHANGELOG.md` entry for v0.6.0.
+
+## Ongoing release rule
+
+From v0.6.0 on, the Claude Code plugin follows `main`, while npm users get only tagged versions. Tag every merge that changes how rutter behaves, including dependency security bumps, or the two groups drift apart. Published npm versions can't be removed after 72 hours, only deprecated.
 
 ## Sequence
 
 | Step | Who | What |
 |---|---|---|
-| 1 | Claude | PR A: items 1–6 (code, package metadata, `server.json`, workflow, CHANGELOG) |
-| 2 | Robin | Create or log in to the npm account; create the publishing token (item 6) and save it as `NPM_TOKEN`; merge PR A |
-| 3 | Robin | Push tag `v0.6.0`; the workflow publishes to npm and the Registry |
-| 4 | Claude | Verify the live listings (see Verification); PR B: docs (item 7) and gh-pages port |
+| 1 | Claude | PR A: items 1–5 (code, package metadata, release workflow, CHANGELOG) |
+| 2 | Robin | Create or log in to the npm account (two-factor on); create the publishing token (item 5) and save it as `NPM_TOKEN`; merge PR A |
+| 3 | Robin | Push tag `v0.6.0`; the workflow publishes to npm |
+| 4 | Claude | Verify the live package (see Verification); PR B: docs (item 6) and gh-pages port |
 | 5 | Robin | Merge PR B; set up trusted publishing, then revoke the token and delete the `NPM_TOKEN` secret |
-| 6 | Later, separate | mcp.so form and an awesome-mcp-servers PR (both need the npm package to exist first) |
 
 ## Verification
 
@@ -99,15 +79,14 @@ Before PR A merges, all local and nothing published:
 - Install the tarball into a scratch prefix (`npm install -g --prefix <scratch> ./rutter-memory-0.6.0.tgz`):
   - `rutter-memory` starts the server. An MCP `tools/list` returns the four `librarian-*` tools, the database is created under the XDG path, and nothing is written into the package folder.
   - `rutter-memory install-hook --client codex` with a scratch `CODEX_HOME` writes the global-prefix hook path. Piping a sample Codex Stop payload (with a `librarian-session` line in `last_assistant_message`) to that hook writes an entry into a scratch vault.
-- `mcp-publisher validate` passes on `server.json`.
 
 After the tag ships:
 - `npm view rutter-memory` shows 0.6.0 with provenance.
-- `curl "https://registry.modelcontextprotocol.io/v0/servers?search=rutter"` returns the entry.
 - Per the personal-projects rules, check recall from at least two clients (Claude Code, plus Codex or Antigravity) launched with `npx -y rutter-memory`.
 
 ## Out of scope
 
+- The MCP Registry and other directory listings: see [mcp-registry-plan.md](mcp-registry-plan.md).
 - New harnesses. GitHub Copilot CLI is the next candidate and gets its own plan.
-- Smithery. It's built for hosted servers, and rutter is local only.
 - Renaming internal `librarian-*` tools, env vars or `_librarian/`. The brand-vs-mechanism split stays.
+- Having `install-hook` also register the MCP server. That would merge two setup steps per harness and is worth its own plan.
