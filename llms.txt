@@ -8,7 +8,7 @@
 ## Docs
 
 - [Overview](https://ruttermemory.com/): what rutter is and the idea behind it
-- [Getting started](https://ruttermemory.com/getting-started.html): a setup path for each client, from install to first recall
+- [Getting started](https://ruttermemory.com/getting-started.html): a setup path for each client (the Claude Code plugin, or npm as rutter-memory), from install to first recall
 - [Memory of use](https://ruttermemory.com/memory-of-use.html): capture, recall, enrichment, note identity, positions
 
 ## Optional
