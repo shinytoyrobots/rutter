@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -54,7 +55,45 @@ export function readSetting(name: string, source: NodeJS.ProcessEnv = process.en
 
 const vaultPath = expandHome(readSetting("LIBRARIAN_VAULT_PATH") ?? "~/Documents/knowledge-vault");
 
-const dbPath = expandHome(readSetting("LIBRARIAN_DB_PATH") ?? path.join(projectRoot, "data", "librarian.db"));
+/**
+ * The vault's real path, symlinks resolved, so two spellings of one folder count as one
+ * vault. A folder that does not exist yet resolves to its absolute spelling instead.
+ */
+export function resolveVault(p: string): string {
+  const abs = path.resolve(p);
+  try {
+    return fs.realpathSync(abs);
+  } catch {
+    return abs;
+  }
+}
+
+/**
+ * Where the index lives when LIBRARIAN_DB_PATH is not set.
+ *
+ * A clone keeps `<repo>/data/librarian.db`, as it always has. An npm install cannot: its
+ * package folder sits inside `node_modules` or the npx cache, which can be wiped at any
+ * time or may not be writable. There the index goes under the user's data directory, in
+ * a folder per vault, so two clients reading two vaults never share (and fight over) one
+ * index. The vault id is the first 16 hex characters of the sha256 of its real path.
+ */
+export function defaultDbPath(
+  packageRoot: string,
+  vaultRealPath: string,
+  env: NodeJS.ProcessEnv = process.env,
+  home: string = os.homedir()
+): string {
+  if (!packageRoot.split(path.sep).includes("node_modules")) return path.join(packageRoot, "data", "librarian.db");
+  const dataHome = env.XDG_DATA_HOME?.trim() && path.isAbsolute(env.XDG_DATA_HOME.trim())
+    ? env.XDG_DATA_HOME.trim()
+    : path.join(home, ".local", "share");
+  const vaultId = crypto.createHash("sha256").update(vaultRealPath).digest("hex").slice(0, 16);
+  return path.join(dataHome, "rutter", vaultId, "librarian.db");
+}
+
+const vaultRealPath = resolveVault(vaultPath);
+
+const dbPath = expandHome(readSetting("LIBRARIAN_DB_PATH") ?? defaultDbPath(projectRoot, vaultRealPath));
 
 // Memory-of-use lives in `_librarian/` INSIDE the vault (storage layer 2). It resolves relative to the configured vault path — not cwd — so
 // the same records are found no matter where Claude Code launches the server.
@@ -74,6 +113,8 @@ export const config = {
   version: readVersion(),
   /** Absolute path to the Obsidian vault (the source of truth). */
   vaultPath,
+  /** The vault's real path (symlinks resolved): the identity the index records as its owner. */
+  vaultRealPath,
   /** Absolute path to the derived SQLite index (a regenerable cache). */
   dbPath,
   /** Root of the memory-of-use overlay; every server write lands under here or `data/`. */

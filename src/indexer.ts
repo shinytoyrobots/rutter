@@ -1,4 +1,5 @@
 import { openDb, resetSchema, clearIndexMeta, withTransaction, type DB } from "./db.js";
+import { recordOwner } from "./vault-owner.js";
 import { walkMarkdown, readNote, countOverlayMarkdown } from "./vault.js";
 import { config } from "./config.js";
 import { runIdentityPass, type IdentityPassStats } from "./identity.js";
@@ -95,7 +96,10 @@ export function reindex(db?: DB, now: Date = new Date()): IndexStats {
   const setMeta = database.prepare("INSERT OR REPLACE INTO index_meta (key, value) VALUES (?, ?)");
   setMeta.run("walked_count", String(notes + skipped));
   if (overlayCount !== undefined) setMeta.run("overlay_count", String(overlayCount));
-  setMeta.run("indexed_at", String(startedAt)); // last: its presence means "complete"
+  setMeta.run("indexed_at", String(startedAt)); // its presence means "complete"
+  // Ownership only after every phase has succeeded: a claim that fails part-way leaves
+  // the database unowned, never owned by a vault whose notes it does not hold.
+  recordOwner(database);
 
   return { notes, skipped, ms: Date.now() - start, identity, positions };
 }

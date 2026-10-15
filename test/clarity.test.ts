@@ -10,6 +10,7 @@ import { captureSession, overSummaryWordCeiling, summaryWordCount } from "../src
 import { readRecord } from "../src/session-record.js";
 import { runRecent } from "../src/app.js";
 import { createServer, SERVER_INSTRUCTIONS, formatRecentEntry } from "../src/server.js";
+import { reindex } from "../src/indexer.js";
 
 /**
  * SCN-007: recorded memory reads clearly at recall time.
@@ -343,7 +344,9 @@ test("COR-A-012 SCN-007/AC-verbatim (SR-023): reading does not launder the recor
   const file = path.join(sessionsDir, `${day}.md`);
   const before = fs.readFileSync(file); // Buffer -- byte snapshot, not a string compare
 
-  // Read through the real MCP tool, the outermost layer a client sees.
+  // Read through the real MCP tool, the outermost layer a client sees. A real server builds
+  // its index before answering; an unbuilt one refuses, so build it as startup would.
+  reindex();
   const server = createServer();
   const client = new Client({ name: "test-client", version: "0.0.0" });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();

@@ -1,6 +1,40 @@
 import { reindex } from "./indexer.js";
 import { config } from "./config.js";
-const stats = reindex();
+import { openDb } from "./db.js";
+import { ownership, foreignVaultMessage, markClaiming, withRebuildLock } from "./vault-owner.js";
+// `reindex [--force]`. An index recorded for another vault is refused untouched;
+// `--force` hands it to this vault, by rebuilding first and recording the new owner
+// only once that rebuild succeeds (see vault-owner.ts).
+const args = process.argv.slice(2);
+const unknown = args.find((a) => a !== "--force");
+if (unknown !== undefined) {
+    console.error(`[rutter] unknown argument "${unknown}" -- usage: reindex [--force]`);
+    process.exit(2);
+}
+const db = openDb();
+// The ownership decision and the rebuild run under one lock, so no other process can
+// claim or rebuild the index between the check and the work.
+const outcome = withRebuildLock(db, () => {
+    const owner = ownership(db);
+    if (owner.status === "foreign" && !args.includes("--force"))
+        return { refused: foreignVaultMessage(owner.owner) };
+    if (owner.status === "foreign") {
+        console.error(`[rutter] --force: rebuilding ${config.dbPath} from ${config.vaultRealPath}; it belonged to ${owner.owner}.`);
+    }
+    // Marked before any table changes, so every server -- a previous owner, or another on
+    // this vault -- refuses while the tables are half-built, and after a failure.
+    markClaiming(db);
+    return { stats: reindex(db) };
+});
+if (outcome === undefined) {
+    console.error(`[rutter] another process is rebuilding ${config.dbPath} right now; try again when it finishes.`);
+    process.exit(1);
+}
+if ("refused" in outcome) {
+    console.error(`[rutter] ${outcome.refused}`);
+    process.exit(1);
+}
+const stats = outcome.stats;
 console.log(`[rutter] reindex complete: ${stats.notes} notes indexed, ${stats.skipped} skipped, ${stats.ms}ms\n` +
     `  vault: ${config.vaultPath}\n  index: ${config.dbPath}`);
 // SR-104: report-only wall time for the identity pass -- no threshold, no failure mode.

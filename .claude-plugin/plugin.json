@@ -1,7 +1,7 @@
 {
   "name": "rutter",
   "displayName": "rutter",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "One memory across Claude Code, Grok, Codex, and Antigravity: a record of what your AI sessions decided, and the versioned references behind it. Search your markdown notes and recall what past sessions decided, all on your own machine.",
   "author": {
     "name": "Robin Cannon",

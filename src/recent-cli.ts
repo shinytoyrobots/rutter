@@ -1,5 +1,6 @@
 import { recent } from "./recent.js";
 import { openDb } from "./db.js";
+import { ownership, foreignVaultMessage } from "./vault-owner.js";
 import { resolveRef } from "./identity.js";
 import type { VersionedRef } from "./refs.js";
 
@@ -14,6 +15,13 @@ import type { VersionedRef } from "./refs.js";
  * doesn't yet show as resolved here.
  */
 const db = openDb();
+// Refs resolve through the index, so an index built from another vault would resolve
+// them against the wrong notes.
+const owner = ownership(db);
+if (owner.status === "foreign") {
+  console.error(`[rutter] ${foreignVaultMessage(owner.owner)}`);
+  process.exit(1);
+}
 
 function formatRef(ref: VersionedRef): string {
   const base = `${ref.path}@${ref.hash}`;

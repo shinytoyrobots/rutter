@@ -4,6 +4,31 @@ Notable changes to rutter, newest first. Detailed per-ship records — grounds,
 disclosed gaps, and what is being watched — are kept by the maintainer
 outside this repository.
 
+## v0.6.0 — 2026-10-15
+
+- **rutter is on npm as `rutter-memory`.** `npx -y rutter-memory` runs the server with no clone
+  or build; `npm install -g rutter-memory` adds a stable path for the capture hook. The unscoped
+  name `rutter` on npm belongs to an unrelated library, so only the package name differs. The
+  installed command is `rutter-memory`, with `rutter` kept as an alias; both start the server
+  when given no subcommand, and take `reindex`, `recent` and `install-hook` as subcommands.
+- **An npm install keeps its index outside the package, one per vault.** With no
+  `LIBRARIAN_DB_PATH`, an install under `node_modules` stores its index at
+  `$XDG_DATA_HOME/rutter/<vault-id>/librarian.db` (else `~/.local/share/rutter/...`). A clone
+  still uses `data/`. The index is a rebuildable cache, so nothing needs moving.
+- **An index serves only the vault it was built from.** `reindex` now records the vault in the
+  database. A server or `reindex` that finds a different vault recorded refuses: it neither
+  reads nor rebuilds the index, and every tool call says which vault owns it and how to fix it.
+  `reindex --force` hands the file to the current vault by rebuilding it first. An index built
+  before this release records no vault and is rebuilt once, on the next start, before it
+  answers anything.
+- **Re-running `install-hook` repairs a hook left at an old path.** After a Node version switch
+  moves a global install, the installer now recognizes its own hook at the old path and rewrites
+  it to the new one instead of adding a second hook (Claude Code, Codex) or refusing
+  (Antigravity). For Antigravity, the vault the existing hook already uses is kept unless
+  `--vault` says otherwise.
+- **The Antigravity installer no longer pins the index into the package folder.** The MCP
+  configuration it prints sets `LIBRARIAN_DB_PATH` only when you set it yourself.
+
 ## v0.5.0 — 2026-10-09
 
 - **Records name the client that wrote them.** Each session entry and position event now carries

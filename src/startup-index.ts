@@ -4,6 +4,7 @@ import { openDb, type DB } from "./db.js";
 import { walkMarkdown, countOverlayMarkdown } from "./vault.js";
 import { reindex, type IndexStats } from "./indexer.js";
 import { config } from "./config.js";
+import { ownership, foreignVaultMessage, markClaiming, withRebuildLock } from "./vault-owner.js";
 
 /**
  * Keep the index current without anyone running `reindex` by hand.
@@ -107,13 +108,37 @@ export interface EnsureResult {
   built: boolean;
   reason?: string;
   warning?: string;
+  /** Set when the index belongs to another vault: nothing was rebuilt, and nothing may be read. */
+  refused?: string;
   stats?: IndexStats;
 }
 
-/** Rebuild the index if (and only if) it is missing or out of date. */
+/**
+ * Rebuild the index if (and only if) it is missing or out of date -- or claim it, with a
+ * full rebuild, when it records no vault. An index recorded for another vault is refused
+ * untouched (see vault-owner.ts). All of it runs under the rebuild lock; if another process
+ * is rebuilding right now, this one leaves the index to it.
+ */
 export function ensureIndex(db?: DB): EnsureResult {
   const database = db ?? openDb();
-  const verdict = indexVerdict(database);
-  if (!verdict.stale) return verdict.warning ? { built: false, warning: verdict.warning } : { built: false };
-  return { built: true, reason: verdict.reason, stats: reindex(database) };
+  const result = withRebuildLock(database, (): EnsureResult => {
+    const owner = ownership(database);
+    if (owner.status === "foreign") return { built: false, refused: foreignVaultMessage(owner.owner) };
+    if (owner.status !== "owned") {
+      const reason =
+        readMeta(database, "indexed_at") === undefined
+          ? "the index has not been built yet"
+          : "the index records no vault, so it was rebuilt from this one";
+      markClaiming(database);
+      return { built: true, reason, stats: reindex(database) };
+    }
+    const verdict = indexVerdict(database);
+    if (!verdict.stale) return verdict.warning ? { built: false, warning: verdict.warning } : { built: false };
+    // Even a rebuild of our own index is marked first: other servers on this vault then
+    // refuse while the tables are half-built, instead of answering from them, and keep
+    // refusing if the rebuild fails, until one succeeds.
+    markClaiming(database);
+    return { built: true, reason: verdict.reason, stats: reindex(database) };
+  });
+  return result ?? { built: false, warning: "another process is rebuilding this index right now; leaving it to finish" };
 }
