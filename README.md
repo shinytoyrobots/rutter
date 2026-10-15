@@ -13,7 +13,9 @@ not flagged yet.
 
 It suits people who keep markdown notes and are comfortable configuring an AI client. Start with
 [`docs/getting-started.md`](./docs/getting-started.md); Claude Code users can [install the
-plugin](#install-as-a-claude-plugin) in a few minutes.
+plugin](#install-as-a-claude-plugin) in a few minutes. Everyone else installs from npm, where the
+package is [`rutter-memory`](https://www.npmjs.com/package/rutter-memory) (the name `rutter` there
+belongs to an unrelated library).
 
 There is no model inside it. It is code plus storage, so the reasoning stays in your client.
 
@@ -38,11 +40,12 @@ feature inside one tool.
 |--------|-----------------|-------|
 | Claude Code | The hook reads the whole session transcript. | [Install the plugin](#install-as-a-claude-plugin) |
 | Grok | The hook reads the final reply. | [Uses the Claude Code plugin](#grok) |
-| Codex | The hook reads the final reply only. | [By hand, four steps](#codex) |
-| Antigravity CLI (`agy`) | The hook reads the current turn from `agy`'s transcript. | [By hand, four steps](#antigravity-cli) |
+| Codex | The hook reads the final reply only. | [npm install, then four steps](#codex) |
+| Antigravity CLI (`agy`) | The hook reads the current turn from `agy`'s transcript. | [npm install, then four steps](#antigravity-cli) |
 
 Every client can read the memory once its MCP server is registered. Writing needs a hook that runs after each turn, and these four
-have one. Any other MCP client can read but not write. The Antigravity row covers the `agy`
+have one. Any other MCP client can read but not write, running the server through `npx`
+([recall only, with npx](./docs/getting-started.md#recall-only-with-npx)). The Antigravity row covers the `agy`
 command-line tool, not the Antigravity IDE.
 
 Point every client at the same notes folder. Each sets it differently. The Claude Code plugin asks
@@ -159,6 +162,21 @@ Stated here rather than discovered later:
 directory is not an error — you get a successful reindex reporting zero notes, which looks like
 a working install until you search and find nothing.
 
+From npm:
+
+```bash
+export LIBRARIAN_VAULT_PATH=/path/to/your/notes   # do this before reindexing
+npm install -g rutter-memory
+rutter-memory reindex  # expect a non-zero note count; zero means the path is wrong
+```
+
+The `rutter-memory` command starts the MCP server when run with no arguments, which is how a
+client launches it. It also takes `reindex [--force]`, `recent`, and `install-hook`;
+`rutter-memory help` lists them. Installing `rutter-memory` also gives you a `rutter` command,
+the same program under a shorter name; that is unrelated to the `rutter` package on npm.
+
+From a clone, to work on the code:
+
 ```bash
 export LIBRARIAN_VAULT_PATH=/path/to/your/notes   # do this before reindexing
 npm install
@@ -171,7 +189,7 @@ Config via environment variables:
 | Var | Default | Meaning |
 |-----|---------|---------|
 | `LIBRARIAN_VAULT_PATH` | `~/Documents/knowledge-vault` | Notes directory to index (read-only). Set this. |
-| `LIBRARIAN_DB_PATH` | `<repo>/data/librarian.db` | Where the derived index lives. Resolved from the installed module's own location, not your working directory. |
+| `LIBRARIAN_DB_PATH` | npm install: `~/.local/share/rutter/<id>/librarian.db`, one per notes folder. Clone: `<repo>/data/librarian.db` | Where the derived index lives. An npm install honors `$XDG_DATA_HOME` in place of `~/.local/share`. An index serves only the notes folder that built it; a second folder pointed at the same file is refused, and `reindex --force` hands the file over. |
 | `LIBRARIAN_USER_LABEL` | `the user` | How the server describes whose work this is, in the instructions and tool descriptions your client receives. Set it to your name and the client is told it is looking at *your* work, which reads more naturally than "the user's". |
 
 Memory-of-use (session records, the use log) lives under `<notes>/_librarian/` — inside your notes
@@ -188,6 +206,9 @@ projection over the append-only event log rather than a second thing you maintai
 [`docs/decision-graph-plan.md`](./docs/decision-graph-plan.md) is the build plan that split it into phases.
 
 ## Try it from the CLI
+
+From an npm install, `rutter-memory recent` takes the same arguments as `npm run recent` below.
+Search, the usage gate, and `identity-confirm` run only from a clone:
 
 ```bash
 npm run search -- bitemporal forgetting memory   # full-text search
@@ -218,7 +239,19 @@ Antigravity is the exception: it saves those instructions as a file instead of p
 prompt, so its installer also writes a rule file. (Full detail in
 [`docs/memory-of-use.md`](./docs/memory-of-use.md).)
 
-**1. Register the Stop hook.** Either run:
+**1. Register the Stop hook.** From an npm install, run:
+
+```bash
+rutter-memory install-hook                       # adds the hook to ~/.claude/settings.json
+rutter-memory install-hook --client codex        # Codex: ~/.codex/hooks.json (then trust it via /hooks)
+rutter-memory install-hook --client antigravity  # Antigravity: ~/.gemini/config/hooks.json
+```
+
+Install globally (`npm install -g`), not through `npx`: the hook is registered by absolute path, and
+the `npx` cache can be cleared at any time. After switching Node versions, reinstall and re-run the
+same line; it moves the existing hook to the new path rather than adding a second one.
+
+From a clone, either run:
 
 ```bash
 npm run build && npm run install-hook          # adds the hook to ~/.claude/settings.json
@@ -314,7 +347,7 @@ lists rutter for Cowork; capture there has not been checked.
 - **The index looks after itself.** The server builds it the first time it starts, and rebuilds it
   when it next starts after your notes, session records or position streams have changed. Start a
   new session to pick up changes made mid-session.
-- **If you already registered the hook by hand** (`npm run install-hook`), remove that entry from
+- **If you already registered the hook by hand** (`rutter-memory install-hook` or `npm run install-hook`), remove that entry from
   `~/.claude/settings.json` when you add the plugin, or captures are attempted twice. The duplicate
   is detected and not stored twice, but it is wasted work.
 - **Maintainers:** `dist/` is committed so the plugin works straight from a clone. Run
@@ -339,27 +372,28 @@ path](./docs/getting-started.md#grok-path) has the full sequence.
 
 ### Codex
 
-Codex cannot use the plugin. It fills in none of a plugin's variables and installs no hook. Set it
-up by hand from a clone, verified with Codex 0.160.0:
+Codex cannot use the plugin. It fills in none of a plugin's variables and installs no hook.
+Verified with Codex 0.160.0. Install rutter with `npm install -g rutter-memory`, then:
 
-1. Register the server with `codex mcp add`, passing your notes path with
-   `--env LIBRARIAN_VAULT_PATH=…`. See the [Codex path](./docs/getting-started.md#codex-path) in `docs/getting-started.md`.
-2. Install the hook with `npm run install-hook -- --client codex`. Then trust it in Codex with
-   `/hooks`. Installing does not grant trust, and an untrusted hook never runs.
-3. Export `LIBRARIAN_VAULT_PATH` in the shell that launches Codex. Its hooks see only that
+1. Export `LIBRARIAN_VAULT_PATH` in the shell that launches Codex. Its hooks see only that
    environment, not `~/.claude/settings.json`. Without it they write captures to the default folder.
+2. Register the server with `codex mcp add rutter … -- rutter-memory`, passing your notes path with
+   `--env LIBRARIAN_VAULT_PATH=…`. See the [Codex path](./docs/getting-started.md#codex-path) in `docs/getting-started.md`.
+3. Install the hook with `rutter-memory install-hook --client codex`. Then trust it in Codex with
+   `/hooks`. Installing does not grant trust, and an untrusted hook never runs.
 4. Expect the summary line in Codex's final reply, because that is where its hook looks for it.
    If the final reply holds two lines, only the last is kept.
 
 ### Antigravity CLI
 
 This covers the `agy` command-line tool, verified with `agy` 1.3.2. It does not cover the Antigravity
-IDE. Set it up by hand from a clone:
+IDE. Install rutter with `npm install -g rutter-memory`, then set it up by hand:
 
-1. Run `npm run build && npm run install-hook -- --client antigravity --vault <your notes folder>`.
+1. Run `rutter-memory install-hook --client antigravity --vault <your notes folder>`.
    It registers the Stop hook in `~/.gemini/config/hooks.json` and writes the capture rule to
-   `~/.gemini/config/rules/rutter-capture.md`. Without `--vault` it uses `LIBRARIAN_VAULT_PATH`
-   from your shell, then the default folder, and says which.
+   `~/.gemini/config/rules/rutter-capture.md`. Without `--vault` it keeps the folder an existing
+   rutter hook already uses, then tries `LIBRARIAN_VAULT_PATH` from your shell, then the default
+   folder, and says which.
 2. Run the `agy mcp add` line the installer prints. It carries the same notes folder as the hook,
    so writes and reads use one folder. The installer decides the folder once because the two sides
    learn it differently. The MCP server's folder is stored config. A hook has no config of its own
@@ -469,7 +503,9 @@ folder; the fifth lives with the plugin:
   It is written when the index is rebuilt or when you confirm a match.
 - **A usage log** (`_librarian/stateful-use.jsonl`): a timestamp and the name of the recall tool
   each time you used one, so you can tell whether they are worth keeping.
-- **A search index** (a SQLite file in the plugin's own data folder, or `data/` in a clone), built
+- **A search index** (a SQLite file in the plugin's own data folder, in
+  `~/.local/share/rutter/` for an npm install, in `data/` in a clone, or wherever
+  `LIBRARIAN_DB_PATH` points), built
   from your notes and the records above so searches are fast. It is a cache and can be deleted and
   rebuilt at any time.
 
@@ -486,7 +522,10 @@ rutter does not control.
 **Retention.** For as long as you keep the files. Session records, position records, the identity
 ledger and the usage log are append-only by design; to remove them, delete the `_librarian/` folder
 in your notes folder. To remove the index, delete the plugin's data folder (uninstalling the plugin
-does this) or the `data/` folder of a clone. Nothing is held anywhere else.
+does this), the `data/` folder of a clone, or for an npm install `~/.local/share/rutter/`
+(uninstalling the package does not remove it). If you set `XDG_DATA_HOME`, that install's index is
+in `$XDG_DATA_HOME/rutter/` instead, and if you set `LIBRARIAN_DB_PATH`, it is the file that names
+along with its `-wal` and `-shm` files. Quit the clients using it first. Nothing is held anywhere else.
 
 **Contact.** Questions or concerns: [open an issue](https://github.com/shinytoyrobots/rutter/issues)
 or email robin@shinytoyrobots.com.

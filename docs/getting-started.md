@@ -12,10 +12,10 @@ Pick the path for your client. Each one is a single sequence, and each ends with
 |---------|--------|---------------|
 | Claude Code | [Fast path for Claude Code](#fast-path-for-claude-code) | A few minutes; nothing to clone |
 | Grok | [Grok path](#grok-path) | The Claude Code plugin, plus one environment variable |
-| Codex | [Codex path](#codex-path) | A clone, and a hook you trust |
-| Antigravity CLI (`agy`) | [Antigravity path](#antigravity-path) | A clone, a hook, and a rule file |
-| Claude Code, from a clone | [The manual route](#the-manual-route-step-by-step) | Eight steps, starting with a record written by hand |
-| Any other MCP client | [Steps 1, 2, and 5](#step-1--clone-and-install) | Search and recall only: with no hook, nothing is captured |
+| Codex | [Codex path](#codex-path) | One npm install, and a hook you trust |
+| Antigravity CLI (`agy`) | [Antigravity path](#antigravity-path) | One npm install, a hook, and a rule file |
+| Any other MCP client | [Recall only, with npx](#recall-only-with-npx) | One config entry. Search and recall only: with no hook, nothing is captured |
+| Claude Code, from a clone | [The manual route](#the-manual-route-step-by-step) | Eight steps, starting with a record written by hand. For contributors |
 
 Every path ends in two checks, kept separate on purpose. **Capture:** a new line landed in today's file under `_librarian/sessions/`. **Recall:** your client can answer from it. A record written by hand ([Step 3](#step-3--capture-your-first-memory-by-hand)) shows that storage and recall work. It does not show ambient capture, which needs a real session and a hook.
 
@@ -74,13 +74,13 @@ Your client calls `librarian-recent` and reports the session you just finished, 
 
 *Output shape verified against code; your date, project name, and wording will differ.*
 
-**If you ever ran `npm run install-hook` by hand,** remove that Stop hook entry from `~/.claude/settings.json` when you add the plugin. Otherwise capture is attempted twice. The duplicate is detected and stored once, but it is wasted work. To see the hooks Claude Code has active, run `/hooks`.
+**If you ever ran `install-hook` by hand** (`rutter-memory install-hook` or `npm run install-hook`), remove that Stop hook entry from `~/.claude/settings.json` when you add the plugin. Otherwise capture is attempted twice. The duplicate is detected and stored once, but it is wasted work. To see the hooks Claude Code has active, run `/hooks`.
 
 
 ## Before you start
 
 - **Node 22 or newer.** Check with `node -v`. npm warns at install time on an older Node — heed it, because the built-in `node:sqlite` this depends on will simply be missing. Verified on Node 26.
-- **npm and git.**
+- **npm**, plus git if you take the manual route from a clone.
 - **Claude Code, Grok, Codex, or Antigravity.** The four MCP tools work with any MCP client; the Stop hook that powers ambient capture runs in all four of these. Where each finds the hook: Claude Code runs the plugin's hook or one registered in `~/.claude/settings.json`, and Grok runs those same Claude Code hooks; Codex reads `~/.codex/hooks.json` (or `$CODEX_HOME/hooks.json`); Antigravity reads `~/.gemini/config/hooks.json`. Where each finds your notes folder is a separate question, answered in [Make the path stick](#make-the-path-stick): Grok and Codex take it from the shell that launched them, not from `~/.claude/settings.json`.
 - **A directory of markdown notes.** Obsidian is what rutter was built against — it understands wikilinks and frontmatter — but nothing requires Obsidian itself.
 - **No compiler toolchain.** There are zero native dependencies. The index is Node's built-in SQLite, so there is nothing to build and no database to install.
@@ -111,16 +111,15 @@ ls "$LIBRARIAN_VAULT_PATH/_librarian/sessions/"
 
 ## Codex path
 
-Codex cannot use the plugin: it fills in none of a plugin's variables and installs no hook. You set it up from a clone. Check [Before you start](#before-you-start) first. Verified with Codex 0.160.0 (October 2026).
+Codex cannot use the plugin: it fills in none of a plugin's variables and installs no hook. You install rutter from npm instead. Check [Before you start](#before-you-start) first. Verified with Codex 0.160.0 (October 2026).
 
-**1. Clone, install, and build.**
+**1. Install rutter.** The npm package is named `rutter-memory`, because `rutter` on npm is an unrelated library.
 
 ```bash
-git clone https://github.com/shinytoyrobots/rutter.git
-cd rutter
-npm install
-npm run build
+npm install -g rutter-memory
 ```
+
+This gives you the `rutter-memory` command. Install it globally rather than running it through `npx`: the hook needs a path that stays put, and `npx` keeps packages in a cache that can be cleared at any time.
 
 **2. Set your notes folder where Codex starts.** A Codex hook inherits only the environment Codex itself was launched with. It does not read `~/.claude/settings.json`, and a `shell_environment_policy` entry in `~/.codex/config.toml` does not reach it. Add this to the shell profile that launches Codex, then re-source it:
 
@@ -128,20 +127,26 @@ npm run build
 export LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes"
 ```
 
-Without it, the hook writes captures to the default `~/Documents/knowledge-vault`, and its stderr line says the default was used. Run `npm run reindex` to check the path: a non-zero note count means it is right, and [Step 2](#step-2--point-it-at-your-notes-and-build-the-index) shows the full output.
+Without it, the hook writes captures to the default `~/Documents/knowledge-vault`, and its stderr line says the default was used. Run `rutter-memory reindex` to check the path: a non-zero note count means it is right, and [Step 2](#step-2--point-it-at-your-notes-and-build-the-index) shows the full output. That sample comes from a clone; after an npm install, your `index:` line points under `~/.local/share/rutter/`.
 
 **3. Register the server,** passing the notes path at registration:
 
 ```bash
-codex mcp add rutter --env LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes" -- node "$PWD/dist/stdio.js"
+codex mcp add rutter --env LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes" -- rutter-memory
 ```
 
-Check it with `codex mcp list`: `rutter` should appear as `enabled`. An `Auth` column reading `Unsupported` is normal for a local stdio server. This sets the path for the server only. The hook gets it from step 2.
+Check it with `codex mcp list`: `rutter` should appear as `enabled`. An `Auth` column reading `Unsupported` is normal for a local stdio server. This sets the path for the server only. The hook gets it from step 2. If Codex reports that it cannot start `rutter-memory`, it was launched without Node on its `PATH`, which happens when it starts from the Dock or another app rather than your shell. Register Node and the script by absolute path instead, which needs no `PATH`:
+
+```bash
+codex mcp add rutter --env LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes" -- "$(which node)" "$(npm root -g)/rutter-memory/dist/cli.js"
+```
+
+The hook runs `node` too, so capture also needs Codex started from a shell where `node -v` works.
 
 **4. Install the hook, then trust it.**
 
 ```bash
-npm run install-hook -- --client codex
+rutter-memory install-hook --client codex
 ```
 
 This merges into `~/.codex/hooks.json` (or `$CODEX_HOME/hooks.json`). If an equivalent hook is already registered inline in `~/.codex/config.toml`, the installer stops and tells you rather than stacking a second one. Codex will not run a new hook until you trust it: start Codex, run `/hooks`, review the Librarian Stop hook, and trust it. Installing does not grant trust, and an untrusted hook never runs.
@@ -158,46 +163,92 @@ ls "$LIBRARIAN_VAULT_PATH/_librarian/sessions/"
 
 ## Antigravity path
 
-This covers the `agy` command-line tool, not the Antigravity IDE. It has no plugin install either, so you set it up from a clone. Check [Before you start](#before-you-start) first. Verified with `agy` 1.3.2 (October 2026).
+This covers the `agy` command-line tool, not the Antigravity IDE. Antigravity has no plugin install, so you install rutter from npm. Check [Before you start](#before-you-start) first. Verified with `agy` 1.3.2 (October 2026).
 
-**1. Clone, install, and build.**
+**1. Install rutter.** The npm package is named `rutter-memory`, because `rutter` on npm is an unrelated library.
 
 ```bash
-git clone https://github.com/shinytoyrobots/rutter.git
-cd rutter
-npm install
-npm run build
+npm install -g rutter-memory
 ```
+
+Install it globally, not through `npx`. The hook needs a path that stays put, and `npx` keeps packages in a cache that can be cleared at any time.
 
 **2. Install the hook and the capture rule,** passing your notes folder:
 
 ```bash
-npm run install-hook -- --client antigravity --vault /path/to/your/notes
+rutter-memory install-hook --client antigravity --vault /path/to/your/notes
 ```
 
-This adds a `librarian-capture` hook to `~/.gemini/config/hooks.json` and writes `~/.gemini/config/rules/rutter-capture.md`. The rule file is needed: `agy` does not put the server's instructions in the prompt, and without the rule its model did not leave summaries on its own. The installer prints which notes folder it chose and where that came from; without `--vault` it uses `LIBRARIAN_VAULT_PATH` from your shell, then the default. The hook uses that folder as its default no matter which shell launches `agy`, and an exported `LIBRARIAN_VAULT_PATH` still overrides it. Re-running with a different `--vault` updates the hook in place. It refuses to overwrite a rule file it did not write.
+This adds a `librarian-capture` hook to `~/.gemini/config/hooks.json` and writes `~/.gemini/config/rules/rutter-capture.md`. The rule file is needed: `agy` does not put the server's instructions in the prompt, and without the rule its model did not leave summaries on its own.
+
+The installer prints which notes folder it chose and why. It picks, in order: `--vault`; the folder an existing rutter hook already uses; `LIBRARIAN_VAULT_PATH` from your shell; the default, `~/Documents/knowledge-vault`. The hook uses that folder unless the shell that launches `agy` exports `LIBRARIAN_VAULT_PATH`, which overrides it. Re-running with a different `--vault` moves capture to the new folder; sessions captured so far stay in the old one. The installer refuses to overwrite a rule file it did not write.
 
 **3. Register the server** with the `agy mcp add` line the installer printed. It has this shape, with flags before the server name:
 
 ```bash
-agy mcp add --env LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes" --env LIBRARIAN_DB_PATH="$PWD/data/librarian.db" rutter "$(which node)" "$PWD/dist/stdio.js"
+agy mcp add --env LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes" rutter "$(which node)" "$(npm root -g)/rutter-memory/dist/stdio.js"
 ```
 
-Check it with `agy mcp list`: `rutter` should appear as `enabled`. The `LIBRARIAN_DB_PATH` value is where the index lives, and any writable path works. The notes path must match step 2, or captures go to one folder and reads come from another.
+Check it with `agy mcp list`: `rutter` should appear as `enabled`. The notes path must match step 2, or captures go to one folder and reads come from another. The index lives in `~/.local/share/rutter/<id>/`, one per notes folder ([Make the path stick](#make-the-path-stick) has the details). The printed line sets `LIBRARIAN_DB_PATH` only if you had set it yourself.
 
 **4. Do one small real task.** Restart `agy`, run `/hooks` to review the hook, then make one decision or one small change. The summary line can be anywhere in the current turn: the hook reads the turn's assistant messages from `agy`'s transcript file. If the turn holds two lines, only the last is kept. A turn that ended in an error captures nothing.
 
 **5. Check capture.** A file for today's UTC day should exist, and its new entry should carry `client: agy`. Each capture also prints the vault it wrote to in `agy`'s log, under `~/.gemini/antigravity-cli/log/`.
 
 ```bash
-ls /path/to/your/notes/_librarian/sessions/
+ls "/path/to/your/notes/_librarian/sessions/"
 ```
 
 **6. Check recall.** Ask `agy` *"What was I working on lately?"* It should call `librarian-recent` and report the session you just finished.
 
+## Recall only, with npx
+
+Any MCP client can search your notes and recall what Claude Code, Grok, Codex, and Antigravity recorded, with no install step. Add this to the client's MCP configuration:
+
+```json
+{
+  "mcpServers": {
+    "rutter": {
+      "command": "npx",
+      "args": ["-y", "rutter-memory@0.6.0"],
+      "env": { "LIBRARIAN_VAULT_PATH": "/path/to/your/notes" }
+    }
+  }
+}
+```
+
+The version in `args` decides which release runs. Without it, `npx` may fetch a newer release when the client starts, so an upgrade can arrive without you choosing it. [Upgrading](#upgrading) covers moving to a new version. The first start downloads the package and builds the index, so it takes a few seconds longer than later starts.
+
+If the client cannot start the server, it was probably launched without Node on its `PATH`, which happens when it starts from the Dock or another app rather than a shell. Add a `PATH` entry to `env` that includes the folder `dirname "$(which node)"` prints. Check it the same way as any server: the client should list four tools, `librarian-search`, `librarian-get-note`, `librarian-recent`, and `librarian-positions`.
+
+This route captures nothing. Capture needs a hook, and a hook registered from the `npx` cache would stop working without warning when the cache is cleared. For capture, use the [Codex](#codex-path) or [Antigravity](#antigravity-path) path, which install globally.
+
+## Upgrading
+
+**The Claude Code plugin** updates through `/plugin`. The rest of this section does not apply to it.
+
+**A global npm install** updates with one command, then a restart of each client:
+
+```bash
+npm install -g rutter-memory@latest
+```
+
+The server rebuilds its index on the next start if anything it depends on has changed. Your session records are untouched. On Antigravity, also re-run `rutter-memory install-hook --client antigravity`, so the capture rule matches the new release.
+
+**The npx route** runs the version named in `args`. To upgrade, change that version to the new release number, then restart the client. The [releases page](https://www.npmjs.com/package/rutter-memory?activeTab=versions) lists the published versions. If you left the version out, `npx` may already have moved you to a newer release on its own.
+
+**After switching Node versions** with nvm or another version manager, reinstall, then re-run the hook installer for your client:
+
+```bash
+npm install -g rutter-memory
+rutter-memory install-hook --client codex   # --client antigravity, or no flag for Claude Code
+```
+
+A global install lives inside one Node version's folder, so switching versions leaves the hook pointing at a path that may no longer exist. Re-running the installer moves the existing hook to the new path instead of adding a second one, and keeps the notes folder it was using. It prints the old and new paths. If you registered the server by absolute path (the Antigravity line, or the Codex fallback that names `node` and `dist/cli.js`), register it again too.
+
 ## The manual route, step by step
 
-Steps 1 to 8 set up Claude Code from a clone instead of the plugin. They start with a record written by hand, so you can see storage and recall work before adding the hook, then turn on ambient capture. Any other MCP client can follow Steps 1, 2, and 5 for search and recall; without a hook it captures nothing. The Codex and Antigravity paths above link here where the output needs explaining.
+Steps 1 to 8 set up Claude Code from a clone instead of the plugin, the path to take if you want to change rutter's code. They start with a record written by hand, so you can see storage and recall work before adding the hook, then turn on ambient capture. Other MCP clients are better served by [Recall only, with npx](#recall-only-with-npx). The Codex and Antigravity paths above link here where the output needs explaining.
 
 ## Step 1 — Clone and install
 
@@ -249,7 +300,7 @@ A shell-profile `export` also works, but only when `claude` launches from a shel
 
 Grok, Codex, and Antigravity get the path differently: see the [Grok](#grok-path), [Codex](#codex-path), and [Antigravity](#antigravity-path) paths.
 
-Two other variables are optional. `LIBRARIAN_DB_PATH` moves the index, which defaults to `data/librarian.db` inside the repository and is resolved from the module's own location rather than your working directory. `LIBRARIAN_USER_LABEL` is a bare noun — `Robin`, not `Robin's` — used as `<label>'s work` in the descriptions your client receives.
+Two other variables are optional. `LIBRARIAN_DB_PATH` moves the index. In a clone it defaults to `data/librarian.db` inside the repository, resolved from the module's own location rather than your working directory. An npm install keeps it out of the package folder, in `~/.local/share/rutter/<id>/librarian.db` (under `$XDG_DATA_HOME` if you set that), with a separate index for each notes folder. An index serves only the notes folder that built it: point two folders at one `LIBRARIAN_DB_PATH` and the second is refused, with a message saying how to fix it. `LIBRARIAN_USER_LABEL` is a bare noun — `Robin`, not `Robin's` — used as `<label>'s work` in the descriptions your client receives.
 
 ## Step 3 — Capture your first memory by hand
 
@@ -457,11 +508,11 @@ Capture runs without asking, so it helps to know how to see it, stop it, and und
 
 ### Notice when capture stops
 
-- **Look for the line.** After a session that decided something, today's file in `_librarian/sessions/` should have a new entry, and `npm run recent` (or asking your client) should show it. A session with no new line was not captured.
+- **Look for the line.** After a session that decided something, today's file in `_librarian/sessions/` should have a new entry, and `rutter-memory recent` (`npm run recent` from a clone), or asking your client, should show it. A session with no new line was not captured.
 - **Read the hook's status line.** After each turn the hook writes one line to stderr, for example `no session directive found; nothing captured.` or `captured 1 entry into 2026-08-05 session record in vault /Users/you/Documents/notes (rutter 0.5.0).` When `LIBRARIAN_VAULT_PATH` was not set for the hook, the line says the default folder was used. Where a client shows hook output varies; `agy` keeps it in its log under `~/.gemini/antigravity-cli/log/`.
 - **Check the `client` label.** Each entry names the client that wrote it, when the hook can tell. If one client's entries stop appearing while others continue, that client has stopped capturing.
 
-The usage count from `npm run gate` measures recall, not capture. It is not a capture monitor.
+The usage count from `npm run gate` (from a clone) measures recall, not capture. It is not a capture monitor.
 
 ### Pause capture
 
@@ -469,7 +520,7 @@ rutter has no pause switch. A line is captured whenever the hook runs and the mo
 
 - **Claude Code plugin:** `/plugin disable rutter@rutter` turns off the plugin's server and hook together.
 - **Grok:** Grok loads the hook from your Claude Code plugin install, and it does not honor the plugin being disabled in Claude Code. Setting `GROK_CLAUDE_HOOKS_ENABLED=false` does not reach plugin hooks either. Two things do: turn the hook off in Grok's `/hooks` tab (select it and press Space), or uninstall the plugin from Claude Code with `/plugin uninstall rutter@rutter`, which removes it from Grok as well. The disable and uninstall behavior was checked with `grok inspect` on Grok 1.0.50; the `/hooks` toggle is from Grok's own documentation.
-- **A hook added by `npm run install-hook`:** delete its entry from the hook file named in [Before you start](#before-you-start). There is no uninstall command.
+- **A hook added by `install-hook`** (`rutter-memory install-hook` or `npm run install-hook`): delete its entry from the hook file named in [Before you start](#before-you-start). There is no uninstall command.
 - **Codex:** remove the entry from `~/.codex/hooks.json`. A hook you have not trusted in `/hooks` never runs, so an untrusted hook is already paused.
 - **Antigravity:** remove the hook entry, and delete `~/.gemini/config/rules/rutter-capture.md` so the model stops writing lines.
 
@@ -480,7 +531,7 @@ Hooks are read at session start, so restart the client after a change. Asking th
 The server only appends; it has no delete command. The records are your markdown, so you remove an entry by hand:
 
 - **A session line:** open `_librarian/sessions/<day>.md` and delete the entry from the `sessions:` list in the frontmatter. The frontmatter is the record. The body below it is regenerated from the frontmatter the next time that day's file grows, so delete the matching body line too if you want it gone now. The day's top-level `refs:` list is also rebuilt on the next write. Recall reads these files directly, so the entry disappears from recall at once.
-- **A position:** delete the event from `_librarian/positions/<YYYY-MM>.md`, then run `npm run reindex` or restart the server, because positions are recalled from the index.
+- **A position:** delete the event from `_librarian/positions/<YYYY-MM>.md`, then run `rutter-memory reindex` (`npm run reindex` from a clone) or restart the server, because positions are recalled from the index.
 - **Keep the YAML valid.** If a file stops parsing, recall skips it, and capture refuses to write into it rather than overwrite it.
 - **Mind your history.** If your notes folder is a git repository, the line stays in its history until you rewrite that history.
 
@@ -501,23 +552,25 @@ You now have ambient capture running end-to-end. These are worth reading once th
 - **[Note identity](./memory-of-use.md#note-identity)** — what happens to a reference when you rename the note it points at.
 - **[What rutter can and cannot establish](./memory-of-use.md#what-rutter-can-and-cannot-establish)** — what a recorded reference proves, and what it does not.
 
-The project also measures whether any of this actually gets used. `npm run gate` shows the per-ISO-week count; [Measuring whether it gets used](./memory-of-use.md#measuring-whether-it-gets-used) explains what it is for.
+The project also measures whether any of this actually gets used. `npm run gate`, from a clone, shows the per-ISO-week count; [Measuring whether it gets used](./memory-of-use.md#measuring-whether-it-gets-used) explains what it is for.
 
-The server refreshes its index each time it starts, so a new session picks up changes to your notes on its own. Run `npm run reindex` when you want a refresh without restarting. The index is a disposable cache — your files stay the source of truth.
+The server refreshes its index each time it starts, so a new session picks up changes to your notes on its own. Run `rutter-memory reindex` (`npm run reindex` from a clone) when you want a refresh without restarting. The index is a disposable cache — your files stay the source of truth.
 
 ## If something goes wrong
 
 Each entry starts with what you see, then the usual cause, then the fix.
 
-**`0 notes indexed` after `npm run reindex`.** The notes path is wrong, and an unreadable directory is not an error. Check the `vault:` line against where your notes actually are, re-export `LIBRARIAN_VAULT_PATH`, and reindex again (Step 2).
+**`0 notes indexed` after a reindex.** The notes path is wrong, and an unreadable directory is not an error. Check the `vault:` line against where your notes actually are, re-export `LIBRARIAN_VAULT_PATH`, and reindex again (Step 2).
+
+**Every tool answers "rutter's index … belongs to the vault …".** Two notes folders share one index file, because both clients set the same `LIBRARIAN_DB_PATH`. The index serves only the folder that built it, so the second is refused rather than shown the first folder's notes. Remove `LIBRARIAN_DB_PATH` from one client so it gets its own index, or give it a different path. To hand the file over to the second folder instead, run `rutter-memory reindex --force` with that folder; the first client is then refused.
 
 **`rutter` is missing from `/mcp`.** Either the server registered project-local, because `--scope user` was left off, or the plugin has not reloaded. Re-run the `claude mcp add` line from Step 5 with `--scope user`, or run `/reload-plugins` if you installed the plugin.
 
 **No file appears in `_librarian/sessions/`.** Work through these in order:
 
 1. Hooks are read at session start. Quit your client and start it again.
-2. Step 6 should have printed `registered the Stop hook` (or `already registered`). If it printed `dist/capture-cli.js is missing`, run `npm run build` and install again.
-3. Check that the notes path your client sees is the one you meant. The `env` block in `~/.claude/settings.json` covers Claude Code. Grok and Codex read the shell that launched them.
+2. Step 6 should have printed `registered the Stop hook` (or `already registered`). If it printed `dist/capture-cli.js is missing`, run `npm run build` and install again. From an npm install, re-run `rutter-memory install-hook` for your client.
+3. Check that the notes path your client sees is the one you meant. The `env` block in `~/.claude/settings.json` covers Claude Code. Grok and Codex read the shell that launched them. Antigravity uses the folder its installer chose.
 4. Do real work first. An empty summary, or one still wrapped in `<angle brackets>`, captures nothing.
 5. If captures still refuse to land, the README documents a `CLAUDE.md` paste-in as a last-resort fallback.
 
@@ -529,6 +582,8 @@ Each entry starts with what you see, then the usual cause, then the fix.
 
 **A long Grok turn loses its summary.** Grok clips its final message at 32,768 characters, so a directive near the end of a very long turn can be dropped. The [Grok path](#grok-path) has the full Grok setup.
 
-**Every capture appears to be attempted twice.** You have both the plugin's hook and a hand-registered one. Remove the `npm run install-hook` entry from `~/.claude/settings.json`. The duplicate is detected and stored once, but it is wasted work.
+**Every capture appears to be attempted twice.** You have both the plugin's hook and a hand-registered one. Remove the `install-hook` entry from `~/.claude/settings.json`. The duplicate is detected and stored once, but it is wasted work.
+
+**Capture stopped after you switched Node versions.** The hook points into the old version's global install. Follow [Upgrading](#upgrading): reinstall, then re-run `rutter-memory install-hook` for your client.
 
 **`node:sqlite` is missing.** Your Node is older than 22. Check with `node -v` and upgrade.
