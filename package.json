@@ -23,8 +23,8 @@
     "node": ">=22"
   },
   "bin": {
-    "rutter-memory": "./dist/cli.js",
-    "rutter": "./dist/cli.js"
+    "rutter-memory": "dist/cli.js",
+    "rutter": "dist/cli.js"
   },
   "files": [
     "dist",

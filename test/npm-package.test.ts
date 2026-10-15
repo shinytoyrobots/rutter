@@ -340,5 +340,5 @@ t("an unknown subcommand exits non-zero with usage on stderr, and nothing on std
 t("the built entry point carries a shebang, so npm can run it as a command", () => {
   assert.match(fs.readFileSync(cli, "utf8"), /^#!\/usr\/bin\/env node\n/);
   const pkg = JSON.parse(fs.readFileSync(path.join(repo, "package.json"), "utf8")) as { bin: Record<string, string> };
-  assert.deepEqual(pkg.bin, { "rutter-memory": "./dist/cli.js", rutter: "./dist/cli.js" });
+  assert.deepEqual(pkg.bin, { "rutter-memory": "dist/cli.js", rutter: "dist/cli.js" });
 });
