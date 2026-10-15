@@ -134,6 +134,6 @@ After the tag ships:
 ## Out of scope
 
 - The MCP Registry and other directory listings: see [mcp-registry-plan.md](mcp-registry-plan.md).
-- New harnesses. GitHub Copilot CLI is the next candidate and gets its own plan.
+- New harnesses: GitHub Copilot CLI ([copilot-cli-plan.md](copilot-cli-plan.md)) and Meta Muse Code ([muse-code-plan.md](muse-code-plan.md)).
 - Renaming internal `librarian-*` tools, env vars or `_librarian/`. The brand-vs-mechanism split stays.
 - Having `install-hook` also register the MCP server. That would merge two setup steps per harness and is worth its own plan.
