@@ -44,7 +44,7 @@ feature inside one tool.
 | Antigravity CLI (`agy`) | The hook reads the current turn from `agy`'s transcript. | [npm install, then four steps](#antigravity-cli) |
 
 Every client can read the memory once its MCP server is registered. Writing needs a hook that runs after each turn, and these four
-have one. Any other MCP client can read but not write: run the server with `npx -y rutter-memory`
+have one. Any other MCP client can read but not write, running the server through `npx`
 ([recall only, with npx](./docs/getting-started.md#recall-only-with-npx)). The Antigravity row covers the `agy`
 command-line tool, not the Antigravity IDE.
 
@@ -504,7 +504,8 @@ folder; the fifth lives with the plugin:
 - **A usage log** (`_librarian/stateful-use.jsonl`): a timestamp and the name of the recall tool
   each time you used one, so you can tell whether they are worth keeping.
 - **A search index** (a SQLite file in the plugin's own data folder, in
-  `~/.local/share/rutter/` for an npm install, or in `data/` in a clone), built
+  `~/.local/share/rutter/` for an npm install, in `data/` in a clone, or wherever
+  `LIBRARIAN_DB_PATH` points), built
   from your notes and the records above so searches are fast. It is a cache and can be deleted and
   rebuilt at any time.
 
@@ -521,8 +522,10 @@ rutter does not control.
 **Retention.** For as long as you keep the files. Session records, position records, the identity
 ledger and the usage log are append-only by design; to remove them, delete the `_librarian/` folder
 in your notes folder. To remove the index, delete the plugin's data folder (uninstalling the plugin
-does this), `~/.local/share/rutter/` for an npm install (uninstalling the package does not), or
-the `data/` folder of a clone. Nothing is held anywhere else.
+does this), the `data/` folder of a clone, or for an npm install `~/.local/share/rutter/`
+(uninstalling the package does not remove it). If you set `XDG_DATA_HOME`, that install's index is
+in `$XDG_DATA_HOME/rutter/` instead, and if you set `LIBRARIAN_DB_PATH`, it is the file that names
+along with its `-wal` and `-shm` files. Quit the clients using it first. Nothing is held anywhere else.
 
 **Contact.** Questions or concerns: [open an issue](https://github.com/shinytoyrobots/rutter/issues)
 or email robin@shinytoyrobots.com.

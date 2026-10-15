@@ -135,7 +135,13 @@ Without it, the hook writes captures to the default `~/Documents/knowledge-vault
 codex mcp add rutter --env LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes" -- rutter-memory
 ```
 
-Check it with `codex mcp list`: `rutter` should appear as `enabled`. An `Auth` column reading `Unsupported` is normal for a local stdio server. This sets the path for the server only. The hook gets it from step 2. If Codex reports that it cannot find `rutter-memory`, it was launched without your shell's `PATH`: register the full path that `which rutter-memory` prints instead.
+Check it with `codex mcp list`: `rutter` should appear as `enabled`. An `Auth` column reading `Unsupported` is normal for a local stdio server. This sets the path for the server only. The hook gets it from step 2. If Codex reports that it cannot start `rutter-memory`, it was launched without Node on its `PATH`, which happens when it starts from the Dock or another app rather than your shell. Register Node and the script by absolute path instead, which needs no `PATH`:
+
+```bash
+codex mcp add rutter --env LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes" -- "$(which node)" "$(npm root -g)/rutter-memory/dist/cli.js"
+```
+
+The hook runs `node` too, so capture also needs Codex started from a shell where `node -v` works.
 
 **4. Install the hook, then trust it.**
 
@@ -204,14 +210,16 @@ Any MCP client can search your notes and recall what Claude Code, Grok, Codex, a
   "mcpServers": {
     "rutter": {
       "command": "npx",
-      "args": ["-y", "rutter-memory"],
+      "args": ["-y", "rutter-memory@0.6.0"],
       "env": { "LIBRARIAN_VAULT_PATH": "/path/to/your/notes" }
     }
   }
 }
 ```
 
-The first start downloads the package and builds the index, so it takes a few seconds longer than later starts. Check it the same way as any server: the client should list four tools, `librarian-search`, `librarian-get-note`, `librarian-recent`, and `librarian-positions`.
+The version in `args` decides which release runs. Without it, `npx` may fetch a newer release when the client starts, so an upgrade can arrive without you choosing it. [Upgrading](#upgrading) covers moving to a new version. The first start downloads the package and builds the index, so it takes a few seconds longer than later starts.
+
+If the client cannot start the server, it was probably launched without Node on its `PATH`, which happens when it starts from the Dock or another app rather than a shell. Add a `PATH` entry to `env` that includes the folder `dirname "$(which node)"` prints. Check it the same way as any server: the client should list four tools, `librarian-search`, `librarian-get-note`, `librarian-recent`, and `librarian-positions`.
 
 This route captures nothing. Capture needs a hook, and a hook registered from the `npx` cache would stop working without warning when the cache is cleared. For capture, use the [Codex](#codex-path) or [Antigravity](#antigravity-path) path, which install globally.
 
@@ -227,7 +235,7 @@ npm install -g rutter-memory@latest
 
 The server rebuilds its index on the next start if anything it depends on has changed. Your session records are untouched. On Antigravity, also re-run `rutter-memory install-hook --client antigravity`, so the capture rule matches the new release.
 
-**The npx route** keeps using the copy npx downloaded first. To move to a new release, name it in `args`, for example `["-y", "rutter-memory@0.6.1"]`, and restart the client. A pinned version also means a release can never change under you unannounced. Writing `rutter-memory@latest` instead works, but makes every start check the npm registry, and fail when you are offline.
+**The npx route** runs the version named in `args`. To upgrade, change that version to the new release number, then restart the client. The [releases page](https://www.npmjs.com/package/rutter-memory?activeTab=versions) lists the published versions. If you left the version out, `npx` may already have moved you to a newer release on its own.
 
 **After switching Node versions** with nvm or another version manager, reinstall, then re-run the hook installer for your client:
 
@@ -236,7 +244,7 @@ npm install -g rutter-memory
 rutter-memory install-hook --client codex   # --client antigravity, or no flag for Claude Code
 ```
 
-A global install lives inside one Node version's folder, so switching versions leaves the hook pointing at a path that may no longer exist. Re-running the installer moves the existing hook to the new path instead of adding a second one, and keeps the notes folder it was using. It prints the old and new paths. If you registered the server by absolute path (the Antigravity line, or Codex registered with the full path from `which`), register it again too.
+A global install lives inside one Node version's folder, so switching versions leaves the hook pointing at a path that may no longer exist. Re-running the installer moves the existing hook to the new path instead of adding a second one, and keeps the notes folder it was using. It prints the old and new paths. If you registered the server by absolute path (the Antigravity line, or the Codex fallback that names `node` and `dist/cli.js`), register it again too.
 
 ## The manual route, step by step
 
