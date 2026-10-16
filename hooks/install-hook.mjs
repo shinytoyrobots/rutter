@@ -67,8 +67,10 @@ if (!fs.existsSync(hookPath)) fail(`hook script not found at ${hookPath}`);
  * The Node path to print in an MCP registration. `process.execPath` is the resolved binary, which
  * on Homebrew is a versioned Cellar folder (`/opt/homebrew/Cellar/node/26.7.0/bin/node`) that the
  * next `brew upgrade` deletes, silently breaking recall. The first `node` on PATH (the stable
- * `/opt/homebrew/bin/node` link) is printed instead, but only when it is this same binary: a
- * different node on PATH could be too old for the server.
+ * `/opt/homebrew/bin/node` link) is printed instead, but only when it is this same binary (a
+ * different node on PATH could be too old for the server) and does not live somewhere that is
+ * cleared on logout or reboot: fnm puts a per-shell link first on PATH, under its multishell
+ * folder or XDG_RUNTIME_DIR, and printing that would break the registration the same way.
  */
 function stableNode() {
   let self;
@@ -77,16 +79,31 @@ function stableNode() {
   } catch {
     return process.execPath;
   }
+  const real = (p) => {
+    try {
+      return fs.realpathSync(p);
+    } catch {
+      return undefined;
+    }
+  };
+  const transient = [process.env.FNM_MULTISHELL_PATH, process.env.XDG_RUNTIME_DIR, os.tmpdir()]
+    .filter((d) => typeof d === "string" && d !== "" && path.isAbsolute(d))
+    .map((d) => real(d) ?? d);
+  const under = (p, roots) => roots.some((r) => p === r || p.startsWith(r.endsWith(path.sep) ? r : r + path.sep));
   for (const dir of (process.env.PATH ?? "").split(path.delimiter)) {
     if (!dir || !path.isAbsolute(dir)) continue;
     const candidate = path.join(dir, process.platform === "win32" ? "node.exe" : "node");
     try {
+      // A shell skips a directory named node; so does this.
+      if (!fs.statSync(candidate).isFile()) continue;
       fs.accessSync(candidate, fs.constants.X_OK);
-      // The first executable `node` on PATH is what a shell would run; use it only if it is us.
-      return fs.realpathSync(candidate) === self ? candidate : process.execPath;
     } catch {
-      /* not here; keep looking */
+      continue; // not here; keep looking
     }
+    // The first executable `node` on PATH is what a shell would run; use it only if it is us and lasts.
+    const dirReal = real(dir) ?? dir;
+    if (real(candidate) !== self || under(dirReal, transient) || /fnm_multishells/.test(dirReal)) return process.execPath;
+    return candidate;
   }
   return process.execPath;
 }

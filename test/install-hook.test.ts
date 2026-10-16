@@ -507,36 +507,50 @@ t("copilot: a hand-written instructions file is refused, and the hook file is no
 
 // --- The Node path printed in MCP registrations survives a Node upgrade ---
 
-t("printed registrations name the first node on PATH when it is this same binary, else the running binary", () => {
+/** The installer's own shell quoting, so a path with a space is expected quoted. */
+const sq = (v: string): string => (/[^A-Za-z0-9_@%+=:,./-]/.test(v) ? `'${v.replaceAll("'", "'\\''")}'` : v);
+
+t("printed registrations name a lasting node on PATH when it is this same binary, else the running binary", () => {
   const real = fs.realpathSync(process.execPath);
-  const linked = path.join(vaultRoot, `stable-bin-${n}`);
-  fs.mkdirSync(linked, { recursive: true });
+  const dir = (name: string): string => {
+    const d = path.join(vaultRoot, `${name}-${n}`);
+    fs.mkdirSync(d, { recursive: true });
+    return d;
+  };
+  const linked = dir("stable-bin");
   fs.symlinkSync(real, path.join(linked, "node")); // like /opt/homebrew/bin/node -> Cellar/node/<v>/bin/node
-  const other = path.join(vaultRoot, `other-bin-${n}`);
-  fs.mkdirSync(other, { recursive: true });
+  const other = dir("other-bin");
   fs.writeFileSync(path.join(other, "node"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
-  const empty = path.join(vaultRoot, `empty-bin-${n}`);
-  fs.mkdirSync(empty, { recursive: true });
-  const line = (stderr: string) => stderr.split("\n").find((l) => l.includes("copilot mcp add"))!;
-
-  const viaLink = copilotInstall(sandbox(), { PATH: `${linked}${path.delimiter}${other}` });
-  assert.equal(viaLink.status, 0, viaLink.stderr);
-  assert.match(line(viaLink.stderr), new RegExp(` -- ${path.join(linked, "node").replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")} `));
-
-  // A different node first on PATH (it could be too old) is not printed; nor is anything when PATH has none.
-  for (const PATH of [`${other}${path.delimiter}${linked}`, empty]) {
-    const res = copilotInstall(sandbox(), { PATH });
+  const empty = dir("empty-bin");
+  const dirNamedNode = dir("dir-bin");
+  fs.mkdirSync(path.join(dirNamedNode, "node"));
+  // The fixtures live under the test's temp folder, which the installer treats as transient; point
+  // TMPDIR elsewhere unless a case is about that.
+  const lasting = { TMPDIR: dir("elsewhere-tmp"), XDG_RUNTIME_DIR: "", FNM_MULTISHELL_PATH: "" };
+  const printed = (vars: Record<string, string>): string => {
+    const res = copilotInstall(sandbox(), { ...lasting, ...vars });
     assert.equal(res.status, 0, res.stderr);
-    assert.ok(line(res.stderr).includes(` -- ${process.execPath} `), `${PATH}: ${line(res.stderr)}`);
-  }
+    const line = res.stderr.split("\n").find((l) => l.includes("copilot mcp add"))!;
+    return line.slice(line.indexOf(" -- ") + 4, line.lastIndexOf(" "));
+  };
+  const self = sq(process.execPath);
+  const link = sq(path.join(linked, "node"));
+  const join = (...d: string[]) => d.join(path.delimiter);
+
+  assert.equal(printed({ PATH: join(linked, other) }), link, "the same binary through a lasting link");
+  assert.equal(printed({ PATH: join(dirNamedNode, linked) }), link, "a directory named node is skipped, as a shell does");
+  assert.equal(printed({ PATH: join(other, linked) }), self, "a different node first on PATH (maybe too old) is not printed");
+  assert.equal(printed({ PATH: empty }), self, "no node on PATH");
+  assert.equal(printed({ PATH: linked, FNM_MULTISHELL_PATH: linked }), self, "fnm's per-shell link is cleared at logout");
+  assert.equal(printed({ PATH: linked, TMPDIR: vaultRoot }), self, "a link under the temp folder does not last");
 
   // Antigravity's printed command and JSON snippet use the same choice.
   const sb = sandbox();
   const agy = spawnSync(process.execPath, [script, "--client", "antigravity", "--vault", "/v/notes"], {
-    env: { ...process.env, HOME: sb.home, CODEX_HOME: sb.codexHome, PATH: linked },
+    env: { ...process.env, ...lasting, HOME: sb.home, CODEX_HOME: sb.codexHome, PATH: linked },
     encoding: "utf8",
   });
   assert.equal(agy.status, 0, agy.stderr);
-  assert.ok(agy.stderr.includes(`rutter ${path.join(linked, "node")} `), agy.stderr);
-  assert.ok(agy.stderr.includes(`"command": "${path.join(linked, "node")}"`), agy.stderr);
+  assert.ok(agy.stderr.includes(`rutter ${link} `), agy.stderr);
+  assert.ok(agy.stderr.includes(`"command": ${JSON.stringify(path.join(linked, "node"))}`), agy.stderr);
 });
