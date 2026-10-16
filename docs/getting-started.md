@@ -164,7 +164,7 @@ ls "$LIBRARIAN_VAULT_PATH/_librarian/sessions/"
 
 ## Copilot CLI path
 
-This covers GitHub's `copilot` command-line tool. Copilot has no plugin install that sets up rutter yet, so you install rutter from npm. Check [Before you start](#before-you-start) first. Built against Copilot CLI 1.0.98 (October 2026).
+This covers GitHub's `copilot` command-line tool. Copilot has no plugin install that sets up rutter yet, so you install rutter from npm. Check [Before you start](#before-you-start) first. Verified with Copilot CLI 1.0.98 (October 2026).
 
 **1. Install rutter.** The npm package is named `rutter-memory`, because `rutter` on npm is an unrelated library.
 

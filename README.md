@@ -339,8 +339,8 @@ instead (`claude plugin install rutter@anthropic-plugin-directory`, or `rutter@r
 the marketplace), pass `--config vault_path=/path/to/notes` or run `/plugin configure` with the same
 plugin name afterwards; without a notes folder the server has nothing to read.
 
-Ambient capture has been checked in Claude Code, Grok, Codex, and Antigravity. Copilot CLI support is
-new, and its end-to-end check is still to come. The directory also
+Ambient capture has been checked in Claude Code, Grok, Codex, and Antigravity, and in one Copilot CLI
+session, which was captured and then recalled from Claude Code. The directory also
 lists rutter for Cowork; capture there has not been checked.
 
 - **What it runs.** A local MCP server (`node dist/stdio.js`) and a Stop hook
@@ -391,7 +391,7 @@ Verified with Codex 0.160.0. Install rutter with `npm install -g rutter-memory`,
 
 ### GitHub Copilot CLI
 
-Built against Copilot CLI 1.0.98. Install rutter with `npm install -g rutter-memory`, then:
+Verified with Copilot CLI 1.0.98. Install rutter with `npm install -g rutter-memory`, then:
 
 1. Export `LIBRARIAN_VAULT_PATH` in the shell that launches Copilot. The hook inherits that
    environment. Without it, captures go to the default folder.
@@ -402,8 +402,9 @@ Built against Copilot CLI 1.0.98. Install rutter with `npm install -g rutter-mem
 3. Run the `copilot mcp add` line the installer prints. It carries `LIBRARIAN_VAULT_PATH`
    explicitly, because Copilot passes only `PATH` to an MCP server.
 4. Keep the instructions file. Copilot loads a server's instructions only when one of its tools is
-   called, so most sessions would never see the capture contract. In testing, the model wrote the
-   line with the instructions file in place.
+   called, so most sessions would never see the capture contract. In testing, the server's contract
+   alone wasn't enough: the model wrote the line only once the file led with a Copilot-specific line
+   saying when the line applies, which the installer writes.
 
 Copilot's screen hides the summary line, since it is an HTML comment. The hook reads the current
 turn's assistant messages from `~/.copilot/session-state/<session>/events.jsonl`. Copilot writes
