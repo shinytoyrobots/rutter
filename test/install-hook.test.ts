@@ -14,6 +14,8 @@ import { fileURLToPath } from "node:url";
 const script = fileURLToPath(new URL("../hooks/install-hook.mjs", import.meta.url));
 const hookPath = fileURLToPath(new URL("../hooks/librarian-stop.sh", import.meta.url));
 const distEntry = fileURLToPath(new URL("../dist/capture-cli.js", import.meta.url));
+/** The installer's own shell quoting: a path with a space (say, under a spaced TMPDIR) is written quoted. */
+const sq = (v: string): string => (/[^A-Za-z0-9_@%+=:,./-]/.test(v) ? `'${v.replaceAll("'", "'\\''")}'` : v);
 
 let n = 0;
 function sandbox(): { home: string; codexHome: string; hooksJson: string } {
@@ -359,7 +361,7 @@ for (const client of ["claude", "codex"] as const) {
     assert.match(moved.stderr, /vault the hook will use/);
     const hooks = JSON.parse(fs.readFileSync(cfgPath, "utf8")).hooks.Stop.flatMap((g: { hooks: { command: string }[] }) => g.hooks);
     assert.equal(hooks.length, 1, "exactly one rutter Stop hook");
-    assert.equal(hooks[0].command, `${b.hook} --client ${client}`);
+    assert.equal(hooks[0].command, `${sq(b.hook)} --client ${client}`);
     const after = fs.readFileSync(cfgPath, "utf8");
     assert.match(installFrom(b.installer, sb, {}, "--client", client).stderr, /already registered/);
     assert.equal(fs.readFileSync(cfgPath, "utf8"), after, "then stable");
@@ -376,13 +378,13 @@ t("claude: a config already holding the hook at two old paths ends with one, at 
   const other = { hooks: [{ type: "command", command: "echo unrelated" }] };
   fs.writeFileSync(
     settings,
-    JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: "command", command: `${a.hook} --client grok` }] }, other, { hooks: [{ type: "command", command: b.hook }] }] } }),
+    JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: "command", command: `${sq(a.hook)} --client grok` }] }, other, { hooks: [{ type: "command", command: sq(b.hook) }] }] } }),
     "utf8"
   );
   const res = installFrom(c.installer, sb);
   assert.equal(res.status, 0, res.stderr);
   const stop = JSON.parse(fs.readFileSync(settings, "utf8")).hooks.Stop;
-  assert.deepEqual(stop, [{ hooks: [{ type: "command", command: `${c.hook} --client grok` }] }, other], "the first kept (with its own --client), the duplicate dropped, the unrelated hook untouched");
+  assert.deepEqual(stop, [{ hooks: [{ type: "command", command: `${sq(c.hook)} --client grok` }] }, other], "the first kept (with its own --client), the duplicate dropped, the unrelated hook untouched");
   assert.match(res.stderr, /removed 1 more registration/);
 });
 
@@ -399,7 +401,7 @@ t("antigravity: a new prefix rewrites the hook in place and keeps the vault it w
   assert.equal(moved.status, 0, moved.stderr);
   const entries = JSON.parse(fs.readFileSync(agyHooks(sb.home), "utf8"))["librarian-capture"].Stop;
   assert.equal(entries.length, 1);
-  assert.equal(entries[0].command, `LIBRARIAN_VAULT_PATH="\${LIBRARIAN_VAULT_PATH:-${kept}}" ${b.hook} --client agy`);
+  assert.equal(entries[0].command, `LIBRARIAN_VAULT_PATH="\${LIBRARIAN_VAULT_PATH:-${kept}}" ${sq(b.hook)} --client agy`);
   assert.ok(moved.stderr.includes(`moved from ${a.hook} to ${b.hook}`), moved.stderr);
   assert.ok(moved.stderr.includes(`VAULT for capture AND reads: ${kept}  (from the existing hook)`));
   assert.ok(moved.stderr.includes(`"LIBRARIAN_VAULT_PATH": "${kept}"`), "the printed server config carries the same vault");
@@ -439,7 +441,7 @@ t("copilot: writes rutter.json and the instructions file under COPILOT_HOME, and
   assert.match(rule, /^---\napplyTo: "\*\*"\n---\n<!-- rutter-capture-rule:/);
   assert.match(rule, /End every reply that settles a question, makes a decision, or finishes a change/);
   assert.match(rule, /<!-- librarian-session/);
-  assert.match(res.stderr, /copilot mcp add --env LIBRARIAN_VAULT_PATH=\/v\/notes (--env LIBRARIAN_DB_PATH=\S+ )?rutter -- /);
+  assert.match(res.stderr, /copilot mcp add --env LIBRARIAN_VAULT_PATH=\/v\/notes (--env (?:'LIBRARIAN_DB_PATH=[^']+'|LIBRARIAN_DB_PATH=\S+) )?rutter -- /);
   assert.equal(fs.existsSync(path.join(sb.home, ".copilot")), false, "COPILOT_HOME honored; ~/.copilot untouched");
 });
 
@@ -503,4 +505,62 @@ t("copilot: a hand-written instructions file is refused, and the hook file is no
   assert.equal(res.status, 1);
   assert.equal(fs.readFileSync(rule, "utf8"), "my own notes\n");
   assert.equal(fs.existsSync(res.hooksFile), false);
+});
+
+// --- The Node path printed in MCP registrations survives a Node upgrade ---
+
+t("printed registrations name a lasting node on PATH when it is this same binary, else the running binary", () => {
+  const real = fs.realpathSync(process.execPath);
+  const dir = (name: string): string => {
+    const d = path.join(vaultRoot, `${name}-${n}`);
+    fs.mkdirSync(d, { recursive: true });
+    return d;
+  };
+  const linked = dir("stable-bin");
+  fs.symlinkSync(real, path.join(linked, "node")); // like /opt/homebrew/bin/node -> Cellar/node/<v>/bin/node
+  const other = dir("other-bin");
+  fs.writeFileSync(path.join(other, "node"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+  const empty = dir("empty-bin");
+  const dirNamedNode = dir("dir-bin");
+  fs.mkdirSync(path.join(dirNamedNode, "node"));
+  // The fixtures live under the test's temp folder, which the installer treats as transient; point
+  // TMPDIR elsewhere unless a case is about that.
+  const lasting = { TMPDIR: dir("elsewhere-tmp"), XDG_RUNTIME_DIR: "", FNM_MULTISHELL_PATH: "" };
+  const printed = (vars: Record<string, string>): string => {
+    const res = copilotInstall(sandbox(), { ...lasting, ...vars });
+    assert.equal(res.status, 0, res.stderr);
+    const line = res.stderr.split("\n").find((l) => l.includes("copilot mcp add"))!;
+    return line.slice(line.indexOf(" -- ") + 4, line.lastIndexOf(" "));
+  };
+  const self = sq(process.execPath);
+  const link = sq(path.join(linked, "node"));
+  const join = (...d: string[]) => d.join(path.delimiter);
+
+  assert.equal(printed({ PATH: join(linked, other) }), link, "the same binary through a lasting link");
+  assert.equal(printed({ PATH: join(dirNamedNode, linked) }), link, "a directory named node is skipped, as a shell does");
+  assert.equal(printed({ PATH: join(other, linked) }), self, "a different node first on PATH (maybe too old) is not printed");
+  assert.equal(printed({ PATH: empty }), self, "no node on PATH");
+  assert.equal(printed({ PATH: linked, FNM_MULTISHELL_PATH: linked }), self, "fnm's per-shell link is cleared at logout");
+  // A temp folder, and a link inside it pointing at a lasting folder: both vanish.
+  const tmpRoot = dir("tmp-root");
+  const inTmp = path.join(tmpRoot, "bin");
+  fs.mkdirSync(inTmp);
+  fs.symlinkSync(real, path.join(inTmp, "node"));
+  assert.equal(printed({ PATH: inTmp, TMPDIR: tmpRoot }), self, "a link under the temp folder does not last");
+  const viaTmpLink = path.join(tmpRoot, "tools");
+  fs.symlinkSync(linked, viaTmpLink);
+  assert.equal(printed({ PATH: viaTmpLink, TMPDIR: tmpRoot }), self, "a temp-folder symlink to a lasting folder still vanishes");
+  // A "temporary" root that holds home or system folders is not taken as temporary.
+  assert.equal(printed({ PATH: linked, TMPDIR: "/" }), link, "TMPDIR=/ does not rule out every folder");
+  assert.equal(printed({ PATH: linked, TMPDIR: vaultRoot }), link, "a TMPDIR holding HOME (the sandbox's) is ignored");
+
+  // Antigravity's printed command and JSON snippet use the same choice.
+  const sb = sandbox();
+  const agy = spawnSync(process.execPath, [script, "--client", "antigravity", "--vault", "/v/notes"], {
+    env: { ...process.env, ...lasting, HOME: sb.home, CODEX_HOME: sb.codexHome, PATH: linked },
+    encoding: "utf8",
+  });
+  assert.equal(agy.status, 0, agy.stderr);
+  assert.ok(agy.stderr.includes(`rutter ${link} `), agy.stderr);
+  assert.ok(agy.stderr.includes(`"command": ${JSON.stringify(path.join(linked, "node"))}`), agy.stderr);
 });

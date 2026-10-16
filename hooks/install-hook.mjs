@@ -63,6 +63,58 @@ const hookCommand = /[^A-Za-z0-9_@%+=:,./-]/.test(hookPath) ? `'${hookPath.repla
 
 if (!fs.existsSync(hookPath)) fail(`hook script not found at ${hookPath}`);
 
+/**
+ * The Node path to print in an MCP registration. `process.execPath` is the resolved binary, which
+ * on Homebrew is a versioned Cellar folder (`/opt/homebrew/Cellar/node/26.7.0/bin/node`) that the
+ * next `brew upgrade` deletes, silently breaking recall. The first `node` on PATH (the stable
+ * `/opt/homebrew/bin/node` link) is printed instead, but only when it is this same binary (a
+ * different node on PATH could be too old for the server) and does not live somewhere that is
+ * cleared on logout or reboot: fnm puts a per-shell link first on PATH, under its multishell
+ * folder or XDG_RUNTIME_DIR, and printing that would break the registration the same way.
+ */
+function stableNode() {
+  let self;
+  try {
+    self = fs.realpathSync(process.execPath);
+  } catch {
+    return process.execPath;
+  }
+  const real = (p) => {
+    try {
+      return fs.realpathSync(p);
+    } catch {
+      return undefined;
+    }
+  };
+  const under = (p, roots) => roots.some((r) => p === r || p.startsWith(r.endsWith(path.sep) ? r : r + path.sep));
+  // Each root as written and resolved (/tmp is /private/tmp on macOS). A "temporary" root that holds
+  // your home or a system bin folder (TMPDIR=/ or /opt) isn't temporary, so it is ignored rather than
+  // letting it rule out /opt/homebrew/bin.
+  const lasting = [os.homedir(), "/usr/bin", "/usr/local/bin", "/opt/homebrew/bin", "/bin"].flatMap((d) => [d, real(d) ?? d]);
+  const transient = [process.env.FNM_MULTISHELL_PATH, process.env.XDG_RUNTIME_DIR, os.tmpdir()]
+    .filter((d) => typeof d === "string" && d !== "" && path.isAbsolute(d))
+    .map((d) => [path.resolve(d), real(d) ?? path.resolve(d)])
+    .filter((forms) => !lasting.some((l) => under(l, forms)))
+    .flat();
+  for (const dir of (process.env.PATH ?? "").split(path.delimiter)) {
+    if (!dir || !path.isAbsolute(dir)) continue;
+    const candidate = path.join(dir, process.platform === "win32" ? "node.exe" : "node");
+    try {
+      // A shell skips a directory named node; so does this.
+      if (!fs.statSync(candidate).isFile()) continue;
+      fs.accessSync(candidate, fs.constants.X_OK);
+    } catch {
+      continue; // not here; keep looking
+    }
+    // The first executable `node` on PATH is what a shell would run; use it only if it is us and lasts.
+    // The directory as written and resolved: a temp-folder link to a lasting folder still vanishes.
+    const forms = [path.resolve(dir), real(dir) ?? path.resolve(dir)];
+    if (real(candidate) !== self || forms.some((f) => under(f, transient) || /fnm_multishells/.test(f))) return process.execPath;
+    return candidate;
+  }
+  return process.execPath;
+}
+
 // A registration is ours wherever it lives, not only at this install's path: switching Node
 // versions (nvm and friends) moves a global install, and a hook left at the old path would
 // otherwise look foreign -- stacking a second hook beside it, or refusing outright. Only the
@@ -162,7 +214,7 @@ async function installCopilot() {
   );
   console.error("[install-hook] The MCP server gets only PATH from Copilot, so register it with the vault set explicitly:");
   console.error(
-    `[install-hook]     copilot mcp add --env ${sq(`LIBRARIAN_VAULT_PATH=${vault}`)}${db ? ` --env ${sq(`LIBRARIAN_DB_PATH=${db}`)}` : ""} rutter -- ${sq(process.execPath)} ${sq(stdio)}`
+    `[install-hook]     copilot mcp add --env ${sq(`LIBRARIAN_VAULT_PATH=${vault}`)}${db ? ` --env ${sq(`LIBRARIAN_DB_PATH=${db}`)}` : ""} rutter -- ${sq(stableNode())} ${sq(stdio)}`
   );
   console.error("[install-hook] Then start a new Copilot session and check <vault>/_librarian/sessions/ after a turn.");
   console.error("[install-hook] The capture line is an HTML comment, so Copilot's screen hides it; the hook still reads it.");
@@ -346,12 +398,12 @@ async function installAntigravity() {
   console.error("[install-hook] LIBRARIAN_VAULT_PATH still overrides it, and each capture's stderr line names the vault it wrote to.");
   console.error("[install-hook] Reads (the MCP server) use the vault in its own env block. Register it with the SAME value:");
   console.error(
-    `[install-hook]     agy mcp add --env ${sq(`LIBRARIAN_VAULT_PATH=${vault}`)}${db ? ` --env ${sq(`LIBRARIAN_DB_PATH=${db}`)}` : ""} rutter ${sq(process.execPath)} ${sq(stdio)}`
+    `[install-hook]     agy mcp add --env ${sq(`LIBRARIAN_VAULT_PATH=${vault}`)}${db ? ` --env ${sq(`LIBRARIAN_DB_PATH=${db}`)}` : ""} rutter ${sq(stableNode())} ${sq(stdio)}`
   );
   console.error("[install-hook]   or put this in ~/.gemini/config/mcp_config.json (literal values; substitution there is undocumented):");
   console.error(
     JSON.stringify(
-      { mcpServers: { rutter: { command: process.execPath, args: [stdio], env: { LIBRARIAN_VAULT_PATH: vault, ...(db ? { LIBRARIAN_DB_PATH: db } : {}) } } } },
+      { mcpServers: { rutter: { command: stableNode(), args: [stdio], env: { LIBRARIAN_VAULT_PATH: vault, ...(db ? { LIBRARIAN_DB_PATH: db } : {}) } } } },
       null,
       2
     )
