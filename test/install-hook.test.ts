@@ -14,6 +14,8 @@ import { fileURLToPath } from "node:url";
 const script = fileURLToPath(new URL("../hooks/install-hook.mjs", import.meta.url));
 const hookPath = fileURLToPath(new URL("../hooks/librarian-stop.sh", import.meta.url));
 const distEntry = fileURLToPath(new URL("../dist/capture-cli.js", import.meta.url));
+/** The installer's own shell quoting: a path with a space (say, under a spaced TMPDIR) is written quoted. */
+const sq = (v: string): string => (/[^A-Za-z0-9_@%+=:,./-]/.test(v) ? `'${v.replaceAll("'", "'\\''")}'` : v);
 
 let n = 0;
 function sandbox(): { home: string; codexHome: string; hooksJson: string } {
@@ -359,7 +361,7 @@ for (const client of ["claude", "codex"] as const) {
     assert.match(moved.stderr, /vault the hook will use/);
     const hooks = JSON.parse(fs.readFileSync(cfgPath, "utf8")).hooks.Stop.flatMap((g: { hooks: { command: string }[] }) => g.hooks);
     assert.equal(hooks.length, 1, "exactly one rutter Stop hook");
-    assert.equal(hooks[0].command, `${b.hook} --client ${client}`);
+    assert.equal(hooks[0].command, `${sq(b.hook)} --client ${client}`);
     const after = fs.readFileSync(cfgPath, "utf8");
     assert.match(installFrom(b.installer, sb, {}, "--client", client).stderr, /already registered/);
     assert.equal(fs.readFileSync(cfgPath, "utf8"), after, "then stable");
@@ -376,13 +378,13 @@ t("claude: a config already holding the hook at two old paths ends with one, at 
   const other = { hooks: [{ type: "command", command: "echo unrelated" }] };
   fs.writeFileSync(
     settings,
-    JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: "command", command: `${a.hook} --client grok` }] }, other, { hooks: [{ type: "command", command: b.hook }] }] } }),
+    JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: "command", command: `${sq(a.hook)} --client grok` }] }, other, { hooks: [{ type: "command", command: sq(b.hook) }] }] } }),
     "utf8"
   );
   const res = installFrom(c.installer, sb);
   assert.equal(res.status, 0, res.stderr);
   const stop = JSON.parse(fs.readFileSync(settings, "utf8")).hooks.Stop;
-  assert.deepEqual(stop, [{ hooks: [{ type: "command", command: `${c.hook} --client grok` }] }, other], "the first kept (with its own --client), the duplicate dropped, the unrelated hook untouched");
+  assert.deepEqual(stop, [{ hooks: [{ type: "command", command: `${sq(c.hook)} --client grok` }] }, other], "the first kept (with its own --client), the duplicate dropped, the unrelated hook untouched");
   assert.match(res.stderr, /removed 1 more registration/);
 });
 
@@ -399,7 +401,7 @@ t("antigravity: a new prefix rewrites the hook in place and keeps the vault it w
   assert.equal(moved.status, 0, moved.stderr);
   const entries = JSON.parse(fs.readFileSync(agyHooks(sb.home), "utf8"))["librarian-capture"].Stop;
   assert.equal(entries.length, 1);
-  assert.equal(entries[0].command, `LIBRARIAN_VAULT_PATH="\${LIBRARIAN_VAULT_PATH:-${kept}}" ${b.hook} --client agy`);
+  assert.equal(entries[0].command, `LIBRARIAN_VAULT_PATH="\${LIBRARIAN_VAULT_PATH:-${kept}}" ${sq(b.hook)} --client agy`);
   assert.ok(moved.stderr.includes(`moved from ${a.hook} to ${b.hook}`), moved.stderr);
   assert.ok(moved.stderr.includes(`VAULT for capture AND reads: ${kept}  (from the existing hook)`));
   assert.ok(moved.stderr.includes(`"LIBRARIAN_VAULT_PATH": "${kept}"`), "the printed server config carries the same vault");
@@ -439,7 +441,7 @@ t("copilot: writes rutter.json and the instructions file under COPILOT_HOME, and
   assert.match(rule, /^---\napplyTo: "\*\*"\n---\n<!-- rutter-capture-rule:/);
   assert.match(rule, /End every reply that settles a question, makes a decision, or finishes a change/);
   assert.match(rule, /<!-- librarian-session/);
-  assert.match(res.stderr, /copilot mcp add --env LIBRARIAN_VAULT_PATH=\/v\/notes (--env LIBRARIAN_DB_PATH=\S+ )?rutter -- /);
+  assert.match(res.stderr, /copilot mcp add --env LIBRARIAN_VAULT_PATH=\/v\/notes (--env (?:'LIBRARIAN_DB_PATH=[^']+'|LIBRARIAN_DB_PATH=\S+) )?rutter -- /);
   assert.equal(fs.existsSync(path.join(sb.home, ".copilot")), false, "COPILOT_HOME honored; ~/.copilot untouched");
 });
 
@@ -506,9 +508,6 @@ t("copilot: a hand-written instructions file is refused, and the hook file is no
 });
 
 // --- The Node path printed in MCP registrations survives a Node upgrade ---
-
-/** The installer's own shell quoting, so a path with a space is expected quoted. */
-const sq = (v: string): string => (/[^A-Za-z0-9_@%+=:,./-]/.test(v) ? `'${v.replaceAll("'", "'\\''")}'` : v);
 
 t("printed registrations name a lasting node on PATH when it is this same binary, else the running binary", () => {
   const real = fs.realpathSync(process.execPath);
