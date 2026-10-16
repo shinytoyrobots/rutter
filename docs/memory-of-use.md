@@ -108,11 +108,11 @@ project does not fork your history.
 
 ### Which client wrote it
 
-`client` is another optional field: `claude`, `grok`, `codex`, or `agy`. It names the host, never
+`client` is another optional field: `claude`, `grok`, `codex`, `copilot`, or `agy`. It names the host, never
 the model, and it is metadata only. It changes nothing about how the summary or stance is stored.
 
 The hook compares two things: the raw Stop event payload the host sends (Antigravity's shape,
-Grok's camelCase `lastAssistantMessage`) and the identity the installer passes as `--client`. It
+Copilot CLI's shape, Grok's camelCase `lastAssistantMessage`) and the identity the installer passes as `--client`. It
 writes a label only when the two agree.
 
 No label is written for conflicts, direct payloads, or an unrecognized identity. Codex without an
@@ -129,13 +129,13 @@ Capture is **ambient**: it happens after each turn with no action from you insid
 is wired through a **Stop hook**, a hook the host runs when the assistant finishes a turn, in
 Claude Code, Grok, Codex, Copilot CLI, and Antigravity.
 
-**Setup is the hook.** Register it with `npm run install-hook`, adding `--client codex` or
-`--client antigravity` for those hosts. [Getting started](./getting-started.md#choose-your-path) has a
+**Setup is the hook.** Register it with `npm run install-hook`, adding `--client codex`,
+`--client copilot`, or `--client antigravity` for those hosts. [Getting started](./getting-started.md#choose-your-path) has a
 setup path for each host, with its commands and checks. Two facts change behavior:
 
 - Codex will not run the hook until you review and trust it with `/hooks`. Installing does not
   grant trust, and an untrusted hook never runs.
-- Antigravity needs a rule file as well as the hook (see *Host differences*).
+- Antigravity and Copilot CLI each need an instructions file as well as the hook (see *Host differences*).
 
 The installer merges into existing hook configuration and never touches your other hooks. It
 refuses to run against an unbuilt repo. The registered script always exits cleanly, so a capture
@@ -161,6 +161,17 @@ last position in the text it reads, and two directives in that text collapse to 
   there collapse to the last. Codex hooks
   also see only the environment Codex was launched with, so `LIBRARIAN_VAULT_PATH` must be exported
   where Codex starts (see [Getting started, Codex path](./getting-started.md#codex-path)).
+- **Copilot CLI** sends an `agentStop` event with no reply text. The hook reads the current turn's
+  assistant messages from the session's `events.jsonl`, matching them to your last message by its
+  interaction id, so an earlier turn's directive is never read again and the last directive in the
+  turn is kept. Copilot writes the turn to that file a moment after the hook starts, so the hook
+  waits up to three seconds for Copilot's own record of the hook call, which lands after the turn.
+  If it never appears, nothing is captured and the hook says why on stderr.
+- **Copilot CLI needs an instructions file.** Copilot loads an MCP server's instructions only once
+  one of its tools is called, so most sessions would never see the capture contract. The installer
+  writes `~/.copilot/instructions/rutter.instructions.md` (or under `$COPILOT_HOME`), built from the
+  server's own contract text, and never edits your own `copilot-instructions.md`. Copilot passes only
+  `PATH` to an MCP server, so the `copilot mcp add` line the installer prints carries the vault.
 - **Antigravity** (`agy`) sends a Stop event with no reply text. The hook reads the transcript file
   the event points to and takes the assistant messages from the current turn, which is everything
   after your last message. The last directive in those messages is kept, and an earlier turn's
@@ -248,7 +259,7 @@ instructions there, and a test holds the line. Guidance that only matters when *
 lives in the description of the tool that returns it.
 
 There is nothing to add to your `CLAUDE.md`. The README keeps a paste-in only as a fallback if
-captures refuse to land. Antigravity is the exception to "on connect": see *Host differences* for its rule file.
+captures refuse to land. Antigravity and Copilot CLI are the exceptions to "on connect": see *Host differences* for their instructions files.
 
 ---
 
@@ -567,6 +578,8 @@ section puts the boundary in one place.
 - Grok clips its final message at 32,768 characters, so a long turn can drop a trailing directive.
 - Antigravity captures nothing from a turn that ended in an error, and needs the rule file, or its
   model may not leave summaries.
+- Copilot CLI needs its instructions file for the same reason. If Copilot takes longer than three
+  seconds to write the turn, that turn is not captured.
 - The style contract is advisory. The server stores a dense or over-budget summary without
   rewriting it.
 
