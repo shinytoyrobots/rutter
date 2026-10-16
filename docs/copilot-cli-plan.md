@@ -89,6 +89,9 @@ The throwaway hook was removed afterwards.
 | A. Server registered, nothing else (2 runs) | No. Loaded lazily, as the docs say. | 0 of 2 |
 | B. `--allow-all-mcp-server-instructions` (2 runs) | Yes | 0 of 2 |
 | C. Contract in `~/.copilot/copilot-instructions.md`, no flag (2 runs) | Yes. The file loaded and the server's text loaded too. | 0 of 2 |
+| C, **interactive**, run by Robin in a real terminal (1 session) | Yes (the file loaded) | Yes, on the first turn. The prompt was "can you remember that my favorite color is purple?", so it asked to remember something and isn't the gate's real-task test. |
+
+Copilot's interactive view renders markdown, so the HTML-comment line is hidden on screen. It is present in `assistant.message.data.content` in the transcript. A turn's first `assistant.message` can have empty `content`, and the reader skips those.
 
 No per-user setting for the server-instructions allowlist turned up in `copilot help config` or `copilot help environment`.
 
@@ -97,7 +100,7 @@ No per-user setting for the server-instructions allowlist turned up in `copilot 
 1. **Holds.** Every turn's assistant text is in the transcript, and `transcriptPath` is always sent.
 2. **Fails as written.** The text is not in the file when the hook starts. The probe does support a fix: the reader waits until the `hook.start` record matching this payload's `timestamp` appears, then reads. Copilot writes that record after the turn's messages, so its presence means the turn is on disk. The wait is bounded, for example 3 s of 50 ms polls against the 30 s hook timeout. If the time runs out, the reader fails closed with one stderr line. This needs a review before it is built.
 3. **Holds,** through `interactionId`.
-4. **Fails in non-interactive mode on `gpt-6-luna`.** Setups B and C both put the contract in front of the model, so delivery works, but the model didn't follow it. Interactive mode and Claude models are still untested, and interactive is how people use Copilot day to day. By this plan's rule, capture is not built until a setup passes.
+4. **Passes provisionally with setup C in interactive mode.** It fails in non-interactive `-p` mode on `gpt-6-luna`: setups B and C both put the contract in front of the model, but the model didn't follow it. Interactively, setup C produced a session line with no rutter tool called and no per-launch flag. That prompt asked the model to remember something, so one more interactive run with a real task is needed to confirm. Claude models are untested.
 
 **Gates.** Capture is built only if all four hold. Recall-only support ships either way.
 
