@@ -270,7 +270,7 @@ The version in `args` decides which release runs. Without it, `npx` may fetch a 
 
 If the client cannot start the server, it was probably launched without Node on its `PATH`, which happens when it starts from the Dock or another app rather than a shell. Add a `PATH` entry to `env` that includes the folder `dirname "$(which node)"` prints. Check it the same way as any server: the client should list four tools, `librarian-search`, `librarian-get-note`, `librarian-recent`, and `librarian-positions`.
 
-This route captures nothing. Capture needs a hook, and a hook registered from the `npx` cache would stop working without warning when the cache is cleared. For capture, use the [Codex](#codex-path) or [Antigravity](#antigravity-path) path, which install globally.
+This route captures nothing. Capture needs a hook, and a hook registered from the `npx` cache would stop working without warning when the cache is cleared. For capture, use the [Codex](#codex-path), [Copilot CLI](#copilot-cli-path), or [Antigravity](#antigravity-path) path, which install globally.
 
 ## Upgrading
 
@@ -407,7 +407,7 @@ npm run recent -- --project rutter   # one project, case-insensitive
 
 ## Step 5 — Build and register the MCP server
 
-Compile the TypeScript, then register the server with your client. Run these from the repository root. These commands are for Claude Code; the [Codex](#codex-path) and [Antigravity](#antigravity-path) paths have their own.
+Compile the TypeScript, then register the server with your client. Run these from the repository root. These commands are for Claude Code; the [Codex](#codex-path), [Copilot CLI](#copilot-cli-path), and [Antigravity](#antigravity-path) paths have their own.
 
 ```bash
 npm run build
@@ -465,7 +465,7 @@ The installer is deliberately cautious. It merges into `~/.claude/settings.json`
 
 The registered script always exits 0, so a failure inside capture can never break one of your sessions.
 
-**There is nothing to add to your `CLAUDE.md`.** The whole capture contract ships inside the server as MCP instructions, and the server sends it to every client on connect. Antigravity does not put those instructions in the model's prompt, which is why its installer writes a rule file. That contract covers when to leave a summary, its exact syntax, and how to write it. Setup is the hook, and that is all.
+**There is nothing to add to your `CLAUDE.md`.** The whole capture contract ships inside the server as MCP instructions, and the server sends it to every client on connect. Antigravity does not put those instructions in the model's prompt, and Copilot CLI loads them only once a rutter tool is called, which is why their installers write an instructions file. That contract covers when to leave a summary, its exact syntax, and how to write it. Setup is the hook, and that is all.
 
 ## Step 7 — Restart, and let a real session record itself
 
@@ -626,6 +626,8 @@ Each entry starts with what you see, then the usual cause, then the fix.
 **Captures land in `~/Documents/knowledge-vault` instead of your notes.** The hook did not see `LIBRARIAN_VAULT_PATH`, so it used the default. For Codex and Grok, export it in the shell profile that launches the client, then re-source the profile. Codex hooks do not read `~/.claude/settings.json`.
 
 **Codex captures nothing.** The hook may be untrusted: start Codex, run `/hooks`, review the Librarian Stop hook, and trust it ([Codex path](#codex-path), step 4). Also check that the summary line is in Codex's final reply. The hook reads only the final message.
+
+**Copilot CLI leaves no summaries.** The instructions file `~/.copilot/instructions/rutter.instructions.md` should exist. Without it, the model sees rutter's instructions only after it calls a rutter tool. Re-run the installer from the [Copilot CLI path](#copilot-cli-path), step 3, if it is missing. The line never shows on screen, so look for it in the session's transcript: `grep librarian-session ~/.copilot/session-state/<session>/events.jsonl`. If the line is there but nothing was captured, check that `~/.copilot/hooks/rutter.json` exists and that the shell which started Copilot can run `node`.
 
 **Antigravity leaves no summaries.** The rule file `~/.gemini/config/rules/rutter-capture.md` should exist, and the model may never read the server's instructions without it. Re-run the installer from the [Antigravity path](#antigravity-path), step 2, if it is missing. A turn that ended in an error captures nothing.
 
