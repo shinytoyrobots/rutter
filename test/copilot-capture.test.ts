@@ -125,15 +125,34 @@ test("CP-4: multi-turn -- an earlier turn's directive is not re-captured; a seco
 test("CP-5: the transcript lands after the hook starts -- the reader waits for this hook's own record", async () => {
   const t = transcript("cp-5.jsonl", [user("go", "I1")]);
   const child = spawn(process.execPath, ["--import", "tsx", cli], { env: childEnv(), stdio: ["pipe", "pipe", "pipe"] });
+  const closed = new Promise<number | null>((r) => child.on("close", r));
   let stderr = "";
-  child.stderr.on("data", (d) => (stderr += d));
+  // Append only once the reader has seen the turn missing, so the capture can only come from a later poll.
+  const waiting = new Promise<void>((resolve) =>
+    child.stderr.on("data", (d) => {
+      stderr += d;
+      if (stderr.includes("copilot turn not on disk yet")) resolve();
+    })
+  );
   child.stdin.end(JSON.stringify(stop("S-5", t, 5)));
-  // Well past tsx start-up, so the child is already polling when the turn lands.
-  await new Promise((r) => setTimeout(r, 1200));
+  await Promise.race([waiting, closed.then(() => assert.fail(`exited before waiting; stderr: ${stderr}`))]);
   append(t, [asst(SESSION("late flush"), "I1"), turnEnd(), hookStart(5)]);
-  const code = await new Promise((r) => child.on("close", r));
-  assert.equal(code, 0, stderr);
+  assert.equal(await closed, 0, stderr);
   assert.deepEqual(sessions().map((s) => s.summary), ["late flush"]);
+});
+
+test("CP-5b: no payload timestamp, or a marker from another hook call or hook type, never completes the turn", () => {
+  const t = transcript("cp-5b.jsonl", [
+    user("go", "I1"),
+    asst(SESSION("stale text"), "I1"),
+    hookStart(50),
+    { type: "hook.start", data: { hookType: "preToolUse", input: { timestamp: 51 } } },
+  ]);
+  let stderr = fire({ sessionId: "S-5b", transcriptPath: t, stopReason: "end_turn", cwd: vaultRoot }, [], { LIBRARIAN_COPILOT_WAIT_MS: "0" });
+  assert.match(stderr, /no timestamp to match/);
+  stderr = fire(stop("S-5b", t, 51), [], { LIBRARIAN_COPILOT_WAIT_MS: "100" });
+  assert.match(stderr, /not finished writing/);
+  assert.equal(sessionExists(day()), false);
 });
 
 test("CP-6: the marker never arrives -- fail closed with one stderr line", () => {

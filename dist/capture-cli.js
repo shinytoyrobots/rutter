@@ -479,7 +479,14 @@ async function normalizeCopilot(p) {
     // LIBRARIAN_COPILOT_WAIT_MS overrides the wait (tests use it to keep the timeout case fast).
     const override = Number(process.env.LIBRARIAN_COPILOT_WAIT_MS?.trim() || NaN);
     const waitMs = Number.isFinite(override) && override >= 0 ? override : COPILOT_WAIT_MS;
+    // The marker is this invocation's own hook.start, found by its timestamp. Without one, an
+    // earlier hook call's record would pass for it and stale text could be read: fail closed.
+    if (typeof p.timestamp !== "number" && typeof p.timestamp !== "string") {
+        console.error("[librarian-capture] copilot payload has no timestamp to match its transcript record; nothing captured.");
+        return null;
+    }
     const deadline = Date.now() + waitMs;
+    let announced = false;
     for (;;) {
         const read = readCopilotTurnText(transcriptPath, p.timestamp);
         if (read.status === "complete") {
@@ -493,6 +500,11 @@ async function normalizeCopilot(p) {
                     : `not finished writing after ${waitMs} ms`;
             console.error(`[librarian-capture] copilot transcript ${why}; nothing captured.`);
             return null;
+        }
+        if (!announced && read.status === "incomplete") {
+            // The usual case (Copilot writes the turn just after the hook starts); says the wait began.
+            console.error(`[librarian-capture] copilot turn not on disk yet; waiting up to ${waitMs} ms.`);
+            announced = true;
         }
         await new Promise((resolve) => setTimeout(resolve, COPILOT_POLL_MS));
     }
@@ -510,10 +522,10 @@ function copilotTranscriptFor(sessionId) {
  * The boundary is that record field, not position. Only assistant records count:
  * `user.message` echoes the prompt verbatim, directive templates included.
  *
- * "complete" needs this invocation's `hook.start` after the last user message -- the
- * one whose `data.input.timestamp` matches the payload's, or any when the payload has
- * none. A second `agentStop` on the same turn has its own timestamp, so it waits for
- * its own record rather than reading before a continuation lands.
+ * "complete" needs this invocation's `hook.start` after the last user message: an
+ * `agentStop` (or its `Stop` alias) whose `data.input.timestamp` matches the payload's.
+ * A second `agentStop` on the same turn has its own timestamp, so it waits for its own
+ * record rather than reading before a continuation lands.
  */
 function readCopilotTurnText(transcriptPath, timestamp) {
     let raw;
@@ -549,7 +561,8 @@ function readCopilotTurnText(transcriptPath, timestamp) {
         return { status: "unrecognized" };
     const turn = records.slice(lastUser + 1);
     const finished = turn.some((r) => r.type === "hook.start" &&
-        (timestamp === undefined || r.data.input?.timestamp === timestamp));
+        (r.data.hookType === "agentStop" || r.data.hookType === "Stop") &&
+        r.data.input?.timestamp === timestamp);
     if (!finished)
         return { status: "incomplete" };
     const text = turn
