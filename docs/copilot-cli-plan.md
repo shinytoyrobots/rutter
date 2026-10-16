@@ -29,14 +29,14 @@ Read through a summarizing fetch. Every field name below gets confirmed in Step 
 
 | Need | Copilot CLI |
 |---|---|
-| MCP registration | `~/.copilot/mcp-config.json`, or `copilot mcp add rutter -- npx -y rutter-memory`. Stdio entry: `{ "type": "local", "command", "args", "env", "tools": ["*"] }`. |
+| MCP registration | `~/.copilot/mcp-config.json`, or `copilot mcp add rutter -- npx -y rutter-memory`. Stdio entry: `{ "type": "local", "command", "args", "env", "tools": ["*"] }`. A local server inherits only `PATH` from the environment. Every other variable, `LIBRARIAN_VAULT_PATH` included, has to be set in `env` (add-mcp-servers how-to, checked 2026-10-15). |
 | User-level hooks | `~/.copilot/hooks/*.json` (or `$COPILOT_HOME/hooks/`). Every file is loaded and they combine, so rutter can own a file of its own. |
 | Hook file schema | `{ "version": 1, "hooks": { "agentStop": [ { "type": "command", "bash": "…", "timeoutSec": 30 } ] } }` |
 | After-each-turn event | `agentStop` (alias `Stop`). |
 | `agentStop` stdin | camelCase: `sessionId`, `timestamp` (Unix ms), `cwd`, `transcriptPath`, `stopReason` (`"end_turn"`), `stop_hook_active`. **No assistant text.** A VS Code-format variant uses snake_case `session_id`, `transcript_path`, `stop_reason`. |
 | Exit codes | 0 is success. Any other non-zero code is logged and the turn continues (fail-open). A timeout kills the hook, also fail-open. |
 | Transcript | `~/.copilot/session-state/<sessionId>/events.jsonl`. Undocumented. Third-party sources list `assistant.message` and `assistant.turn_start` / `assistant.turn_end` events. |
-| Server `instructions` | Undocumented whether they reach the model. |
+| Server `instructions` | Loaded lazily by default. The CLI reference, for `--allow-all-mcp-server-instructions`: "By default, only allowlisted server instructions are included up front; other servers' instructions are retrieved on demand." The model may not see rutter's capture contract until it calls a rutter tool, and many sessions never do. Where the allowlist lives is not yet known. |
 | Plugins | `plugin.json` can bundle hooks plus an MCP config, installed with `copilot plugin install`. |
 
 This is the Antigravity situation: a hook that fires after each turn and gives a transcript path
@@ -51,30 +51,51 @@ stdin to a scratch file. Run one turn in which the model writes a planted
 
 - [ ] Does `agentStop` fire once per turn? Does it fire again on `/exit`?
 - [ ] Which payload casing reaches a user-level command hook: camelCase, snake_case, or both? Is `transcriptPath` present?
-- [ ] Where does the transcript live, and what records hold the final assistant text? How is the current turn bounded (the last user-message event, or `assistant.turn_start`)?
-- [ ] Is the transcript fully written by the time `agentStop` fires, or does the last message land late?
-- [ ] Does the model see rutter's server `instructions`? Test: with the MCP server registered and no other instruction, does the model emit a session line unprompted?
+- [ ] Where does the transcript live, and what records hold the final assistant text? How is the current turn bounded (the last user-message event, or `assistant.turn_start`)? Does the user-message event echo text the user typed, such as a pasted directive template?
+- [ ] Is the transcript fully written by the time `agentStop` fires, or does the last message land late? Check over at least ten turns, including a long reply and a turn that ends right after a tool call.
+- [ ] Instruction delivery, in a fresh session. Register the server, start a new session, and give a real task that doesn't need rutter (for example, a small refactor). Make sure no rutter tool is called. Does the model write a session line? Then repeat with each candidate setup: `--allow-all-mcp-server-instructions`, the allowlist if one can be configured per user, and a line in Copilot's user-level custom-instructions file. Record which setups work without a per-launch flag.
 - [ ] Does `$COPILOT_HOME` move the hooks folder as documented?
+- [ ] Does the hook's environment carry the user's `PATH`? `librarian-stop.sh` calls bare `node`, which nvm users only have on an interactive `PATH`. Does `LIBRARIAN_VAULT_PATH` from the launching shell survive?
+- [ ] Do user-level hooks fire in a repository Copilot hasn't been told to trust? Does a repository's own hook config replace the user-level hooks or run alongside them?
 
 Write the results into this file as a probe table, as `grok-stop-adapter.md` does. The hook gets removed after the read.
 
-**If `transcriptPath` is absent:** derive `~/.copilot/session-state/<sessionId>/events.jsonl`, honoring
-`$COPILOT_HOME`. **If the transcript holds no assistant text at all:** stop and re-plan. That is
-the only result that kills capture for v1. Recall-only support still ships.
+**Gates.** Capture is built only if all three hold. Recall-only support ships either way.
+
+1. **The transcript holds the current turn's assistant text.** If `transcriptPath` is absent, derive
+   `~/.copilot/session-state/<sessionId>/events.jsonl`, honoring `$COPILOT_HOME`.
+2. **That text is complete when `agentStop` fires,** on every probed turn. If the last message
+   sometimes lands late, the single read in Step 1 loses captures. Stop and re-plan; a bounded
+   retry or a read on the next turn's hook are the candidates, and both need their own design.
+3. **The current turn can be bounded reliably** by a record type, not by guessing from position.
+   If not, an earlier turn's directive could be captured again or shadow the current one. Stop and re-plan.
+
+Instruction delivery is not a gate, but it decides the setup. If no setup puts the capture contract
+in front of the model in a fresh session, Step 3 documents the custom-instructions line as a
+required setup step, not an optional one.
 
 ## Step 1 — Capture (`src/capture-cli.ts`, `src/client.ts`)
 
-- Add `copilot` to `CLIENTS` and the classification table in `src/client.ts`.
+- Add `copilot` to `CLIENTS`. Add a `copilot` shape column and a `copilot` row to the
+  classification table in `src/client.ts`, and decide every new cell in the table itself. The
+  likeliest mistake is the cell for an explicit `claude` identity on a Copilot-shaped payload.
 - **Route on the explicit identity first.** The installer passes `--client copilot`. When that
   identity is present, use the Copilot reader whatever the payload casing. This avoids the Grok trap:
   a snake_case `transcript_path` that points at a non-Claude transcript would send the payload
   down the Claude path and capture nothing, silently.
+- **One decision picks both the reader and the label.** Today `main` in `src/capture-cli.ts` picks
+  the reader from the payload shape, and `classifyClient` picks the label from shape plus identity.
+  Routing on identity would make these two separate decisions that can disagree. Have
+  `classifyClient` return the client, and have `main` choose the reader from that result.
 - Add a payload shape check as well: `sessionId` + `transcriptPath` + `stopReason`, with no
   `conversationId` (that's Antigravity's key). It catches an unlabeled hook. If it can't be told
   apart from Grok or Antigravity with confidence, leave the record unlabeled rather than guess.
 - `normalizeCopilot(p)` → `{ session_id, cwd, last_assistant_message }`. It works like
-  `normalizeAntigravity`: read the transcript once, keep the assistant text after the current turn's
-  boundary, and fail closed with one stderr line if the file is unreadable or the format isn't recognized.
+  `normalizeAntigravity`: read the transcript once, keep only assistant-message records after the
+  current turn's boundary, and fail closed with one stderr line if the file is unreadable or the
+  format isn't recognized. Filtering on assistant records matters because a user message can echo
+  a directive template. The result must not carry `transcript_path`. If it did, `resolveDirective`
+  would run the Claude transcript reader over `events.jsonl` before reaching the Copilot text.
 - `stop_hook_active`: capture anyway. rutter's hook never blocks, so it can't cause re-entry. If
   another hook forces a continuation, the second `agentStop` re-reads the same turn. The existing
   no-duplicate guard (SR-013) has to hold there, and a test pins it.
@@ -82,20 +103,30 @@ the only result that kills capture for v1. Recall-only support still ships.
 ## Step 2 — Installer (`hooks/install-hook.mjs`)
 
 - `--client copilot` writes `$COPILOT_HOME/hooks/rutter.json` (default `~/.copilot/hooks/`).
-  The installer owns that file outright, so it never parses or merges the user's own hook files.
-  That's simpler and safer than the Claude `settings.json` merge.
-- The command is `<prefix>/hooks/librarian-stop.sh --client copilot`, the same as other clients. Running it again rewrites the file, so the installer is idempotent.
-- The vault comes from `LIBRARIAN_VAULT_PATH`, the same as Codex. If Step 0 shows the hook gets a
-  cleared environment, use Antigravity's baked-in `--vault` instead.
-- Print the matching MCP registration (`copilot mcp add …`) for the user to run. Having the installer
-  register the server stays out of scope (see `npm-plan.md`).
+  It never parses or merges the user's other hook files.
+- **A filename doesn't prove ownership.** If `rutter.json` already exists, replace it only when it is
+  recognizably ours: valid JSON, `version: 1`, and exactly one `agentStop` entry whose command
+  matches the shape the installer writes. The existing command matcher in `install-hook.mjs`
+  already recognizes that shape, including a copy left at an old install path. Anything else, such
+  as hand-edited hooks, other events, or unparseable JSON, means refuse with a message and change nothing.
+- The command is `<prefix>/hooks/librarian-stop.sh --client copilot`, the same as other clients.
+  Running the installer again rewrites a file it owns, so it is idempotent.
+- **Recall and capture must use the same vault.** The hook can inherit `LIBRARIAN_VAULT_PATH`, but
+  the MCP server can't: Copilot passes only `PATH` to it. So the printed registration always carries
+  the vault explicitly: `copilot mcp add --env LIBRARIAN_VAULT_PATH=<vault> rutter …`, the same
+  as Antigravity's printout. The installer prints which vault the hook will use, and the getting-started
+  check confirms that a recalled note and a captured session land in the same folder.
+- If Step 0 shows the hook gets a cleared environment, bake the vault into the hook command the way
+  Antigravity does. That also means widening the `--vault` guard in `install-hook.mjs`, which today
+  rejects `--vault` for every client other than antigravity, and the client check beside it.
+- Having the installer register the server stays out of scope (see `npm-plan.md`).
 
 ## Step 3 — Docs and release
 
 - getting-started: a "Copilot CLI path" section between Codex and Antigravity.
-- README: add Copilot CLI to the client list.
-- If Step 0 shows server instructions don't reach the model: document a line for Copilot's custom
-  instructions file, so the model knows to write session lines.
+- README, the `package.json` description, and any client list in the plugin manifest: add Copilot CLI.
+- Document whichever instruction-loading setup Step 0 found reliable in a fresh session. If that is
+  the custom-instructions line, it is a required step in the Copilot path, not a tip.
 - Port the changed docs to the gh-pages site (hand-ported HTML plus the `sources.json` rehash).
 - Release as v0.7.0. A new client is a feature, and it ships through the usual release process.
 
@@ -103,12 +134,19 @@ the only result that kills capture for v1. Recall-only support still ships.
 
 - `test/copilot-capture.test.ts`: camelCase payload, snake_case payload with `--client copilot`,
   missing transcript, unrecognized format, a directive from an earlier turn that must not be
-  re-captured, a second `agentStop` on the same turn, and a position line.
+  re-captured, a directive template echoed in a user message that must not be captured, a second
+  `agentStop` on the same turn, a position line, and a snake_case payload whose normalized form
+  carries no `transcript_path`.
 - `test/install-hook.test.ts`: writes `rutter.json` under a scratch `COPILOT_HOME`, re-running is
-  idempotent, and the user's other hook files are untouched.
-- `test/client-label.test.ts`: a classification row for `copilot`.
-- Live check: recall and capture from a real Copilot turn, plus one other client (the
-  personal-projects rule about testing with multiple MCP clients).
+  idempotent, and the user's other hook files are untouched. Collision: an existing `rutter.json`
+  that isn't ours (an extra hook, another event, invalid JSON) makes the installer refuse and leaves
+  the file byte-for-byte unchanged. The printed MCP registration carries `LIBRARIAN_VAULT_PATH`.
+- `test/client-label.test.ts`: every new cell in the classification table, plus a check that the
+  reader choice and the label come from the same decision.
+- Live check, in a fresh session: a real task with no rutter tool call yet, using the documented
+  instruction setup, must produce a capture. Then recall from the same session, confirming it reads the
+  vault capture wrote to. Repeat recall on one other client (the personal-projects rule about
+  testing with multiple MCP clients).
 
 ## Later, not v1
 
