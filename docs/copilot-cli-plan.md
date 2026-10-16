@@ -60,7 +60,7 @@ stdin to a scratch file. Run one turn in which the model writes a planted
 
 Write the results into this file as a probe table, as `grok-stop-adapter.md` does. The hook gets removed after the read.
 
-**Gates.** Capture is built only if all three hold. Recall-only support ships either way.
+**Gates.** Capture is built only if all four hold. Recall-only support ships either way.
 
 1. **The transcript holds the current turn's assistant text.** If `transcriptPath` is absent, derive
    `~/.copilot/session-state/<sessionId>/events.jsonl`, honoring `$COPILOT_HOME`.
@@ -70,9 +70,11 @@ Write the results into this file as a probe table, as `grok-stop-adapter.md` doe
 3. **The current turn can be bounded reliably** by a record type, not by guessing from position.
    If not, an earlier turn's directive could be captured again or shadow the current one. Stop and re-plan.
 
-Instruction delivery is not a gate, but it decides the setup. If no setup puts the capture contract
-in front of the model in a fresh session, Step 3 documents the custom-instructions line as a
-required setup step, not an optional one.
+4. **At least one setup delivers the capture contract in a fresh session.** "Delivers" means it
+   passes the fresh-session test above: a real task, no rutter tool called, and a session line is
+   written. Step 3 documents the setup that passed, preferring one with no per-launch flag. If every
+   candidate fails, the custom-instructions line included, ship recall-only and re-plan capture.
+   Documenting a setup that failed the test does not count.
 
 ## Step 1 — Capture (`src/capture-cli.ts`, `src/client.ts`)
 
@@ -83,10 +85,14 @@ required setup step, not an optional one.
   identity is present, use the Copilot reader whatever the payload casing. This avoids the Grok trap:
   a snake_case `transcript_path` that points at a non-Claude transcript would send the payload
   down the Claude path and capture nothing, silently.
-- **One decision picks both the reader and the label.** Today `main` in `src/capture-cli.ts` picks
-  the reader from the payload shape, and `classifyClient` picks the label from shape plus identity.
-  Routing on identity would make these two separate decisions that can disagree. Have
-  `classifyClient` return the client, and have `main` choose the reader from that result.
+- **One resolver, two separate answers.** Today `main` in `src/capture-cli.ts` picks the reader from
+  the payload shape, and `classifyClient` picks the label from shape plus identity. Routing on
+  identity adds a second input to the reader choice, so put both in one resolver that returns
+  `{ reader, client }` as separate fields. Don't derive the reader from the label: an undefined
+  label means "attribution uncertain", not "no reader". For example, an Antigravity envelope with a
+  conflicting `--client codex` must still go through the Antigravity adapter and be captured
+  without a label (pinned by `test/client-label.test.ts`, "codex identity on an Antigravity
+  envelope is a conflict"). The same rule holds for a Copilot-shaped payload with a conflicting identity.
 - Add a payload shape check as well: `sessionId` + `transcriptPath` + `stopReason`, with no
   `conversationId` (that's Antigravity's key). It catches an unlabeled hook. If it can't be told
   apart from Grok or Antigravity with confidence, leave the record unlabeled rather than guess.
@@ -125,8 +131,7 @@ required setup step, not an optional one.
 
 - getting-started: a "Copilot CLI path" section between Codex and Antigravity.
 - README, the `package.json` description, and any client list in the plugin manifest: add Copilot CLI.
-- Document whichever instruction-loading setup Step 0 found reliable in a fresh session. If that is
-  the custom-instructions line, it is a required step in the Copilot path, not a tip.
+- Document the instruction-loading setup that passed gate 4, as a required step in the Copilot path, not a tip.
 - Port the changed docs to the gh-pages site (hand-ported HTML plus the `sources.json` rehash).
 - Release as v0.7.0. A new client is a feature, and it ships through the usual release process.
 
@@ -141,8 +146,9 @@ required setup step, not an optional one.
   idempotent, and the user's other hook files are untouched. Collision: an existing `rutter.json`
   that isn't ours (an extra hook, another event, invalid JSON) makes the installer refuse and leaves
   the file byte-for-byte unchanged. The printed MCP registration carries `LIBRARIAN_VAULT_PATH`.
-- `test/client-label.test.ts`: every new cell in the classification table, plus a check that the
-  reader choice and the label come from the same decision.
+- `test/client-label.test.ts`: every new cell in the classification table. Conflicts: a
+  Copilot-shaped payload with a conflicting identity is captured through the Copilot reader with no
+  label, and the existing Antigravity-with-`--client codex` test still passes unchanged.
 - Live check, in a fresh session: a real task with no rutter tool call yet, using the documented
   instruction setup, must produce a capture. Then recall from the same session, confirming it reads the
   vault capture wrote to. Repeat recall on one other client (the personal-projects rule about
