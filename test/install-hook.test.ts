@@ -504,3 +504,39 @@ t("copilot: a hand-written instructions file is refused, and the hook file is no
   assert.equal(fs.readFileSync(rule, "utf8"), "my own notes\n");
   assert.equal(fs.existsSync(res.hooksFile), false);
 });
+
+// --- The Node path printed in MCP registrations survives a Node upgrade ---
+
+t("printed registrations name the first node on PATH when it is this same binary, else the running binary", () => {
+  const real = fs.realpathSync(process.execPath);
+  const linked = path.join(vaultRoot, `stable-bin-${n}`);
+  fs.mkdirSync(linked, { recursive: true });
+  fs.symlinkSync(real, path.join(linked, "node")); // like /opt/homebrew/bin/node -> Cellar/node/<v>/bin/node
+  const other = path.join(vaultRoot, `other-bin-${n}`);
+  fs.mkdirSync(other, { recursive: true });
+  fs.writeFileSync(path.join(other, "node"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+  const empty = path.join(vaultRoot, `empty-bin-${n}`);
+  fs.mkdirSync(empty, { recursive: true });
+  const line = (stderr: string) => stderr.split("\n").find((l) => l.includes("copilot mcp add"))!;
+
+  const viaLink = copilotInstall(sandbox(), { PATH: `${linked}${path.delimiter}${other}` });
+  assert.equal(viaLink.status, 0, viaLink.stderr);
+  assert.match(line(viaLink.stderr), new RegExp(` -- ${path.join(linked, "node").replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")} `));
+
+  // A different node first on PATH (it could be too old) is not printed; nor is anything when PATH has none.
+  for (const PATH of [`${other}${path.delimiter}${linked}`, empty]) {
+    const res = copilotInstall(sandbox(), { PATH });
+    assert.equal(res.status, 0, res.stderr);
+    assert.ok(line(res.stderr).includes(` -- ${process.execPath} `), `${PATH}: ${line(res.stderr)}`);
+  }
+
+  // Antigravity's printed command and JSON snippet use the same choice.
+  const sb = sandbox();
+  const agy = spawnSync(process.execPath, [script, "--client", "antigravity", "--vault", "/v/notes"], {
+    env: { ...process.env, HOME: sb.home, CODEX_HOME: sb.codexHome, PATH: linked },
+    encoding: "utf8",
+  });
+  assert.equal(agy.status, 0, agy.stderr);
+  assert.ok(agy.stderr.includes(`rutter ${path.join(linked, "node")} `), agy.stderr);
+  assert.ok(agy.stderr.includes(`"command": "${path.join(linked, "node")}"`), agy.stderr);
+});
