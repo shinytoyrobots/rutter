@@ -259,7 +259,7 @@ Any MCP client can search your notes and recall what Claude Code, Grok, Codex, C
   "mcpServers": {
     "rutter": {
       "command": "npx",
-      "args": ["-y", "rutter-memory@0.6.0"],
+      "args": ["-y", "rutter-memory@0.7.0"],
       "env": { "LIBRARIAN_VAULT_PATH": "/path/to/your/notes" }
     }
   }
