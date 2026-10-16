@@ -91,6 +91,10 @@ The throwaway hook was removed afterwards.
 | C. Contract in `~/.copilot/copilot-instructions.md`, no flag (2 runs) | Yes. The file loaded and the server's text loaded too. | 0 of 2 |
 | C, **interactive**, run by Robin in a real terminal (1 session) | Yes (the file loaded) | Yes, on the first turn. The prompt was "can you remember that my favorite color is purple?", so it asked to remember something and isn't the gate's real-task test. |
 
+| Installer's own file, `~/.copilot/instructions/rutter.instructions.md`, interactive, run by Robin on a real task with the home file removed (1 session, 2 turns, 2026-10-16) | Yes (the file loaded) | No. Turn 1 was a judgment call about missed work, and no line was written. Turn 2 asked what he'd been working on and called `librarian-recent`. |
+
+**Live check, 2026-10-16.** `agentStop` fired after both turns and the hook exited cleanly. Replaying turn 1's real payload against a copy of its real `events.jsonl`, with a directive planted in the final answer, captured one entry labeled `client: copilot` with project provenance. The reader skipped the turn's five empty tool-round messages, so the capture path works on a real transcript. The failure is the model not writing the line. Recall first failed for an unrelated reason: a clone-run server defaults to the clone's `data/librarian.db`, which another registration had claimed for `~/Documents/knowledge-vault`. Registering Copilot's server with its own `LIBRARIAN_DB_PATH` fixed it.
+
 Copilot's interactive view renders markdown, so the HTML-comment line is hidden on screen. It is present in `assistant.message.data.content` in the transcript. A turn's first `assistant.message` can have empty `content`, and the reader skips those.
 
 No per-user setting for the server-instructions allowlist turned up in `copilot help config` or `copilot help environment`.
@@ -100,7 +104,7 @@ No per-user setting for the server-instructions allowlist turned up in `copilot 
 1. **Holds.** Every turn's assistant text is in the transcript, and `transcriptPath` is always sent.
 2. **Fails as written.** The text is not in the file when the hook starts. The probe does support a fix: the reader waits until the `hook.start` record matching this payload's `timestamp` appears, then reads. Copilot writes that record after the turn's messages, so its presence means the turn is on disk. The wait is bounded, for example 3 s of 50 ms polls against the 30 s hook timeout. If the time runs out, the reader fails closed with one stderr line. This needs a review before it is built.
 3. **Holds,** through `interactionId`.
-4. **Passes provisionally with setup C in interactive mode.** It fails in non-interactive `-p` mode on `gpt-6-luna`: setups B and C both put the contract in front of the model, but the model didn't follow it. Interactively, setup C produced a session line with no rutter tool called and no per-launch flag. That prompt asked the model to remember something, so one more interactive run with a real task is needed to confirm. Claude models are untested.
+4. **Not passed.** Every setup puts the contract in front of the model, but on the real-task test the model (Copilot's auto routing, mostly `gpt-6-luna`) didn't write the line, both non-interactively (setups A–C) and interactively with the installer's file (the live check). The one success came from a prompt that asked the model to remember something. Claude models are untested, since none is available on this account.
 
 **Gates.** Capture is built only if all four hold. Recall-only support ships either way.
 
