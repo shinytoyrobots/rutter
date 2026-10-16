@@ -145,10 +145,10 @@ reference paths, never the workspace. A Stop firing whose directory changed (a r
 subdirectory, or none at all) is still an unchanged line and still a byte-identical no-op. Moving a
 project does not fork your history.</p>
 <h3 id="which-client-wrote-it">Which client wrote it</h3>
-<p><code>client</code> is another optional field: <code>claude</code>, <code>grok</code>, <code>codex</code>, or <code>agy</code>. It names the host, never
+<p><code>client</code> is another optional field: <code>claude</code>, <code>grok</code>, <code>codex</code>, <code>copilot</code>, or <code>agy</code>. It names the host, never
 the model, and it is metadata only. It changes nothing about how the summary or stance is stored.</p>
 <p>The hook compares two things: the raw Stop event payload the host sends (Antigravity&#39;s shape,
-Grok&#39;s camelCase <code>lastAssistantMessage</code>) and the identity the installer passes as <code>--client</code>. It
+Copilot CLI&#39;s shape, Grok&#39;s camelCase <code>lastAssistantMessage</code>) and the identity the installer passes as <code>--client</code>. It
 writes a label only when the two agree.</p>
 <p>No label is written for conflicts, direct payloads, or an unrecognized identity. Codex without an
 identity gets none either, because nothing in its payload separates it from Claude. Entries from a
@@ -159,14 +159,14 @@ record&#39;s frontmatter, not the body.</p>
 <h2 id="capturing-session-summaries">Capturing session summaries</h2>
 <p>Capture is <strong>ambient</strong>: it happens after each turn with no action from you inside the session. It
 is wired through a <strong>Stop hook</strong>, a hook the host runs when the assistant finishes a turn, in
-Claude Code, Grok, Codex, and Antigravity.</p>
-<p><strong>Setup is the hook.</strong> Register it with <code>npm run install-hook</code>, adding <code>--client codex</code> or
-<code>--client antigravity</code> for those hosts. <a href="getting-started.html#choose-your-path">Getting started</a> has a
+Claude Code, Grok, Codex, Copilot CLI, and Antigravity.</p>
+<p><strong>Setup is the hook.</strong> Register it with <code>npm run install-hook</code>, adding <code>--client codex</code>,
+<code>--client copilot</code>, or <code>--client antigravity</code> for those hosts. <a href="getting-started.html#choose-your-path">Getting started</a> has a
 setup path for each host, with its commands and checks. Two facts change behavior:</p>
 <ul>
 <li>Codex will not run the hook until you review and trust it with <code>/hooks</code>. Installing does not
 grant trust, and an untrusted hook never runs.</li>
-<li>Antigravity needs a rule file as well as the hook (see <em>Host differences</em>).</li>
+<li>Antigravity and Copilot CLI each need an instructions file as well as the hook (see <em>Host differences</em>).</li>
 </ul>
 <p>The installer merges into existing hook configuration and never touches your other hooks. It
 refuses to run against an unbuilt repo. The registered script always exits cleanly, so a capture
@@ -190,6 +190,17 @@ mid-turn commentary is not captured, so the client must put it in the final repl
 there collapse to the last. Codex hooks
 also see only the environment Codex was launched with, so <code>LIBRARIAN_VAULT_PATH</code> must be exported
 where Codex starts (see <a href="getting-started.html#codex-path">Getting started, Codex path</a>).</li>
+<li><strong>Copilot CLI</strong> sends an <code>agentStop</code> event with no reply text. The hook reads the current turn&#39;s
+assistant messages from the session&#39;s <code>events.jsonl</code>, matching them to your last message by its
+interaction id, so an earlier turn&#39;s directive is never read again and the last directive in the
+turn is kept. Copilot writes the turn to that file a moment after the hook starts, so the hook
+waits up to three seconds for Copilot&#39;s own record of the hook call, which lands after the turn.
+If it never appears, nothing is captured and the hook says why on stderr.</li>
+<li><strong>Copilot CLI needs an instructions file.</strong> Copilot loads an MCP server&#39;s instructions only once
+one of its tools is called, so most sessions would never see the capture contract. The installer
+writes <code>~/.copilot/instructions/rutter.instructions.md</code> (or under <code>$COPILOT_HOME</code>), built from the
+server&#39;s own contract text, and never edits your own <code>copilot-instructions.md</code>. Copilot passes only
+<code>PATH</code> to an MCP server, so the <code>copilot mcp add</code> line the installer prints carries the vault.</li>
 <li><strong>Antigravity</strong> (<code>agy</code>) sends a Stop event with no reply text. The hook reads the transcript file
 the event points to and takes the assistant messages from the current turn, which is everything
 after your last message. The last directive in those messages is kept, and an earlier turn&#39;s
@@ -266,7 +277,7 @@ copy drifts. They have to fit in 2,048 characters, because Claude Code silently 
 instructions there, and a test holds the line. Guidance that only matters when <em>reporting</em> a result
 lives in the description of the tool that returns it.</p>
 <p>There is nothing to add to your <code>CLAUDE.md</code>. The README keeps a paste-in only as a fallback if
-captures refuse to land. Antigravity is the exception to &quot;on connect&quot;: see <em>Host differences</em> for its rule file.</p>
+captures refuse to land. Antigravity and Copilot CLI are the exceptions to &quot;on connect&quot;: see <em>Host differences</em> for their instructions files.</p>
 <hr>
 <h2 id="recalling-recent-work">Recalling recent work</h2>
 <p>Ask <em>&quot;what was I working on lately?&quot;</em> and your client calls the <strong><code>librarian-recent</code></strong> tool. It
@@ -535,6 +546,8 @@ reads.</li>
 <li>Grok clips its final message at 32,768 characters, so a long turn can drop a trailing directive.</li>
 <li>Antigravity captures nothing from a turn that ended in an error, and needs the rule file, or its
 model may not leave summaries.</li>
+<li>Copilot CLI needs its instructions file for the same reason. If Copilot takes longer than three
+seconds to write the turn, that turn is not captured.</li>
 <li>The style contract is advisory. The server stores a dense or over-budget summary without
 rewriting it.</li>
 </ul>
@@ -600,7 +613,7 @@ stateful behavior does not get reached for.</p>
 
 <footer class="site">
   <div class="footer-inner">
-    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/da9184d">main@da9184d</a> · <a href="sources.json">source hashes</a>.</p>
+    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/e4012f9">main@e4012f9</a> · <a href="sources.json">source hashes</a>.</p>
     <nav class="footer-more" aria-label="More from the author">
       <ul>
         <li><a href="https://robin-cannon.com">robin-cannon.com</a></li>

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>rutter — recall past decisions and the notes your AI session cited</title>
-<meta name="description" content="Recall past decisions and the notes your AI session cited. rutter keeps dated records in your own markdown notes folder, each with a content hash of the notes it cites. An MCP server for Claude Code, Grok, Codex, and Antigravity; a personal reference implementation.">
+<meta name="description" content="Recall past decisions and the notes your AI session cited. rutter keeps dated records in your own markdown notes folder, each with a content hash of the notes it cites. An MCP server for Claude Code, Grok, Codex, Copilot CLI, and Antigravity; a personal reference implementation.">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -63,7 +63,7 @@ same path, is not flagged today. rutter is one person&#39;s tool, MIT-licensed a
 reference implementation, with no support commitment. It suits someone who keeps markdown notes and
 is comfortable configuring an AI client.</p>
 <p><strong>Try it:</strong> the <a href="getting-started.html#fast-path-for-claude-code">Claude Code fast path</a> takes a few
-minutes; <a href="getting-started.html">getting started</a> covers Grok, Codex, and Antigravity. The rest of
+minutes; <a href="getting-started.html">getting started</a> covers Grok, Codex, Copilot CLI, and Antigravity. The rest of
 this page is the argument for the design.</p>
 <h2 id="an-example">An example</h2>
 <p>This is a real run, recorded on 9 October 2026 for this page. The two notes are fictional and say
@@ -145,8 +145,8 @@ identity in full, read <a href="memory-of-use.html"><code>memory-of-use.md</code
 <p>Most memory features live inside one tool. Switch tools and you start again.</p>
 <p>rutter does not belong to a tool. It is a folder of markdown files plus an MCP (Model Context
 Protocol) server. Any MCP client can read the memory. Writing needs a hook that runs after each turn
-and a payload rutter knows how to read. Four clients have a supported hook today: Claude Code, Grok,
-Codex, and the Antigravity command-line tool (<code>agy</code>).</p>
+and a payload rutter knows how to read. Five clients have a supported hook today: Claude Code, Grok,
+Codex, GitHub Copilot CLI, and the Antigravity command-line tool (<code>agy</code>).</p>
 <p>A session summary captured in any of them is available to all of them straight away. Positions
 appear after the next reindex. The memory belongs to the folder and to you. A tool you add later
 reads the same records.</p>
@@ -157,7 +157,7 @@ tool and a table of how each one captures.</p>
 <p>Two halves, and neither of them contains a model.</p>
 <p><strong>Writing.</strong> As a session finishes something worth recalling, your client emits one line about it —
 a short summary, plus the paths it touched. A Stop hook lifts the newest such line: from the
-transcript in Claude Code and Antigravity, from the final assistant message in Grok and Codex. It appends that line to a dated file inside your notes directory. Each path
+transcript in Claude Code, Copilot CLI, and Antigravity, from the final assistant message in Grok and Codex. It appends that line to a dated file inside your notes directory. Each path
 is stored with the sha256 of that file&#39;s bytes. The server reads the file and computes that hash
 itself, rather than accepting one from the client, so a client cannot hand it a hash for a file
 that was not on disk. The client still chooses which paths to list. The hash identifies the file&#39;s
@@ -189,9 +189,10 @@ reports it as your recorded position and not as its own conclusion. Answered fro
 reindex, so a position captured since then appears after the next one — which the server runs
 itself the next time it starts.</li>
 </ul>
-<p>The Stop hook runs in Claude Code, Grok, Codex, and Antigravity. The tools work with any MCP client. The
+<p>The Stop hook runs in Claude Code, Grok, Codex, Copilot CLI, and Antigravity. The tools work with any MCP client. The
 server also sends its own usage guidance to every client that connects. Antigravity saves that
-guidance as a file instead of putting it in the prompt, so its installer also writes a rule file.
+guidance as a file instead of putting it in the prompt, and Copilot CLI loads it only once a rutter
+tool is called, so both installers also write an instructions file.
 There is nothing to configure per project.</p>
 <p>Records live in <code>&lt;notes&gt;/_librarian/</code>, inside your own notes directory. They are plain markdown,
 sitting beside the notes they describe — greppable in a terminal, committable to the same git
@@ -323,7 +324,7 @@ and an optional backfill of positions from records that predate capture. Both wa
 <h2 id="try-it">Try it</h2>
 <p>If you use Claude Code, install the plugin and you can be recalling in a few minutes: see the
 <a href="getting-started.html#fast-path-for-claude-code">fast path</a>. Everyone else:
-<a href="getting-started.html"><code>getting-started.md</code></a> has a setup path for Grok, Codex, and Antigravity, and a
+<a href="getting-started.html"><code>getting-started.md</code></a> has a setup path for Grok, Codex, Copilot CLI, and Antigravity, and a
 step-by-step manual route, each ending in a capture check and a recall check.</p>
 <h2 id="further-reading">Further reading</h2>
 <ul>
@@ -354,7 +355,7 @@ why every reference here carries a hash.</li>
 
 <footer class="site">
   <div class="footer-inner">
-    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/da9184d">main@da9184d</a> · <a href="sources.json">source hashes</a>.</p>
+    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/e4012f9">main@e4012f9</a> · <a href="sources.json">source hashes</a>.</p>
     <nav class="footer-more" aria-label="More from the author">
       <ul>
         <li><a href="https://robin-cannon.com">robin-cannon.com</a></li>
