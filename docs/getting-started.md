@@ -1,6 +1,6 @@
 # Getting started: from zero to your first recall
 
-By the end of this lesson your notes will answer *"what was I working on lately?"* The answer comes from records your AI sessions (in Claude Code, Grok, Codex, or Antigravity) leave behind on their own, unasked, whether the session was research, drafting, planning, or reading over your notes. Every tool you set up writes to the same records, so each one can recall what the others decided.
+By the end of this lesson your notes will answer *"what was I working on lately?"* The answer comes from records your AI sessions (in Claude Code, Grok, Codex, Copilot CLI, or Antigravity) leave behind on their own, unasked, whether the session was research, drafting, planning, or reading over your notes. Every tool you set up writes to the same records, so each one can recall what the others decided.
 
 This lesson is for people who keep their notes as markdown files and are comfortable configuring an AI client: editing a settings file, registering an MCP server, running a few `npm` commands. The tools (`librarian-*`), the environment variables (`LIBRARIAN_*`), and the `_librarian/` folder kept the project's earlier name, *librarian*; they are all parts of rutter.
 
@@ -13,6 +13,7 @@ Pick the path for your client. Each one is a single sequence, and each ends with
 | Claude Code | [Fast path for Claude Code](#fast-path-for-claude-code) | A few minutes; nothing to clone |
 | Grok | [Grok path](#grok-path) | The Claude Code plugin, plus one environment variable |
 | Codex | [Codex path](#codex-path) | One npm install, and a hook you trust |
+| GitHub Copilot CLI | [Copilot CLI path](#copilot-cli-path) | One npm install, a hook, and an instructions file |
 | Antigravity CLI (`agy`) | [Antigravity path](#antigravity-path) | One npm install, a hook, and a rule file |
 | Any other MCP client | [Recall only, with npx](#recall-only-with-npx) | One config entry. Search and recall only: with no hook, nothing is captured |
 | Claude Code, from a clone | [The manual route](#the-manual-route-step-by-step) | Eight steps, starting with a record written by hand. For contributors |
@@ -81,7 +82,7 @@ Your client calls `librarian-recent` and reports the session you just finished, 
 
 - **Node 22 or newer.** Check with `node -v`. npm warns at install time on an older Node — heed it, because the built-in `node:sqlite` this depends on will simply be missing. Verified on Node 26.
 - **npm**, plus git if you take the manual route from a clone.
-- **Claude Code, Grok, Codex, or Antigravity.** The four MCP tools work with any MCP client; the Stop hook that powers ambient capture runs in all four of these. Where each finds the hook: Claude Code runs the plugin's hook or one registered in `~/.claude/settings.json`, and Grok runs those same Claude Code hooks; Codex reads `~/.codex/hooks.json` (or `$CODEX_HOME/hooks.json`); Antigravity reads `~/.gemini/config/hooks.json`. Where each finds your notes folder is a separate question, answered in [Make the path stick](#make-the-path-stick): Grok and Codex take it from the shell that launched them, not from `~/.claude/settings.json`.
+- **Claude Code, Grok, Codex, Copilot CLI, or Antigravity.** The four MCP tools work with any MCP client; the Stop hook that powers ambient capture runs in all five of these. Where each finds the hook: Claude Code runs the plugin's hook or one registered in `~/.claude/settings.json`, and Grok runs those same Claude Code hooks; Codex reads `~/.codex/hooks.json` (or `$CODEX_HOME/hooks.json`); Copilot CLI reads every file in `~/.copilot/hooks/` (or `$COPILOT_HOME/hooks/`); Antigravity reads `~/.gemini/config/hooks.json`. Where each finds your notes folder is a separate question, answered in [Make the path stick](#make-the-path-stick): Grok, Codex, and Copilot CLI take it from the shell that launched them, not from `~/.claude/settings.json`.
 - **A directory of markdown notes.** Obsidian is what rutter was built against — it understands wikilinks and frontmatter — but nothing requires Obsidian itself.
 - **No compiler toolchain.** There are zero native dependencies. The index is Node's built-in SQLite, so there is nothing to build and no database to install.
 
@@ -161,6 +162,54 @@ ls "$LIBRARIAN_VAULT_PATH/_librarian/sessions/"
 
 **7. Check recall.** Ask Codex *"What was I working on lately?"* It should call `librarian-recent` and report the session you just finished. If step 6 found the file but Codex says no sessions are recorded, the server is reading a different folder from the one the hook writes to: compare the paths in steps 2 and 3.
 
+## Copilot CLI path
+
+This covers GitHub's `copilot` command-line tool. Copilot has no plugin install that sets up rutter yet, so you install rutter from npm. Check [Before you start](#before-you-start) first. Verified with Copilot CLI 1.0.98 (October 2026).
+
+**1. Install rutter.** The npm package is named `rutter-memory`, because `rutter` on npm is an unrelated library.
+
+```bash
+npm install -g rutter-memory
+```
+
+Install it globally, not through `npx`. The hook needs a path that stays put, and `npx` keeps packages in a cache that can be cleared at any time.
+
+**2. Set your notes folder where Copilot starts.** The hook inherits the environment Copilot was launched with. Add this to the shell profile that launches Copilot, then re-source it:
+
+```bash
+export LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes"
+```
+
+Without it, the hook writes captures to the default `~/Documents/knowledge-vault`.
+
+**3. Install the hook and the capture instructions.**
+
+```bash
+rutter-memory install-hook --client copilot
+```
+
+This writes two files of rutter's own under `~/.copilot` (or `$COPILOT_HOME`): `hooks/rutter.json` and `instructions/rutter.instructions.md`. It never edits your other hook files or your own `copilot-instructions.md`. If either file already exists and wasn't written by the installer, it stops and changes nothing.
+
+The instructions file is required. Copilot loads a server's instructions only when one of its tools is called, so in most sessions the model never sees rutter's request to leave a summary line. The instructions file is in front of the model every session.
+
+**4. Register the server** with the `copilot mcp add` line the installer printed. It has this shape:
+
+```bash
+copilot mcp add --env LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes" rutter -- "$(which node)" "$(npm root -g)/rutter-memory/dist/stdio.js"
+```
+
+The notes path must be in the registration. Copilot passes only `PATH` to a server, so a server registered without it reads the default folder while the hook writes to yours. Check it with `copilot mcp list`.
+
+**5. Do one small real task.** Start a new Copilot session and make one decision or one small change. Copilot's screen hides the summary line, because it is an HTML comment. The hook reads it from Copilot's transcript file, `~/.copilot/session-state/<session>/events.jsonl`. If the turn holds two lines, only the last is kept.
+
+**6. Check capture.** A file for today's UTC day should exist, and its new entry should carry `client: copilot`:
+
+```bash
+ls "$LIBRARIAN_VAULT_PATH/_librarian/sessions/"
+```
+
+**7. Check recall.** Ask Copilot *"What was I working on lately?"* It should call `librarian-recent` and report the session you just finished. If step 6 found the file but Copilot says no sessions are recorded, the server is reading a different folder from the one the hook writes to: compare the paths in steps 2 and 4.
+
 ## Antigravity path
 
 This covers the `agy` command-line tool, not the Antigravity IDE. Antigravity has no plugin install, so you install rutter from npm. Check [Before you start](#before-you-start) first. Verified with `agy` 1.3.2 (October 2026).
@@ -203,7 +252,7 @@ ls "/path/to/your/notes/_librarian/sessions/"
 
 ## Recall only, with npx
 
-Any MCP client can search your notes and recall what Claude Code, Grok, Codex, and Antigravity recorded, with no install step. Add this to the client's MCP configuration:
+Any MCP client can search your notes and recall what Claude Code, Grok, Codex, Copilot CLI, and Antigravity recorded, with no install step. Add this to the client's MCP configuration:
 
 ```json
 {
@@ -221,7 +270,7 @@ The version in `args` decides which release runs. Without it, `npx` may fetch a 
 
 If the client cannot start the server, it was probably launched without Node on its `PATH`, which happens when it starts from the Dock or another app rather than a shell. Add a `PATH` entry to `env` that includes the folder `dirname "$(which node)"` prints. Check it the same way as any server: the client should list four tools, `librarian-search`, `librarian-get-note`, `librarian-recent`, and `librarian-positions`.
 
-This route captures nothing. Capture needs a hook, and a hook registered from the `npx` cache would stop working without warning when the cache is cleared. For capture, use the [Codex](#codex-path) or [Antigravity](#antigravity-path) path, which install globally.
+This route captures nothing. Capture needs a hook, and a hook registered from the `npx` cache would stop working without warning when the cache is cleared. For capture, use the [Codex](#codex-path), [Copilot CLI](#copilot-cli-path), or [Antigravity](#antigravity-path) path, which install globally.
 
 ## Upgrading
 
@@ -298,7 +347,7 @@ The top-level `env` object sets environment variables for Claude Code sessions. 
 
 A shell-profile `export` also works, but only when `claude` launches from a shell that re-sourced the edited profile.
 
-Grok, Codex, and Antigravity get the path differently: see the [Grok](#grok-path), [Codex](#codex-path), and [Antigravity](#antigravity-path) paths.
+Grok, Codex, Copilot CLI, and Antigravity get the path differently: see the [Grok](#grok-path), [Codex](#codex-path), [Copilot CLI](#copilot-cli-path), and [Antigravity](#antigravity-path) paths.
 
 Two other variables are optional. `LIBRARIAN_DB_PATH` moves the index. In a clone it defaults to `data/librarian.db` inside the repository, resolved from the module's own location rather than your working directory. An npm install keeps it out of the package folder, in `~/.local/share/rutter/<id>/librarian.db` (under `$XDG_DATA_HOME` if you set that), with a separate index for each notes folder. An index serves only the notes folder that built it: point two folders at one `LIBRARIAN_DB_PATH` and the second is refused, with a message saying how to fix it. `LIBRARIAN_USER_LABEL` is a bare noun — `Robin`, not `Robin's` — used as `<label>'s work` in the descriptions your client receives.
 
@@ -358,7 +407,7 @@ npm run recent -- --project rutter   # one project, case-insensitive
 
 ## Step 5 — Build and register the MCP server
 
-Compile the TypeScript, then register the server with your client. Run these from the repository root. These commands are for Claude Code; the [Codex](#codex-path) and [Antigravity](#antigravity-path) paths have their own.
+Compile the TypeScript, then register the server with your client. Run these from the repository root. These commands are for Claude Code; the [Codex](#codex-path), [Copilot CLI](#copilot-cli-path), and [Antigravity](#antigravity-path) paths have their own.
 
 ```bash
 npm run build
@@ -416,7 +465,7 @@ The installer is deliberately cautious. It merges into `~/.claude/settings.json`
 
 The registered script always exits 0, so a failure inside capture can never break one of your sessions.
 
-**There is nothing to add to your `CLAUDE.md`.** The whole capture contract ships inside the server as MCP instructions, and the server sends it to every client on connect. Antigravity does not put those instructions in the model's prompt, which is why its installer writes a rule file. That contract covers when to leave a summary, its exact syntax, and how to write it. Setup is the hook, and that is all.
+**There is nothing to add to your `CLAUDE.md`.** The whole capture contract ships inside the server as MCP instructions, and the server sends it to every client on connect. Antigravity does not put those instructions in the model's prompt, and Copilot CLI loads them only once a rutter tool is called, which is why their installers write an instructions file. That contract covers when to leave a summary, its exact syntax, and how to write it. Setup is the hook, and that is all.
 
 ## Step 7 — Restart, and let a real session record itself
 
@@ -450,7 +499,7 @@ If nothing appeared, check that Step 6 printed its success line and that the `en
 
 ## Step 8 — Recall again, and read the record
 
-This time, ask your client rather than the CLI. In Claude Code, Grok, Codex, or Antigravity:
+This time, ask your client rather than the CLI. In Claude Code, Grok, Codex, Copilot CLI, or Antigravity:
 
 > What was I working on lately?
 
@@ -577,6 +626,8 @@ Each entry starts with what you see, then the usual cause, then the fix.
 **Captures land in `~/Documents/knowledge-vault` instead of your notes.** The hook did not see `LIBRARIAN_VAULT_PATH`, so it used the default. For Codex and Grok, export it in the shell profile that launches the client, then re-source the profile. Codex hooks do not read `~/.claude/settings.json`.
 
 **Codex captures nothing.** The hook may be untrusted: start Codex, run `/hooks`, review the Librarian Stop hook, and trust it ([Codex path](#codex-path), step 4). Also check that the summary line is in Codex's final reply. The hook reads only the final message.
+
+**Copilot CLI leaves no summaries.** The instructions file `~/.copilot/instructions/rutter.instructions.md` should exist. Without it, the model sees rutter's instructions only after it calls a rutter tool. Re-run the installer from the [Copilot CLI path](#copilot-cli-path), step 3, if it is missing. The line never shows on screen, so look for it in the session's transcript: `grep librarian-session ~/.copilot/session-state/<session>/events.jsonl`. If the line is there but nothing was captured, check that `~/.copilot/hooks/rutter.json` exists and that the shell which started Copilot can run `node`.
 
 **Antigravity leaves no summaries.** The rule file `~/.gemini/config/rules/rutter-capture.md` should exist, and the model may never read the server's instructions without it. Re-run the installer from the [Antigravity path](#antigravity-path), step 2, if it is missing. A turn that ended in an error captures nothing.
 

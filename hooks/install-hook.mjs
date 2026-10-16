@@ -4,6 +4,7 @@
  *   node hooks/install-hook.mjs                  -> ~/.claude/settings.json (Claude Code, Grok)
  *   node hooks/install-hook.mjs --client codex   -> $CODEX_HOME or ~/.codex, hooks.json
  *   node hooks/install-hook.mjs --client antigravity -> ~/.gemini/config/hooks.json (agy)
+ *   node hooks/install-hook.mjs --client copilot -> $COPILOT_HOME or ~/.copilot, hooks/rutter.json
  *
  * This is the ONE step of ambient capture that cannot ship inside the server:
  * MCP has no mechanism to install a client hook, so it stays external. It is
@@ -39,14 +40,14 @@ for (let i = 0; i < args.length; i++) {
   } else if (args[i].startsWith("--vault=")) {
     vaultArg = args[i].slice("--vault=".length);
   } else {
-    fail(`unknown argument "${args[i]}" -- usage: install-hook [--client claude|codex|antigravity] [--vault <path>]`);
+    fail(`unknown argument "${args[i]}" -- usage: install-hook [--client claude|codex|antigravity|copilot] [--vault <path>]`);
   }
 }
 if (vaultArg !== undefined && args.every((a) => a !== "antigravity" && a !== "--client=antigravity")) {
   fail("--vault is only for --client antigravity (other clients read LIBRARIAN_VAULT_PATH from the environment they launch with).");
 }
-if (client !== "claude" && client !== "codex" && client !== "antigravity") {
-  fail(`unknown client "${client}" -- expected claude, codex, or antigravity.`);
+if (client !== "claude" && client !== "codex" && client !== "antigravity" && client !== "copilot") {
+  fail(`unknown client "${client}" -- expected claude, codex, antigravity, or copilot.`);
 }
 
 const codexHome = process.env.CODEX_HOME || path.join(os.homedir(), ".codex");
@@ -87,6 +88,132 @@ const distEntry = path.join(import.meta.dirname, "..", "dist", "capture-cli.js")
 if (!fs.existsSync(distEntry)) fail("dist/capture-cli.js is missing -- run `npm run build` first.");
 
 if (client === "antigravity") await installAntigravity();
+if (client === "copilot") await installCopilot();
+
+/**
+ * Copilot CLI loads EVERY file in $COPILOT_HOME/hooks/ and combines them, so rutter owns one
+ * file of its own and never parses or merges the user's others. A filename doesn't prove
+ * ownership: an existing rutter.json is replaced only when it is exactly the shape written here
+ * (version 1, one agentStop entry running this hook, at this path or an old one); anything else
+ * is refused with nothing changed. The hook inherits the launching shell's environment (probed
+ * 2026-10-15), so no vault is baked in; the MCP server gets only PATH, so its registration below
+ * carries the vault explicitly.
+ */
+async function installCopilot() {
+  const home = process.env.COPILOT_HOME || path.join(os.homedir(), ".copilot");
+  const hooksFile = path.join(home, "hooks", "rutter.json");
+  const command = `${hookCommand} --client copilot`;
+  const body = `${JSON.stringify({ version: 1, hooks: { agentStop: [{ type: "command", bash: command, timeoutSec: 30 }] } }, null, 2)}\n`;
+
+  const isOurs = (cfg) => {
+    if (cfg === null || typeof cfg !== "object" || Array.isArray(cfg)) return false;
+    if (Object.keys(cfg).some((k) => k !== "version" && k !== "hooks") || cfg.version !== 1) return false;
+    const hooks = cfg.hooks;
+    if (hooks === null || typeof hooks !== "object" || Array.isArray(hooks) || Object.keys(hooks).join() !== "agentStop") return false;
+    const list = hooks.agentStop;
+    if (!Array.isArray(list) || list.length !== 1) return false;
+    const [h] = list;
+    if (h === null || typeof h !== "object" || Object.keys(h).some((k) => !["type", "bash", "timeoutSec"].includes(k))) return false;
+    return h.type === "command" && parseOurs(h.bash)?.client === "copilot";
+  };
+
+  // Decide everything before writing anything, so a refusal leaves both files untouched.
+  let hookStatus;
+  let writeHook = true;
+  if (fs.existsSync(hooksFile)) {
+    const raw = fs.readFileSync(hooksFile, "utf8");
+    let cfg;
+    try {
+      cfg = JSON.parse(raw);
+    } catch {
+      fail(`${hooksFile} exists but is not valid JSON, so it may not be rutter's -- move it, then re-run (nothing was changed).`);
+    }
+    if (!isOurs(cfg)) {
+      fail(`${hooksFile} exists and is not the hook file this installer writes (other hooks, events or fields) -- move it, then re-run (nothing was changed).`);
+    }
+    if (raw === body) {
+      hookStatus = `already registered in ${hooksFile}; unchanged`;
+      writeHook = false;
+    } else {
+      const old = parseOurs(cfg.hooks.agentStop[0].bash).script;
+      hookStatus = `updated ${hooksFile}${old !== hookPath ? ` (moved from ${old} to ${hookPath})` : ""}`;
+    }
+  } else {
+    hookStatus = `registered the agentStop hook in ${hooksFile}`;
+  }
+  const rule = await prepareCopilotInstructions(home);
+  if (writeHook) {
+    fs.mkdirSync(path.dirname(hooksFile), { recursive: true });
+    const tmp = `${hooksFile}.librarian-tmp`;
+    fs.writeFileSync(tmp, body, "utf8");
+    fs.renameSync(tmp, hooksFile);
+  }
+  const ruleStatus = rule.write();
+
+  const envVault = process.env.LIBRARIAN_VAULT_PATH?.trim();
+  const vault = envVault || path.join(os.homedir(), "Documents", "knowledge-vault");
+  const db = process.env.LIBRARIAN_DB_PATH?.trim() || undefined;
+  const sq = (v) => (/[^A-Za-z0-9_@%+=:,./-]/.test(v) ? `'${v.replaceAll("'", "'\\''")}'` : v);
+  const stdio = path.join(import.meta.dirname, "..", "dist", "stdio.js");
+  console.error(`[install-hook] ${hookStatus}. Capture instructions: ${ruleStatus}.`);
+  console.error(
+    `[install-hook] VAULT the hook will use: ${envVault ? `${vault} (LIBRARIAN_VAULT_PATH in this shell)` : `${vault} (the default)`}` +
+      " -- whatever LIBRARIAN_VAULT_PATH is when Copilot starts."
+  );
+  console.error("[install-hook] The MCP server gets only PATH from Copilot, so register it with the vault set explicitly:");
+  console.error(
+    `[install-hook]     copilot mcp add --env ${sq(`LIBRARIAN_VAULT_PATH=${vault}`)}${db ? ` --env ${sq(`LIBRARIAN_DB_PATH=${db}`)}` : ""} rutter -- ${sq(process.execPath)} ${sq(stdio)}`
+  );
+  console.error("[install-hook] Then start a new Copilot session and check <vault>/_librarian/sessions/ after a turn.");
+  console.error("[install-hook] The capture line is an HTML comment, so Copilot's screen hides it; the hook still reads it.");
+  process.exit(0);
+}
+
+/**
+ * Copilot loads MCP server instructions lazily, so the model may never see the capture contract.
+ * A personal instructions file is in the system prompt every session, and with it the model wrote
+ * the directive in an interactive probe. rutter owns its own file under instructions/ rather than
+ * editing the user's copilot-instructions.md. Returns a deferred write, so the caller can refuse a
+ * foreign hooks file before anything changes.
+ */
+async function prepareCopilotInstructions(home) {
+  const rulePath = path.join(home, "instructions", "rutter.instructions.md");
+  const marker = "<!-- rutter-capture-rule: generated by install-hook; edits are overwritten on re-run -->";
+  // With the contract alone, Copilot's model wrote no line on an ordinary task (live check,
+  // 2026-10-16). This lead says when the contract applies; the contract itself stays the
+  // server's own text (SR-027).
+  const lead =
+    "This user keeps a record of what their AI sessions decide, through rutter's capture hook. " +
+    "End every reply that settles a question, makes a decision, or finishes a change with the " +
+    "session line described below. It applies whether or not you called a rutter tool, and even " +
+    "though Copilot hides the line from the screen. Leave it out only for small talk or a reply " +
+    "that settles nothing.";
+  const body = `---\napplyTo: "**"\n---\n${marker}\n\n${lead}\n\n${await captureContract()}\n`;
+  if (fs.existsSync(rulePath)) {
+    const existing = fs.readFileSync(rulePath, "utf8");
+    if (existing === body) return { write: () => `${rulePath} already up to date` };
+    if (!existing.includes("rutter-capture-rule:")) {
+      fail(`${rulePath} exists and was not written by this installer -- move it, then re-run (nothing was changed).`);
+    }
+  }
+  return {
+    write: () => {
+      fs.mkdirSync(path.dirname(rulePath), { recursive: true });
+      const tmp = `${rulePath}.librarian-tmp`;
+      fs.writeFileSync(tmp, body, "utf8");
+      fs.renameSync(tmp, rulePath);
+      return `wrote ${rulePath}`;
+    },
+  };
+}
+
+/** The capture part of the server's own contract (SERVER_INSTRUCTIONS, the single source -- SR-027), never restated here. */
+async function captureContract() {
+  const { SERVER_INSTRUCTIONS } = await import(pathToFileURL(path.join(import.meta.dirname, "..", "dist", "server.js")).href);
+  const from = SERVER_INSTRUCTIONS.indexOf("When a session decides");
+  const to = SERVER_INSTRUCTIONS.indexOf("Everything these tools return");
+  return from >= 0 ? SERVER_INSTRUCTIONS.slice(from, to > from ? to : undefined).trim() : SERVER_INSTRUCTIONS.trim();
+}
 
 async function installAntigravity() {
   // agy's hooks.json is keyed by hook NAME, then event: { "<name>": { "Stop": [ {type, command, timeout} ] } }
@@ -248,11 +375,7 @@ async function installAntigravity() {
 async function installAntigravityRule() {
   const rulePath = path.join(os.homedir(), ".gemini", "config", "rules", "rutter-capture.md");
   const marker = "<!-- rutter-capture-rule: generated by install-hook; edits are overwritten on re-run -->";
-  const { SERVER_INSTRUCTIONS } = await import(pathToFileURL(path.join(import.meta.dirname, "..", "dist", "server.js")).href);
-  const from = SERVER_INSTRUCTIONS.indexOf("When a session decides");
-  const to = SERVER_INSTRUCTIONS.indexOf("Everything these tools return");
-  const contract = from >= 0 ? SERVER_INSTRUCTIONS.slice(from, to > from ? to : undefined).trim() : SERVER_INSTRUCTIONS.trim();
-  const body = `---\ntrigger: always_on\n---\n${marker}\n\n${contract}\n`;
+  const body = `---\ntrigger: always_on\n---\n${marker}\n\n${await captureContract()}\n`;
   if (fs.existsSync(rulePath)) {
     const existing = fs.readFileSync(rulePath, "utf8");
     if (existing === body) return `${rulePath} already up to date`;

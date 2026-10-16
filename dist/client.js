@@ -10,7 +10,7 @@
  * hand-edited value never makes a day unreadable. The canonical set is enforced
  * here, where the label is PRODUCED.
  */
-export const CLIENTS = ["claude", "grok", "codex", "agy"];
+export const CLIENTS = ["claude", "grok", "codex", "agy", "copilot"];
 export function isClient(value) {
     return typeof value === "string" && CLIENTS.includes(value);
 }
@@ -24,14 +24,18 @@ export function parseExplicitIdentity(raw) {
  * Must run before Antigravity normalization, which discards exactly the fields
  * that identify it. A label comes back only for a pair in the table below.
  *
- *   explicit \ shape | none   | agy  | grok
- *   absent           | none   | agy  | grok
- *   claude           | claude | none | grok   (Grok runs the Claude plugin's hook)
- *   grok             | grok   | none | grok
- *   codex            | codex  | none | none
- *   agy              | agy    | agy  | none
+ *   explicit \ shape | none    | agy  | grok | copilot
+ *   absent           | none    | agy  | grok | copilot
+ *   claude           | claude  | none | grok | none     (Grok runs the Claude plugin's hook)
+ *   grok             | grok    | none | grok | none
+ *   codex            | codex   | none | none | none
+ *   agy              | agy     | agy  | none | none
+ *   copilot          | copilot | none | none | copilot
  *
- * Contradictory shape (agy and grok at once), a direct payload, and an
+ * claude x copilot is a conflict, not the Grok exception: no probe has shown Copilot
+ * running the Claude plugin's hook, so it gets no label until one does.
+ *
+ * Contradictory shape (more than one of agy, grok, copilot), a direct payload, and an
  * unrecognized explicit identity all yield no label.
  *
  * `last_assistant_message` is deliberately not an input: Claude and Codex both
@@ -42,9 +46,11 @@ export function classifyClient(shape, explicit) {
         return undefined;
     if (explicit.kind === "unrecognized")
         return undefined;
-    if (shape.agy && shape.grok)
+    if (Number(shape.agy) + Number(shape.grok) + Number(shape.copilot) > 1)
         return undefined;
     const id = explicit.kind === "client" ? explicit.client : undefined;
+    if (shape.copilot)
+        return id === undefined || id === "copilot" ? "copilot" : undefined;
     if (shape.agy)
         return id === undefined || id === "agy" ? "agy" : undefined;
     if (shape.grok)

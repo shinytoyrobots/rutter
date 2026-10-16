@@ -20,7 +20,7 @@ reference implementation, with no support commitment. It suits someone who keeps
 is comfortable configuring an AI client.
 
 **Try it:** the [Claude Code fast path](./getting-started.md#fast-path-for-claude-code) takes a few
-minutes; [getting started](./getting-started.md) covers Grok, Codex, and Antigravity. The rest of
+minutes; [getting started](./getting-started.md) covers Grok, Codex, Copilot CLI, and Antigravity. The rest of
 this page is the argument for the design.
 
 ## An example
@@ -133,8 +133,8 @@ Most memory features live inside one tool. Switch tools and you start again.
 
 rutter does not belong to a tool. It is a folder of markdown files plus an MCP (Model Context
 Protocol) server. Any MCP client can read the memory. Writing needs a hook that runs after each turn
-and a payload rutter knows how to read. Four clients have a supported hook today: Claude Code, Grok,
-Codex, and the Antigravity command-line tool (`agy`).
+and a payload rutter knows how to read. Five clients have a supported hook today: Claude Code, Grok,
+Codex, GitHub Copilot CLI, and the Antigravity command-line tool (`agy`).
 
 A session summary captured in any of them is available to all of them straight away. Positions
 appear after the next reindex. The memory belongs to the folder and to you. A tool you add later
@@ -150,7 +150,7 @@ Two halves, and neither of them contains a model.
 
 **Writing.** As a session finishes something worth recalling, your client emits one line about it —
 a short summary, plus the paths it touched. A Stop hook lifts the newest such line: from the
-transcript in Claude Code and Antigravity, from the final assistant message in Grok and Codex. It appends that line to a dated file inside your notes directory. Each path
+transcript in Claude Code, Copilot CLI, and Antigravity, from the final assistant message in Grok and Codex. It appends that line to a dated file inside your notes directory. Each path
 is stored with the sha256 of that file's bytes. The server reads the file and computes that hash
 itself, rather than accepting one from the client, so a client cannot hand it a hash for a file
 that was not on disk. The client still chooses which paths to list. The hash identifies the file's
@@ -185,9 +185,10 @@ standard way an AI client connects to an outside source of data:
   reindex, so a position captured since then appears after the next one — which the server runs
   itself the next time it starts.
 
-The Stop hook runs in Claude Code, Grok, Codex, and Antigravity. The tools work with any MCP client. The
+The Stop hook runs in Claude Code, Grok, Codex, Copilot CLI, and Antigravity. The tools work with any MCP client. The
 server also sends its own usage guidance to every client that connects. Antigravity saves that
-guidance as a file instead of putting it in the prompt, so its installer also writes a rule file.
+guidance as a file instead of putting it in the prompt, and Copilot CLI loads it only once a rutter
+tool is called, so both installers also write an instructions file.
 There is nothing to configure per project.
 
 Records live in `<notes>/_librarian/`, inside your own notes directory. They are plain markdown,
@@ -354,7 +355,7 @@ and an optional backfill of positions from records that predate capture. Both wa
 
 If you use Claude Code, install the plugin and you can be recalling in a few minutes: see the
 [fast path](./getting-started.md#fast-path-for-claude-code). Everyone else:
-[`getting-started.md`](./getting-started.md) has a setup path for Grok, Codex, and Antigravity, and a
+[`getting-started.md`](./getting-started.md) has a setup path for Grok, Codex, Copilot CLI, and Antigravity, and a
 step-by-step manual route, each ending in a capture check and a recall check.
 
 ## Further reading

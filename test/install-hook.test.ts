@@ -410,3 +410,97 @@ t("antigravity: a new prefix rewrites the hook in place and keeps the vault it w
   assert.ok(replaced.stderr.includes(`"LIBRARIAN_VAULT_PATH": "${fresh}"`));
   assert.ok(replaced.stderr.includes(`Sessions captured so far stay in ${kept}`), "says earlier captures stay behind");
 });
+
+// --- Copilot CLI: rutter owns $COPILOT_HOME/hooks/rutter.json and instructions/rutter.instructions.md ---
+
+function copilotInstall(sb: { home: string; codexHome: string }, vars: Record<string, string> = {}) {
+  const copilotHome = path.join(sb.home, ".copilot-x");
+  const res = spawnSync(process.execPath, [script, "--client", "copilot"], {
+    env: { ...process.env, HOME: sb.home, CODEX_HOME: sb.codexHome, COPILOT_HOME: copilotHome, LIBRARIAN_VAULT_PATH: "/v/notes", ...vars },
+    encoding: "utf8",
+  });
+  return {
+    ...res,
+    hooksFile: path.join(copilotHome, "hooks", "rutter.json"),
+    rule: path.join(copilotHome, "instructions", "rutter.instructions.md"),
+    hooksDir: path.join(copilotHome, "hooks"),
+  };
+}
+
+t("copilot: writes rutter.json and the instructions file under COPILOT_HOME, and prints a registration carrying the vault", () => {
+  const sb = sandbox();
+  const res = copilotInstall(sb);
+  assert.equal(res.status, 0, res.stderr);
+  assert.deepEqual(JSON.parse(fs.readFileSync(res.hooksFile, "utf8")), {
+    version: 1,
+    hooks: { agentStop: [{ type: "command", bash: `${hookPath} --client copilot`, timeoutSec: 30 }] },
+  });
+  const rule = fs.readFileSync(res.rule, "utf8");
+  assert.match(rule, /^---\napplyTo: "\*\*"\n---\n<!-- rutter-capture-rule:/);
+  assert.match(rule, /End every reply that settles a question, makes a decision, or finishes a change/);
+  assert.match(rule, /<!-- librarian-session/);
+  assert.match(res.stderr, /copilot mcp add --env LIBRARIAN_VAULT_PATH=\/v\/notes (--env LIBRARIAN_DB_PATH=\S+ )?rutter -- /);
+  assert.equal(fs.existsSync(path.join(sb.home, ".copilot")), false, "COPILOT_HOME honored; ~/.copilot untouched");
+});
+
+t("copilot: re-running is idempotent, and the user's other hook files are untouched", () => {
+  const sb = sandbox();
+  const first = copilotInstall(sb);
+  const theirs = path.join(first.hooksDir, "mine.json");
+  const theirBody = '{ "version": 1, "hooks": { "agentStop": [ { "type": "command", "bash": "echo hi" } ] } }\n';
+  fs.writeFileSync(theirs, theirBody, "utf8");
+  const before = fs.readFileSync(first.hooksFile, "utf8");
+  const again = copilotInstall(sb);
+  assert.equal(again.status, 0, again.stderr);
+  assert.match(again.stderr, /already registered .*unchanged/);
+  assert.match(again.stderr, /already up to date/);
+  assert.equal(fs.readFileSync(first.hooksFile, "utf8"), before);
+  assert.equal(fs.readFileSync(theirs, "utf8"), theirBody);
+});
+
+t("copilot: an old install's rutter.json (another script path) is recognized and moved", () => {
+  const sb = sandbox();
+  const first = copilotInstall(sb);
+  fs.writeFileSync(
+    first.hooksFile,
+    JSON.stringify({ version: 1, hooks: { agentStop: [{ type: "command", bash: "/old/lib/node_modules/rutter-memory/hooks/librarian-stop.sh --client copilot", timeoutSec: 30 }] } }),
+    "utf8"
+  );
+  const res = copilotInstall(sb);
+  assert.equal(res.status, 0, res.stderr);
+  assert.match(res.stderr, /moved from \/old\//);
+  assert.equal(JSON.parse(fs.readFileSync(first.hooksFile, "utf8")).hooks.agentStop[0].bash, `${hookPath} --client copilot`);
+});
+
+t("copilot: a rutter.json that isn't ours (extra hook, another event, invalid JSON) is refused byte-for-byte unchanged", () => {
+  const ours = { type: "command", bash: `${hookPath} --client copilot`, timeoutSec: 30 };
+  const cases = [
+    JSON.stringify({ version: 1, hooks: { agentStop: [ours, { type: "command", bash: "echo extra" }] } }),
+    JSON.stringify({ version: 1, hooks: { agentStop: [ours], sessionStart: [{ type: "command", bash: "echo" }] } }),
+    JSON.stringify({ version: 1, hooks: { agentStop: [{ type: "command", bash: "echo mine" }] } }),
+    "{ not json",
+  ];
+  for (const body of cases) {
+    const sb = sandbox();
+    const probe = copilotInstall(sb);
+    fs.rmSync(probe.rule);
+    fs.writeFileSync(probe.hooksFile, body, "utf8");
+    const res = copilotInstall(sb);
+    assert.equal(res.status, 1, `refused: ${body}`);
+    assert.match(res.stderr, /nothing was changed/);
+    assert.equal(fs.readFileSync(probe.hooksFile, "utf8"), body);
+    assert.equal(fs.existsSync(probe.rule), false, "a refusal writes no instructions file either");
+  }
+});
+
+t("copilot: a hand-written instructions file is refused, and the hook file is not written", () => {
+  const sb = sandbox();
+  const copilotHome = path.join(sb.home, ".copilot-x");
+  fs.mkdirSync(path.join(copilotHome, "instructions"), { recursive: true });
+  const rule = path.join(copilotHome, "instructions", "rutter.instructions.md");
+  fs.writeFileSync(rule, "my own notes\n", "utf8");
+  const res = copilotInstall(sb);
+  assert.equal(res.status, 1);
+  assert.equal(fs.readFileSync(rule, "utf8"), "my own notes\n");
+  assert.equal(fs.existsSync(res.hooksFile), false);
+});
