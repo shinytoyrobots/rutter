@@ -17,9 +17,10 @@ const cli = fileURLToPath(new URL("../src/capture-cli.ts", import.meta.url));
 const TODAY = () => new Date().toISOString().slice(0, 10);
 const THIS_MONTH = () => new Date().toISOString().slice(0, 7);
 
-const none: PayloadShape = { direct: false, agy: false, grok: false };
-const agy: PayloadShape = { direct: false, agy: true, grok: false };
-const grok: PayloadShape = { direct: false, agy: false, grok: true };
+const none: PayloadShape = { direct: false, agy: false, grok: false, copilot: false };
+const agy: PayloadShape = { direct: false, agy: true, grok: false, copilot: false };
+const grok: PayloadShape = { direct: false, agy: false, grok: true, copilot: false };
+const copilot: PayloadShape = { direct: false, agy: false, grok: false, copilot: true };
 const label = (shape: PayloadShape, explicit: string | undefined) => classifyClient(shape, parseExplicitIdentity(explicit));
 
 // --- The section 4 matrix, one case per cell -------------------------------
@@ -28,35 +29,47 @@ test("matrix: explicit absent", () => {
   assert.equal(label(none, undefined), undefined);
   assert.equal(label(agy, undefined), "agy", "classification of an Antigravity envelope needs no explicit identity");
   assert.equal(label(grok, undefined), "grok");
+  assert.equal(label(copilot, undefined), "copilot", "the Copilot agentStop shape needs no explicit identity");
 });
 
 test("matrix: explicit claude", () => {
   assert.equal(label(none, "claude"), "claude");
   assert.equal(label(agy, "claude"), undefined, "conflict");
   assert.equal(label(grok, "claude"), "grok", "shared-hook exception: Grok runs the Claude plugin's hook");
+  assert.equal(label(copilot, "claude"), undefined, "conflict: no probe shows Copilot running the Claude plugin's hook");
 });
 
 test("matrix: explicit grok", () => {
   assert.equal(label(none, "grok"), "grok");
   assert.equal(label(agy, "grok"), undefined);
   assert.equal(label(grok, "grok"), "grok");
+  assert.equal(label(copilot, "grok"), undefined);
 });
 
 test("matrix: explicit codex (explicit-only; camelCase lastAssistantMessage or the agy shape contradict it)", () => {
   assert.equal(label(none, "codex"), "codex");
   assert.equal(label(agy, "codex"), undefined);
   assert.equal(label(grok, "codex"), undefined);
+  assert.equal(label(copilot, "codex"), undefined);
 });
 
 test("matrix: explicit agy", () => {
   assert.equal(label(none, "agy"), "agy");
   assert.equal(label(agy, "agy"), "agy");
   assert.equal(label(grok, "agy"), undefined);
+  assert.equal(label(copilot, "agy"), undefined);
+});
+
+test("matrix: explicit copilot", () => {
+  assert.equal(label(none, "copilot"), "copilot", "e.g. the snake_case agentStop variant, which fails the shape check");
+  assert.equal(label(agy, "copilot"), undefined);
+  assert.equal(label(grok, "copilot"), undefined);
+  assert.equal(label(copilot, "copilot"), "copilot");
 });
 
 test("an unrecognized explicit identity yields no label with every shape (a typo, a future client, a different case)", () => {
   for (const bad of ["gemini", "claud", "Claude", "AGY", " claude", "claude "]) {
-    for (const shape of [none, agy, grok]) {
+    for (const shape of [none, agy, grok, copilot]) {
       assert.equal(label(shape, bad), undefined, `${JSON.stringify(bad)} with ${JSON.stringify(shape)}`);
     }
   }
@@ -68,10 +81,14 @@ test("an empty explicit identity behaves as absent", () => {
 });
 
 test("a contradictory shape yields no label, and a direct payload never gets one", () => {
-  const both: PayloadShape = { direct: false, agy: true, grok: true };
-  for (const e of [undefined, ...CLIENTS]) assert.equal(label(both, e), undefined);
+  const contradictory: PayloadShape[] = [
+    { direct: false, agy: true, grok: true, copilot: false },
+    { direct: false, agy: true, grok: false, copilot: true },
+    { direct: false, agy: false, grok: true, copilot: true },
+  ];
+  for (const both of contradictory) for (const e of [undefined, ...CLIENTS]) assert.equal(label(both, e), undefined);
   for (const e of [undefined, ...CLIENTS]) {
-    for (const s of [none, agy, grok]) assert.equal(label({ ...s, direct: true }, e), undefined);
+    for (const s of [none, agy, grok, copilot]) assert.equal(label({ ...s, direct: true }, e), undefined);
   }
 });
 
@@ -145,6 +162,34 @@ function agyEnvelope(id: string, text: string): object {
   );
   return { conversationId: id, transcriptPath: file, workspacePaths: [vaultRoot], error: "" };
 }
+
+function copilotEnvelope(id: string, text: string, snake = false): object {
+  const file = path.join(vaultRoot, `copilot-${id}.jsonl`);
+  const ts = 1792122699990;
+  const recs = [
+    { type: "user.message", data: { content: "hi", interactionId: `I-${id}` } },
+    { type: "assistant.message", data: { content: text, interactionId: `I-${id}`, phase: "final_answer" } },
+    { type: "assistant.turn_end", data: { turnId: "0" } },
+    { type: "hook.start", data: { hookType: "agentStop", input: { timestamp: ts } } },
+  ];
+  fs.writeFileSync(file, recs.map((r) => JSON.stringify(r)).join("\n") + "\n", "utf8");
+  return snake
+    ? { session_id: id, transcript_path: file, stop_reason: "end_turn", timestamp: ts, cwd: vaultRoot }
+    : { sessionId: id, transcriptPath: file, stopReason: "end_turn", timestamp: ts, cwd: vaultRoot, stop_hook_active: false };
+}
+
+test("CLI copilot: the camelCase shape labels with or without an identity; snake_case needs --client copilot", () => {
+  fire(copilotEnvelope("cp-1", DIRECTIVE("copilot one")));
+  fire(copilotEnvelope("cp-2", DIRECTIVE("copilot two")), { args: ["--client", "copilot"] });
+  fire(copilotEnvelope("cp-3", DIRECTIVE("copilot three"), true), { args: ["--client", "copilot"] });
+  assert.deepEqual(labelsNow(), { session: ["copilot", "copilot", "copilot"], position: ["copilot", "copilot", "copilot"] });
+});
+
+test("CLI: a conflicting identity on a Copilot envelope still reads through the Copilot reader, with no label", () => {
+  fire(copilotEnvelope("cp-4", DIRECTIVE("copilot conflict claude")), { args: ["--client", "claude"] });
+  fire(copilotEnvelope("cp-5", DIRECTIVE("copilot conflict codex")), { args: ["--client", "codex"] });
+  assert.deepEqual(labelsNow(), { session: [undefined, undefined], position: [undefined, undefined] });
+});
 
 test("CLI claude: --client claude on a Claude transcript labels both records", () => {
   const t = path.join(vaultRoot, "claude.jsonl");

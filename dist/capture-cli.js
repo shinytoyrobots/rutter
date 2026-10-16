@@ -1,4 +1,6 @@
 import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { config } from "./config.js";
 import { captureSession, overSummaryWordCeiling, summaryWordCount } from "./capture.js";
 import { parseSessionDirective } from "./directive.js";
@@ -10,14 +12,8 @@ async function main() {
     const parsed = safeParse(input);
     if (!parsed)
         return;
-    // Classify the host from the ORIGINAL envelope, once, before normalization
-    // rewrites an Antigravity payload into a shape indistinguishable from Codex's.
-    const client = classifyClient({
-        direct: typeof parsed.summary === "string" || typeof parsed.position === "string",
-        agy: isAntigravityPayload(parsed),
-        grok: typeof parsed.lastAssistantMessage === "string",
-    }, explicitIdentity());
-    const payload = isAntigravityPayload(parsed) ? normalizeAntigravity(parsed) : parsed;
+    const { reader, client } = resolveHost(parsed, explicitIdentity());
+    const payload = reader === "agy" ? normalizeAntigravity(parsed) : reader === "copilot" ? await normalizeCopilot(parsed) : parsed;
     if (!payload)
         return;
     // Read the transcript AT MOST ONCE, lazily -- only if some caller actually
@@ -35,6 +31,39 @@ async function main() {
     // never skip the other (a corrupt session day file must not cost a position).
     guarded("session", () => runSessionCapture(payload, getTranscriptText, client));
     guarded("position", () => runPositionCapture(payload, getTranscriptText, client));
+}
+/**
+ * Which transcript reader runs, and which label the records get -- two separate
+ * answers from one place. Both come from the ORIGINAL envelope, before
+ * normalization rewrites it into a shape indistinguishable from Codex's.
+ *
+ * The reader is never derived from the label: an undefined label means
+ * "attribution uncertain", not "no reader". An Antigravity envelope with a
+ * conflicting identity still goes through the Antigravity reader, and so does a
+ * Copilot-shaped one. An explicit `copilot` identity picks the Copilot reader even
+ * when the payload's casing doesn't match the shape check (the Grok lesson: a
+ * snake_case `transcript_path` there points at `events.jsonl`, which the Claude
+ * reader would scan and silently find nothing in).
+ */
+function resolveHost(p, explicit) {
+    const direct = typeof p.summary === "string" || typeof p.position === "string";
+    const shape = {
+        direct,
+        agy: isAntigravityPayload(p),
+        grok: typeof p.lastAssistantMessage === "string",
+        copilot: isCopilotPayload(p),
+    };
+    const client = classifyClient(shape, explicit);
+    let reader = "default";
+    if (direct)
+        return { reader, client };
+    if (shape.agy)
+        reader = "agy";
+    else if (shape.copilot)
+        reader = "copilot";
+    else if (!shape.grok && explicit.kind === "client" && explicit.client === "copilot")
+        reader = "copilot";
+    return { reader, client };
 }
 /**
  * The identity the installer set, from `--client <name>` (what librarian-stop.sh
@@ -403,6 +432,132 @@ function readAntigravityTurnText(transcriptPath) {
         .filter((r) => r.type === "PLANNER_RESPONSE" && typeof r.content === "string")
         .map((r) => r.content)
         .join("\n");
+}
+// ---------------------------------------------------------------------------
+// GitHub Copilot CLI agentStop adapter (docs/copilot-cli-plan.md, probe 2026-10-15).
+// ---------------------------------------------------------------------------
+/**
+ * The camelCase `agentStop` shape: `sessionId` + `transcriptPath` + `stopReason`, with
+ * no `conversationId` (Antigravity's key) and none of the snake_case keys another
+ * host or a direct caller would use.
+ */
+function isCopilotPayload(p) {
+    return (typeof p.sessionId === "string" &&
+        typeof p.transcriptPath === "string" &&
+        typeof p.stopReason === "string" &&
+        p.conversationId === undefined &&
+        p.session_id === undefined &&
+        p.transcript_path === undefined &&
+        p.summary === undefined &&
+        p.position === undefined);
+}
+/** How long to wait for Copilot to finish writing the turn; the hook's own timeout is 30 s. */
+const COPILOT_WAIT_MS = 3000;
+const COPILOT_POLL_MS = 50;
+/**
+ * Maps a Copilot `agentStop` payload (either casing) onto the shape the shared
+ * paths read: the current turn's assistant text becomes the message fallback.
+ * The result never carries `transcript_path`, or `resolveDirective` would run the
+ * Claude reader over `events.jsonl` first.
+ *
+ * Copilot flushes the turn to `events.jsonl` up to ~100 ms AFTER the hook starts
+ * (probed: 10 of 10 immediate reads missed the reply). It writes a `hook.start`
+ * record echoing this payload after the turn's messages, so the reader polls until
+ * that record is there, for at most COPILOT_WAIT_MS, then fails closed with one
+ * stderr line.
+ *
+ * `stop_hook_active` is ignored: our hook never blocks, so it cannot cause
+ * re-entry; a second `agentStop` on the same turn re-reads it and SR-013 dedupes.
+ */
+async function normalizeCopilot(p) {
+    const sessionId = typeof p.sessionId === "string" ? p.sessionId : p.session_id;
+    const transcriptPath = typeof p.transcriptPath === "string" ? p.transcriptPath : p.transcript_path ?? copilotTranscriptFor(sessionId);
+    if (!transcriptPath) {
+        console.error("[librarian-capture] copilot payload has no transcript path or usable session id; nothing captured.");
+        return null;
+    }
+    // LIBRARIAN_COPILOT_WAIT_MS overrides the wait (tests use it to keep the timeout case fast).
+    const override = Number(process.env.LIBRARIAN_COPILOT_WAIT_MS?.trim() || NaN);
+    const waitMs = Number.isFinite(override) && override >= 0 ? override : COPILOT_WAIT_MS;
+    const deadline = Date.now() + waitMs;
+    for (;;) {
+        const read = readCopilotTurnText(transcriptPath, p.timestamp);
+        if (read.status === "complete") {
+            return { session_id: sessionId, cwd: typeof p.cwd === "string" ? p.cwd : undefined, last_assistant_message: read.text };
+        }
+        if (Date.now() >= deadline) {
+            const why = read.status === "unreadable"
+                ? "unreadable"
+                : read.status === "unrecognized"
+                    ? "unrecognized"
+                    : `not finished writing after ${waitMs} ms`;
+            console.error(`[librarian-capture] copilot transcript ${why}; nothing captured.`);
+            return null;
+        }
+        await new Promise((resolve) => setTimeout(resolve, COPILOT_POLL_MS));
+    }
+}
+/** `$COPILOT_HOME/session-state/<id>/events.jsonl`, for a payload without a transcript path. */
+function copilotTranscriptFor(sessionId) {
+    if (typeof sessionId !== "string" || !/^[A-Za-z0-9-]+$/.test(sessionId))
+        return undefined;
+    const home = process.env.COPILOT_HOME || path.join(os.homedir(), ".copilot");
+    return path.join(home, "session-state", sessionId, "events.jsonl");
+}
+/**
+ * Assistant text of the CURRENT turn from a Copilot `events.jsonl`: the `content` of
+ * `assistant.message` records whose `interactionId` equals the last `user.message`'s.
+ * The boundary is that record field, not position. Only assistant records count:
+ * `user.message` echoes the prompt verbatim, directive templates included.
+ *
+ * "complete" needs this invocation's `hook.start` after the last user message -- the
+ * one whose `data.input.timestamp` matches the payload's, or any when the payload has
+ * none. A second `agentStop` on the same turn has its own timestamp, so it waits for
+ * its own record rather than reading before a continuation lands.
+ */
+function readCopilotTurnText(transcriptPath, timestamp) {
+    let raw;
+    try {
+        raw = fs.readFileSync(transcriptPath, "utf8");
+    }
+    catch {
+        return { status: "unreadable" };
+    }
+    const records = [];
+    for (const line of raw.split("\n")) {
+        if (line.trim() === "")
+            continue;
+        try {
+            const rec = JSON.parse(line);
+            if (rec && typeof rec.type === "string" && rec.data && typeof rec.data === "object") {
+                records.push({ type: rec.type, data: rec.data });
+            }
+        }
+        catch {
+            /* skip an unparseable line, including a partly written last one */
+        }
+    }
+    let lastUser = -1;
+    records.forEach((r, i) => {
+        if (r.type === "user.message")
+            lastUser = i;
+    });
+    if (lastUser < 0)
+        return records.length === 0 ? { status: "unrecognized" } : { status: "incomplete" };
+    const interactionId = records[lastUser].data.interactionId;
+    if (typeof interactionId !== "string")
+        return { status: "unrecognized" };
+    const turn = records.slice(lastUser + 1);
+    const finished = turn.some((r) => r.type === "hook.start" &&
+        (timestamp === undefined || r.data.input?.timestamp === timestamp));
+    if (!finished)
+        return { status: "incomplete" };
+    const text = turn
+        .filter((r) => r.type === "assistant.message" && r.data.interactionId === interactionId && typeof r.data.content === "string")
+        .map((r) => r.data.content)
+        .filter((c) => c !== "")
+        .join("\n");
+    return { status: "complete", text };
 }
 function safeParse(input) {
     try {
