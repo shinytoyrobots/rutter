@@ -4,6 +4,24 @@ Notable changes to rutter, newest first. Detailed per-ship records — grounds,
 disclosed gaps, and what is being watched — are kept by the maintainer
 outside this repository.
 
+## v0.7.0 — 2026-10-16
+
+- **GitHub Copilot CLI is a fifth client.** `rutter-memory install-hook --client copilot` adds
+  capture: it writes `hooks/rutter.json` and `instructions/rutter.instructions.md` under
+  `~/.copilot` (or `$COPILOT_HOME`), and refuses to replace either file if it didn't write it.
+  The hook reads the current turn from Copilot's transcript, waiting up to three seconds for
+  Copilot to finish writing it, and labels records `client: copilot`. The instructions file is
+  required: Copilot loads a server's instructions only once one of its tools is called, and in
+  testing the model wrote summary lines only with that file in place. Verified with Copilot CLI
+  1.0.98, in one session that was captured and then recalled from Claude Code. Setup is in
+  [Getting started](./docs/getting-started.md#copilot-cli-path).
+- **The printed MCP registration survives a Node upgrade.** The `copilot mcp add` and
+  `agy mcp add` lines the installer prints, and Antigravity's JSON snippet, named the resolved
+  Node binary. On Homebrew that is a versioned folder that `brew upgrade` deletes, which
+  silently stopped recall. They now name the `node` on your `PATH`, such as
+  `/opt/homebrew/bin/node`, when it is the same binary and lives somewhere lasting. If you
+  registered Antigravity from a printed line, check its Node path.
+
 ## v0.6.2 — 2026-10-15
 
 - **rutter is listed in the official MCP Registry** as `io.github.shinytoyrobots/rutter`,
