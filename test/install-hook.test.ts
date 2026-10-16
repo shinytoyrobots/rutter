@@ -437,6 +437,7 @@ t("copilot: writes rutter.json and the instructions file under COPILOT_HOME, and
   });
   const rule = fs.readFileSync(res.rule, "utf8");
   assert.match(rule, /^---\napplyTo: "\*\*"\n---\n<!-- rutter-capture-rule:/);
+  assert.match(rule, /End every reply that settles a question, makes a decision, or finishes a change/);
   assert.match(rule, /<!-- librarian-session/);
   assert.match(res.stderr, /copilot mcp add --env LIBRARIAN_VAULT_PATH=\/v\/notes (--env LIBRARIAN_DB_PATH=\S+ )?rutter -- /);
   assert.equal(fs.existsSync(path.join(sb.home, ".copilot")), false, "COPILOT_HOME honored; ~/.copilot untouched");
