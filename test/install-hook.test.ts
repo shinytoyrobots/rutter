@@ -541,7 +541,18 @@ t("printed registrations name a lasting node on PATH when it is this same binary
   assert.equal(printed({ PATH: join(other, linked) }), self, "a different node first on PATH (maybe too old) is not printed");
   assert.equal(printed({ PATH: empty }), self, "no node on PATH");
   assert.equal(printed({ PATH: linked, FNM_MULTISHELL_PATH: linked }), self, "fnm's per-shell link is cleared at logout");
-  assert.equal(printed({ PATH: linked, TMPDIR: vaultRoot }), self, "a link under the temp folder does not last");
+  // A temp folder, and a link inside it pointing at a lasting folder: both vanish.
+  const tmpRoot = dir("tmp-root");
+  const inTmp = path.join(tmpRoot, "bin");
+  fs.mkdirSync(inTmp);
+  fs.symlinkSync(real, path.join(inTmp, "node"));
+  assert.equal(printed({ PATH: inTmp, TMPDIR: tmpRoot }), self, "a link under the temp folder does not last");
+  const viaTmpLink = path.join(tmpRoot, "tools");
+  fs.symlinkSync(linked, viaTmpLink);
+  assert.equal(printed({ PATH: viaTmpLink, TMPDIR: tmpRoot }), self, "a temp-folder symlink to a lasting folder still vanishes");
+  // A "temporary" root that holds home or system folders is not taken as temporary.
+  assert.equal(printed({ PATH: linked, TMPDIR: "/" }), link, "TMPDIR=/ does not rule out every folder");
+  assert.equal(printed({ PATH: linked, TMPDIR: vaultRoot }), link, "a TMPDIR holding HOME (the sandbox's) is ignored");
 
   // Antigravity's printed command and JSON snippet use the same choice.
   const sb = sandbox();

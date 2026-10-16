@@ -86,10 +86,16 @@ function stableNode() {
       return undefined;
     }
   };
+  const under = (p, roots) => roots.some((r) => p === r || p.startsWith(r.endsWith(path.sep) ? r : r + path.sep));
+  // Each root as written and resolved (/tmp is /private/tmp on macOS). A "temporary" root that holds
+  // your home or a system bin folder (TMPDIR=/ or /opt) isn't temporary, so it is ignored rather than
+  // letting it rule out /opt/homebrew/bin.
+  const lasting = [os.homedir(), "/usr/bin", "/usr/local/bin", "/opt/homebrew/bin", "/bin"].flatMap((d) => [d, real(d) ?? d]);
   const transient = [process.env.FNM_MULTISHELL_PATH, process.env.XDG_RUNTIME_DIR, os.tmpdir()]
     .filter((d) => typeof d === "string" && d !== "" && path.isAbsolute(d))
-    .map((d) => real(d) ?? d);
-  const under = (p, roots) => roots.some((r) => p === r || p.startsWith(r.endsWith(path.sep) ? r : r + path.sep));
+    .map((d) => [path.resolve(d), real(d) ?? path.resolve(d)])
+    .filter((forms) => !lasting.some((l) => under(l, forms)))
+    .flat();
   for (const dir of (process.env.PATH ?? "").split(path.delimiter)) {
     if (!dir || !path.isAbsolute(dir)) continue;
     const candidate = path.join(dir, process.platform === "win32" ? "node.exe" : "node");
@@ -101,8 +107,9 @@ function stableNode() {
       continue; // not here; keep looking
     }
     // The first executable `node` on PATH is what a shell would run; use it only if it is us and lasts.
-    const dirReal = real(dir) ?? dir;
-    if (real(candidate) !== self || under(dirReal, transient) || /fnm_multishells/.test(dirReal)) return process.execPath;
+    // The directory as written and resolved: a temp-folder link to a lasting folder still vanishes.
+    const forms = [path.resolve(dir), real(dir) ?? path.resolve(dir)];
+    if (real(candidate) !== self || forms.some((f) => under(f, transient) || /fnm_multishells/.test(f))) return process.execPath;
     return candidate;
   }
   return process.execPath;
