@@ -60,6 +60,45 @@ stdin to a scratch file. Run one turn in which the model writes a planted
 
 Write the results into this file as a probe table, as `grok-stop-adapter.md` does. The hook gets removed after the read.
 
+### Probe results (2026-10-15, Copilot CLI 1.0.98, macOS)
+
+Run with the installed CLI, not a scratch prefix, because a scratch `COPILOT_HOME` was tested separately below.
+Only `gpt-6-luna` is available on this account, so the GPT-versus-Claude transcript comparison was not run.
+All turns used non-interactive `-p`. The sandbox the probe ran in has no pseudo-terminal, so no interactive turn was probed.
+The throwaway hook was removed afterwards.
+
+| Question | Finding |
+|---|---|
+| `agentStop` once per turn? | Yes: 10 hook calls for 10 turns in one resumed session, plus 8 more in later runs. Within a turn the model can produce several `assistant.turn_start`/`turn_end` pairs (one per tool round), but `agentStop` fires once, at the end. With `-p`, process exit doesn't fire an extra one. `/exit` in interactive mode: not probed. |
+| Payload casing | camelCase only: `sessionId`, `timestamp` (Unix ms), `cwd`, `transcriptPath`, `stopReason: "end_turn"`. The one snake_case key is `stop_hook_active: false`. `transcriptPath` was present on every call. |
+| Transcript location | `$COPILOT_HOME/session-state/<sessionId>/events.jsonl`. Every record has the shape `{ type, data, id, parentId, timestamp }`. |
+| Final assistant text | `assistant.message` records, `data.content`. The last one in a turn has `data.phase: "final_answer"`; earlier ones (tool-call rounds) have no phase and carry `toolRequests`. |
+| Turn boundary | `user.message.data.interactionId`. Every `assistant.message` in that turn carries the same `interactionId`, so the current turn is "assistant messages whose `interactionId` equals the last user message's". It is a record field, not a position guess. |
+| User message echoes text | Yes. `user.message.data.content` and `transformedContent` hold the typed prompt verbatim, directive lines included. Filtering to `assistant.message` is required. |
+| `hook.start` in the transcript | Copilot writes a `hook.start` record whose `data.input` is the hook's own stdin payload, including the same `timestamp`. It is written after the turn's last `assistant.message` and `assistant.turn_end`. |
+| Complete when `agentStop` fires? | **No.** A copy taken the instant the hook started missed the current turn's assistant message on 10 of 10 turns; the file ended at `assistant.turn_start`. The records are timestamped before the hook starts, but the file write lags. Polling inside the hook found the rest within 50–100 ms on 8 of 8 turns (short, ~900-word, and tool-call turns). Once the matching `hook.start` (same `data.input.timestamp`) was in the file, the current turn's directive was present every time. |
+| Instruction delivery | See the gate 4 table below. |
+| `$COPILOT_HOME` | Moves both `hooks/` and `session-state/`. Hooks under `~/.copilot/hooks` did not fire when `COPILOT_HOME` pointed elsewhere. Copilot also exports `COPILOT_HOOK_DIR` to the hook. |
+| Hook `PATH` | The full launching-shell `PATH` (Homebrew `node` resolved). `LIBRARIAN_VAULT_PATH` from the launching shell reached the hook unchanged. nvm-only `node` was not tested. |
+| Untrusted repo / repo hooks | User-level hooks fired in an untrusted scratch folder and an untrusted scratch git repo. That repo's own `.github/hooks/repo.json` did not fire, so it didn't replace the user hook. Trusted-repo behavior (alongside or instead) was not probed. |
+
+**Gate 4 runs.** Each run was a fresh session with rutter registered for that session only through `--additional-mcp-config`. The task was the same each time: read `config.js` and decide whether a retry count should stay at 3 or become 5. No rutter tool was called in any run.
+
+| Setup | Contract in the system prompt? | Session line written? |
+|---|---|---|
+| A. Server registered, nothing else (2 runs) | No. Loaded lazily, as the docs say. | 0 of 2 |
+| B. `--allow-all-mcp-server-instructions` (2 runs) | Yes | 0 of 2 |
+| C. Contract in `~/.copilot/copilot-instructions.md`, no flag (2 runs) | Yes. The file loaded and the server's text loaded too. | 0 of 2 |
+
+No per-user setting for the server-instructions allowlist turned up in `copilot help config` or `copilot help environment`.
+
+### Gate verdicts
+
+1. **Holds.** Every turn's assistant text is in the transcript, and `transcriptPath` is always sent.
+2. **Fails as written.** The text is not in the file when the hook starts. The probe does support a fix: the reader waits until the `hook.start` record matching this payload's `timestamp` appears, then reads. Copilot writes that record after the turn's messages, so its presence means the turn is on disk. The wait is bounded, for example 3 s of 50 ms polls against the 30 s hook timeout. If the time runs out, the reader fails closed with one stderr line. This needs a review before it is built.
+3. **Holds,** through `interactionId`.
+4. **Fails in non-interactive mode on `gpt-6-luna`.** Setups B and C both put the contract in front of the model, so delivery works, but the model didn't follow it. Interactive mode and Claude models are still untested, and interactive is how people use Copilot day to day. By this plan's rule, capture is not built until a setup passes.
+
 **Gates.** Capture is built only if all four hold. Recall-only support ships either way.
 
 1. **The transcript holds the current turn's assistant text.** If `transcriptPath` is absent, derive
