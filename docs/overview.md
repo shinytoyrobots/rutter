@@ -20,7 +20,7 @@ reference implementation, with no support commitment. It suits someone who keeps
 is comfortable configuring an AI client.
 
 **Try it:** the [Claude Code fast path](./getting-started.md#fast-path-for-claude-code) takes a few
-minutes; [getting started](./getting-started.md) covers Grok, Codex, and Antigravity. The rest of
+minutes; [getting started](./getting-started.md) covers Grok, Codex, Copilot CLI, and Antigravity. The rest of
 this page is the argument for the design.
 
 ## An example
@@ -185,7 +185,7 @@ standard way an AI client connects to an outside source of data:
   reindex, so a position captured since then appears after the next one — which the server runs
   itself the next time it starts.
 
-The Stop hook runs in Claude Code, Grok, Codex, and Antigravity. The tools work with any MCP client. The
+The Stop hook runs in Claude Code, Grok, Codex, Copilot CLI, and Antigravity. The tools work with any MCP client. The
 server also sends its own usage guidance to every client that connects. Antigravity saves that
 guidance as a file instead of putting it in the prompt, so its installer also writes a rule file.
 There is nothing to configure per project.
@@ -354,7 +354,7 @@ and an optional backfill of positions from records that predate capture. Both wa
 
 If you use Claude Code, install the plugin and you can be recalling in a few minutes: see the
 [fast path](./getting-started.md#fast-path-for-claude-code). Everyone else:
-[`getting-started.md`](./getting-started.md) has a setup path for Grok, Codex, and Antigravity, and a
+[`getting-started.md`](./getting-started.md) has a setup path for Grok, Codex, Copilot CLI, and Antigravity, and a
 step-by-step manual route, each ending in a capture check and a recall check.
 
 ## Further reading

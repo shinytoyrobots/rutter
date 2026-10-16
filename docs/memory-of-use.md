@@ -127,7 +127,7 @@ record's frontmatter, not the body.
 
 Capture is **ambient**: it happens after each turn with no action from you inside the session. It
 is wired through a **Stop hook**, a hook the host runs when the assistant finishes a turn, in
-Claude Code, Grok, Codex, and Antigravity.
+Claude Code, Grok, Codex, Copilot CLI, and Antigravity.
 
 **Setup is the hook.** Register it with `npm run install-hook`, adding `--client codex` or
 `--client antigravity` for those hosts. [Getting started](./getting-started.md#choose-your-path) has a
