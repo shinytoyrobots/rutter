@@ -7,7 +7,7 @@ domain: ops
 
 # Grok-native install for rutter
 
-**Status:** Step 0 probe done 2026-10-19 (results below); all three gates pass, so the build is unblocked. Route A is chosen. Nothing built yet.
+**Status:** Step 0 probe done 2026-10-19 (results below); all three gates pass, so the build is unblocked. Route A is chosen. Built on `feat/grok-native-install` and verified end to end on a clean Linux Codespace (installer, captured `client: grok` record, recall, and coexistence with a real plugin install). Remaining: the gh-pages site port and a macOS recheck.
 
 **Why:** today's Grok path says "install the Claude Code plugin" (`docs/getting-started.md`
 "Grok path", README "Grok"). Grok runs the plugin's server and hook through its Claude

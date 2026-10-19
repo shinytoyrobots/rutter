@@ -14,7 +14,7 @@ outside this repository.
   when the installer finds either, or another hook file that runs it, it says which and creates no
   second entry, since a duplicate would only run the hook twice (the capture still writes one record).
   Grok needs no instructions file: it shows the model the server's instructions on its own. The
-  Claude Code route for Grok is unchanged. Probed on Grok 1.0.62 in a clean Linux environment; the
+  Claude Code route for Grok is unchanged. Verified with Grok 1.0.62 on a Linux machine that never had Claude Code, from install to a captured `client: grok` record and a working recall, and again beside a real Claude Code plugin install; the
   Grok path in [Getting started](./docs/getting-started.md#grok-path) no longer requires Claude Code,
   and the old note that Grok has no `grok mcp add` is gone because the command exists.
 

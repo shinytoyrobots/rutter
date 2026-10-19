@@ -340,7 +340,7 @@ instead (`claude plugin install rutter@anthropic-plugin-directory`, or `rutter@r
 the marketplace), pass `--config vault_path=/path/to/notes` or run `/plugin configure` with the same
 plugin name afterwards; without a notes folder the server has nothing to read.
 
-Ambient capture has been checked in Claude Code, Grok, Codex, and Antigravity, in Muse Code 1.4.10 through the installer, and in one Copilot CLI
+Ambient capture has been checked in Claude Code, Codex, and Antigravity, in Grok 1.0.62 and Muse Code 1.4.10 through the installer (Grok on a machine that never had Claude Code), and in one Copilot CLI
 session, which was captured and then recalled from Claude Code. The directory also
 lists rutter for Cowork; capture there has not been checked.
 
