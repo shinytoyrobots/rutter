@@ -59,7 +59,7 @@ same path, is not flagged today. rutter is one person&#39;s tool, MIT-licensed a
 reference implementation, with no support commitment. It suits someone who keeps markdown notes and
 is comfortable configuring an AI client.</p>
 <p><strong>Try it:</strong> the <a href="getting-started.html#fast-path-for-claude-code">Claude Code fast path</a> takes a few
-minutes; <a href="getting-started.html">getting started</a> covers Grok, Codex, Copilot CLI, and Antigravity. The rest of
+minutes; <a href="getting-started.html">getting started</a> covers Grok, Codex, Copilot CLI, Antigravity, and Muse Code. The rest of
 this page is the argument for the design.</p>
 <h2 id="an-example">An example</h2>
 <p>This is a real run, recorded on 9 October 2026 for this page. The two notes are fictional and say
@@ -153,7 +153,7 @@ tool and a table of how each one captures.</p>
 <p>Two halves, and neither of them contains a model.</p>
 <p><strong>Writing.</strong> As a session finishes something worth recalling, your client emits one line about it —
 a short summary, plus the paths it touched. A Stop hook lifts the newest such line: from the
-transcript in Claude Code, Copilot CLI, and Antigravity, from the final assistant message in Grok and Codex. It appends that line to a dated file inside your notes directory. Each path
+transcript in Claude Code, Copilot CLI, and Antigravity, from the final assistant message in Grok, Codex, and Muse Code. It appends that line to a dated file inside your notes directory. Each path
 is stored with the sha256 of that file&#39;s bytes. The server reads the file and computes that hash
 itself, rather than accepting one from the client, so a client cannot hand it a hash for a file
 that was not on disk. The client still chooses which paths to list. The hash identifies the file&#39;s
@@ -185,7 +185,7 @@ reports it as your recorded position and not as its own conclusion. Answered fro
 reindex, so a position captured since then appears after the next one — which the server runs
 itself the next time it starts.</li>
 </ul>
-<p>The Stop hook runs in Claude Code, Grok, Codex, Copilot CLI, and Antigravity. The tools work with any MCP client. The
+<p>The Stop hook runs in Claude Code, Grok, Codex, Copilot CLI, Antigravity, and Muse Code. The tools work with any MCP client. The
 server also sends its own usage guidance to every client that connects. Antigravity saves that
 guidance as a file instead of putting it in the prompt, and Copilot CLI loads it only once a rutter
 tool is called, so both installers also write an instructions file.
@@ -320,7 +320,7 @@ and an optional backfill of positions from records that predate capture. Both wa
 <h2 id="try-it">Try it</h2>
 <p>If you use Claude Code, install the plugin and you can be recalling in a few minutes: see the
 <a href="getting-started.html#fast-path-for-claude-code">fast path</a>. Everyone else:
-<a href="getting-started.html"><code>getting-started.md</code></a> has a setup path for Grok, Codex, Copilot CLI, and Antigravity, and a
+<a href="getting-started.html"><code>getting-started.md</code></a> has a setup path for Grok, Codex, Copilot CLI, Antigravity, and Muse Code, and a
 step-by-step manual route, each ending in a capture check and a recall check.</p>
 <h2 id="further-reading">Further reading</h2>
 <ul>
@@ -351,7 +351,7 @@ why every reference here carries a hash.</li>
 
 <footer class="site">
   <div class="footer-inner">
-    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/c9b61cc">main@c9b61cc</a> · <a href="sources.json">source hashes</a>.</p>
+    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/47517de">main@47517de</a> · <a href="sources.json">source hashes</a>.</p>
     <nav class="footer-more" aria-label="More from the author">
       <ul>
         <li><a href="https://robin-cannon.com">robin-cannon.com</a></li>
