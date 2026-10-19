@@ -10,7 +10,6 @@
 - [Home](https://ruttermemory.com/): what rutter is, in one page
 - [Design](https://ruttermemory.com/design.html): why it is built this way, and what each choice costs
 - [Getting started](https://ruttermemory.com/getting-started.html): a setup path for each client (the Claude Code plugin, or npm as rutter-memory), from install to first recall
-- [FAQ](https://ruttermemory.com/faq.html): how several clients share one memory, adding a client to a working setup, double capture, and known issues
 - [Memory of use](https://ruttermemory.com/memory-of-use.html): capture, recall, enrichment, note identity, positions
 
 ## Optional
