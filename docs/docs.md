@@ -6,5 +6,5 @@ Every page of the rutter docs, in the order most readers want them. To install r
 - [How it works](./memory-of-use.md): memory-of-use is the record of how you used your notes. This page covers capture, recall, note identity, and positions in full mechanical detail.
 - [FAQ](./faq.md): how several clients share one memory, adding a client to a working setup, double capture, and missing records.
 - [From source](./from-source.md): set up Claude Code from a clone of the repository. For contributors.
-- [Manage and privacy](./manage-and-privacy.md): notice when capture stops, pause it, remove a record, and what leaves your machine.
+- [Pause, remove, and privacy](./manage-and-privacy.md): notice when capture stops, pause it, remove a record, and what leaves your machine.
 - [Known issues](./known-issues.md): what is confirmed broken or untested, each with what you see, why, and what to do.

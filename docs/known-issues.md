@@ -146,4 +146,4 @@ The Grok installer, the hook, and the instructions-file writers assume a POSIX s
 
 - [Getting started](./getting-started.md#if-something-goes-wrong): troubleshooting for the setup paths
 - [FAQ](./faq.md): how several clients share one memory
-- [Manage and privacy](./manage-and-privacy.md): pause or remove capture
+- [Pause, remove, and privacy](./manage-and-privacy.md): pause or remove capture

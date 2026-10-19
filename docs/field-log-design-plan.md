@@ -222,7 +222,7 @@ Use this fixed order and preserve existing URLs:
 | How it works | `memory-of-use.html` |
 | FAQ | `faq.html` |
 | From source | `from-source.html` |
-| Manage and privacy | `manage-and-privacy.html` |
+| Pause, remove, and privacy | `manage-and-privacy.html` |
 | Known issues | `known-issues.html` |
 
 ### Wide screens

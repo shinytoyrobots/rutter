@@ -257,4 +257,4 @@ If your notes directory is a git repository, `_librarian/` will be tracked and c
 
 ## Next
 
-Capture is running end to end. [Getting started](./getting-started.md#upgrading) covers upgrading and [troubleshooting](./getting-started.md#if-something-goes-wrong). To pause or remove capture, or to see what leaves your machine, read [Manage and privacy](./manage-and-privacy.md).
+Capture is running end to end. [Getting started](./getting-started.md#upgrading) covers upgrading and [troubleshooting](./getting-started.md#if-something-goes-wrong). To pause or remove capture, or to see what leaves your machine, read [Pause, remove, and privacy](./manage-and-privacy.md).
