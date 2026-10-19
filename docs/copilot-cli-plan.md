@@ -158,13 +158,15 @@ No per-user setting for the server-instructions allowlist turned up in `copilot 
 
 - `--client copilot` writes `$COPILOT_HOME/hooks/rutter.json` (default `~/.copilot/hooks/`).
   It never parses or merges the user's other hook files.
+- The installer follows the [host-integration rules](./memory-of-use.md#host-integration)
+  (user-level files only, own entries only, idempotent, no project `AGENTS.md`/`CLAUDE.md`); the
+  bullets below record only what is specific to Copilot.
 - **A filename doesn't prove ownership.** If `rutter.json` already exists, replace it only when it is
   recognizably ours: valid JSON, `version: 1`, and exactly one `agentStop` entry whose command
   matches the shape the installer writes. The existing command matcher in `install-hook.mjs`
   already recognizes that shape, including a copy left at an old install path. Anything else, such
   as hand-edited hooks, other events, or unparseable JSON, means refuse with a message and change nothing.
 - The command is `<prefix>/hooks/librarian-stop.sh --client copilot`, the same as other clients.
-  Running the installer again rewrites a file it owns, so it is idempotent.
 - **Recall and capture must use the same vault.** The hook can inherit `LIBRARIAN_VAULT_PATH`, but
   the MCP server can't: Copilot passes only `PATH` to it. So the printed registration always carries
   the vault explicitly: `copilot mcp add --env LIBRARIAN_VAULT_PATH=<vault> rutter …`, the same
