@@ -19,29 +19,62 @@
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
-<div class="scanlines" aria-hidden="true"></div>
+<a class="skip-link" href="#doc-directory">Skip to documentation</a>
 <div class="dead-channel" aria-hidden="true"></div>
 
 <header class="site">
   <div class="site-inner">
-    <a class="wordmark" href="index.html">rutter_</a>
+    <div class="brand"><a class="wordmark" href="index.html">rutter_</a><span class="brand-line">Who owns memory owns truth.</span></div>
     <nav class="site-nav" aria-label="Site">
       <ul>
         <li><a href="index.html">Home</a></li>
         <li><a href="getting-started.html">Get started</a></li>
-        <li><a href="docs.html" class="current-section">Docs</a></li>
+        <li><a href="docs.html" aria-current="true">Docs</a></li>
         <li><a href="https://github.com/shinytoyrobots/rutter">GitHub</a></li>
       </ul>
     </nav>
   </div>
 </header>
 
-<div class="hero">
-  <h1>Memory-of-use: the mechanics in full<span class="cursor" aria-hidden="true">▌</span></h1>
-  <p class="dek">The record of how you used your notes: where it lives, how it is written, and how it all comes back.</p>
-</div>
-
 <main id="main">
+
+<div class="doc-layout">
+<div class="doc-dir-wrap">
+<nav id="doc-directory" aria-label="Documentation">
+<p class="dir-label">Documentation</p>
+<details class="doc-dir" open>
+<summary>Docs · How it works</summary>
+<ul>
+<li><a href="docs.html">All docs</a></li>
+<li><a href="getting-started.html">Get started</a></li>
+<li><a href="design.html">Why is it built this way?</a></li>
+<li><a href="memory-of-use.html" aria-current="page">How it works</a></li>
+<li><a href="faq.html">FAQ</a></li>
+<li><a href="from-source.html">From source</a></li>
+<li><a href="manage-and-privacy.html">Manage and privacy</a></li>
+<li><a href="known-issues.html">Known issues</a></li>
+</ul>
+</details>
+</nav>
+</div>
+<article class="doc">
+<nav aria-label="Breadcrumb"><p class="crumbs"><a href="docs.html">Docs</a> / How it works</p></nav>
+<h1>Memory-of-use: the mechanics in full</h1>
+<p class="dek">The record of how you used your notes: where it lives, how it is written, and how it all comes back.</p>
+<nav class="outline" aria-labelledby="outline-label">
+<p class="outline-label" id="outline-label">On this page</p>
+<ul>
+<li><a href="#where-rutter-keeps-what-it-remembers">Where rutter keeps what it remembers</a></li>
+<li><a href="#capturing-session-summaries">Capturing session summaries</a></li>
+<li><a href="#recalling-recent-work">Recalling recent work</a></li>
+<li><a href="#search-enrichment">Search enrichment</a></li>
+<li><a href="#note-identity">Note identity</a></li>
+<li><a href="#positions-capturing-a-stance">Positions: capturing a stance</a></li>
+<li><a href="#positions-recalling-a-stance">Positions: recalling a stance</a></li>
+<li><a href="#what-rutter-can-and-cannot-establish">What rutter can and cannot establish</a></li>
+<li><a href="#measuring-whether-it-gets-used">Measuring whether it gets used</a></li>
+</ul>
+</nav>
 
 <p>Memory-of-use is the record of how you used your notes: which decisions your AI sessions wrote down,
 and which notes each one cited. rutter captures it from your sessions as plain Markdown in your own
@@ -318,7 +351,7 @@ captures refuse to land. Antigravity, Copilot CLI, and Muse Code are the excepti
 returns recent session summaries <strong>most-recent-first</strong>, each with its date, its project, and the
 versioned provenance of the notes it references:</p>
 <pre><code class="language-text">2026-07-26 10:15:00 [rutter] — Shipped workspace provenance.
-   refs: Notes/foo.md@sha256:…
+   <span data-state="resolved">refs: Notes/foo.md@sha256:…</span>
 2026-07-25 21:40:00 [novel] — Drafted chapter three.
 2026-07-24 09:12:00 — An entry captured before provenance existed.
 </code></pre>
@@ -414,7 +447,7 @@ model. A hash either matches or it does not.</li>
 <li><strong>Zero matches, or more than one.</strong> rutter does not guess. Zero means the note was renamed <em>and</em>
 edited, so no current note&#39;s hash matches. More than one means duplicate content exists, and
 picking one would invent an answer your notes do not give. Either way the reference renders
-explicitly as <strong>unresolved</strong>, with every candidate it found. It is never silently dropped and
+explicitly as <strong class="state-tag">unresolved</strong>, with every candidate it found. It is never silently dropped and
 never silently bound to a guess.</li>
 </ul>
 <p><code>librarian-recent</code> and search enrichment resolve bound references through the ledger at read time.
@@ -645,18 +678,10 @@ server instructions alone, is left to manual review of the log. The log captures
 with a timestamp so that review is possible. The project is prepared to conclude that the
 stateful behavior does not get reached for.</p>
 </div>
-
-<nav class="docs-nav" aria-labelledby="docs-nav-label">
-<p class="docs-nav-label" id="docs-nav-label">More in the <a href="docs.html">docs</a></p>
-<ul>
-<li><a href="design.html">Why is it built this way?</a> — The argument for the design, and what each choice costs.</li>
-<li><a href="memory-of-use.html" aria-current="page">How it works</a> — Capture, recall, note identity, and positions in full detail.</li>
-<li><a href="faq.html">FAQ</a> — Several clients, one memory; adding a client; missing records.</li>
-<li><a href="from-source.html">From source</a> — Set up Claude Code from a clone. For contributors.</li>
-<li><a href="manage-and-privacy.html">Manage and privacy</a> — Notice, pause, or remove capture; what leaves your machine.</li>
-<li><a href="known-issues.html">Known issues</a> — What is confirmed broken or untested.</li>
-</ul>
-</nav>
+<p class="ref-line"><code>docs/memory-of-use.md@sha256:93a1a2922326 · built from main@4a49913</code> · <time class="date" datetime="2026-10-19">19 October 2026</time> · <a href="sources.json">source hashes</a></p>
+<p class="to-dir"><a href="#doc-directory">Docs navigation</a></p>
+</article>
+</div>
 
 </main>
 
@@ -671,5 +696,30 @@ stateful behavior does not get reached for.</p>
     </nav>
   </div>
 </footer>
+<script>
+(function () {
+  var d = document.querySelector(".doc-dir");
+  if (!d || !window.matchMedia) return;
+  var mq = window.matchMedia("(min-width: 64rem)");
+  var s = d.querySelector("summary");
+  function apply(wide) {
+    var a = document.activeElement;
+    if (wide) {
+      var hadSummary = a === s;
+      d.open = true;
+      if (hadSummary) { var c = d.querySelector('a[aria-current="page"]'); if (c) c.focus(); }
+    } else {
+      if (a !== s && d.contains(a)) s.focus();
+      d.open = false;
+    }
+  }
+  apply(mq.matches);
+  if (mq.addEventListener) mq.addEventListener("change", function (e) { apply(e.matches); });
+  else if (mq.addListener) mq.addListener(function (e) { apply(e.matches); });
+  var wasOpen;
+  window.addEventListener("beforeprint", function () { wasOpen = d.open; d.open = true; });
+  window.addEventListener("afterprint", function () { d.open = wasOpen; });
+})();
+</script>
 </body>
 </html>

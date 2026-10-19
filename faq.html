@@ -19,29 +19,48 @@
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
-<div class="scanlines" aria-hidden="true"></div>
+<a class="skip-link" href="#doc-directory">Skip to documentation</a>
 <div class="dead-channel" aria-hidden="true"></div>
 
 <header class="site">
   <div class="site-inner">
-    <a class="wordmark" href="index.html">rutter_</a>
+    <div class="brand"><a class="wordmark" href="index.html">rutter_</a><span class="brand-line">Who owns memory owns truth.</span></div>
     <nav class="site-nav" aria-label="Site">
       <ul>
         <li><a href="index.html">Home</a></li>
         <li><a href="getting-started.html">Get started</a></li>
-        <li><a href="docs.html" class="current-section">Docs</a></li>
+        <li><a href="docs.html" aria-current="true">Docs</a></li>
         <li><a href="https://github.com/shinytoyrobots/rutter">GitHub</a></li>
       </ul>
     </nav>
   </div>
 </header>
 
-<div class="hero">
-  <h1>Frequently asked questions<span class="cursor" aria-hidden="true">▌</span></h1>
-  <p class="dek">How several clients share one memory, and how to add a client to a working setup.</p>
-</div>
-
 <main id="main">
+
+<div class="doc-layout">
+<div class="doc-dir-wrap">
+<nav id="doc-directory" aria-label="Documentation">
+<p class="dir-label">Documentation</p>
+<details class="doc-dir" open>
+<summary>Docs · FAQ</summary>
+<ul>
+<li><a href="docs.html">All docs</a></li>
+<li><a href="getting-started.html">Get started</a></li>
+<li><a href="design.html">Why is it built this way?</a></li>
+<li><a href="memory-of-use.html">How it works</a></li>
+<li><a href="faq.html" aria-current="page">FAQ</a></li>
+<li><a href="from-source.html">From source</a></li>
+<li><a href="manage-and-privacy.html">Manage and privacy</a></li>
+<li><a href="known-issues.html">Known issues</a></li>
+</ul>
+</details>
+</nav>
+</div>
+<article class="doc">
+<nav aria-label="Breadcrumb"><p class="crumbs"><a href="docs.html">Docs</a> / FAQ</p></nav>
+<h1>Frequently asked questions</h1>
+<p class="dek">How several clients share one memory, and how to add a client to a working setup.</p>
 
 <p>These answers are for someone who has not read the rest of the docs. They cover how rutter behaves with more than one AI client, how to add a client to a working setup, and where to look when a record does not appear. <a href="known-issues.html">Known issues</a> has its own page.</p>
 <p>rutter&#39;s tools (<code>librarian-*</code>), environment variables (<code>LIBRARIAN_*</code>), and the <code>_librarian/</code> folder keep the project&#39;s earlier name, <em>librarian</em>. They are all parts of rutter.</p>
@@ -200,18 +219,10 @@
 <li><a href="design.html">Why is it built this way?</a>: the design, and what each choice costs</li>
 <li><a href="known-issues.html">Known issues</a></li>
 </ul>
-
-<nav class="docs-nav" aria-labelledby="docs-nav-label">
-<p class="docs-nav-label" id="docs-nav-label">More in the <a href="docs.html">docs</a></p>
-<ul>
-<li><a href="design.html">Why is it built this way?</a> — The argument for the design, and what each choice costs.</li>
-<li><a href="memory-of-use.html">How it works</a> — Capture, recall, note identity, and positions in full detail.</li>
-<li><a href="faq.html" aria-current="page">FAQ</a> — Several clients, one memory; adding a client; missing records.</li>
-<li><a href="from-source.html">From source</a> — Set up Claude Code from a clone. For contributors.</li>
-<li><a href="manage-and-privacy.html">Manage and privacy</a> — Notice, pause, or remove capture; what leaves your machine.</li>
-<li><a href="known-issues.html">Known issues</a> — What is confirmed broken or untested.</li>
-</ul>
-</nav>
+<p class="ref-line"><code>docs/faq.md@sha256:02449c2be44c · built from main@4a49913</code> · <time class="date" datetime="2026-10-19">19 October 2026</time> · <a href="sources.json">source hashes</a></p>
+<p class="to-dir"><a href="#doc-directory">Docs navigation</a></p>
+</article>
+</div>
 
 </main>
 
@@ -226,5 +237,30 @@
     </nav>
   </div>
 </footer>
+<script>
+(function () {
+  var d = document.querySelector(".doc-dir");
+  if (!d || !window.matchMedia) return;
+  var mq = window.matchMedia("(min-width: 64rem)");
+  var s = d.querySelector("summary");
+  function apply(wide) {
+    var a = document.activeElement;
+    if (wide) {
+      var hadSummary = a === s;
+      d.open = true;
+      if (hadSummary) { var c = d.querySelector('a[aria-current="page"]'); if (c) c.focus(); }
+    } else {
+      if (a !== s && d.contains(a)) s.focus();
+      d.open = false;
+    }
+  }
+  apply(mq.matches);
+  if (mq.addEventListener) mq.addEventListener("change", function (e) { apply(e.matches); });
+  else if (mq.addListener) mq.addListener(function (e) { apply(e.matches); });
+  var wasOpen;
+  window.addEventListener("beforeprint", function () { wasOpen = d.open; d.open = true; });
+  window.addEventListener("afterprint", function () { d.open = wasOpen; });
+})();
+</script>
 </body>
 </html>
