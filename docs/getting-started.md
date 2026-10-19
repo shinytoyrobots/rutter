@@ -15,7 +15,20 @@ Pick the path for your client. Each one is a single sequence, and each ends with
 | Any other MCP (Model Context Protocol) client | [Recall only, with npx](#recall-only-with-npx) | One config entry. Search and recall only: with no hook, nothing is captured |
 | Claude Code, from a clone | [From source](./from-source.md) | Eight steps (M1 to M8), starting with a record written by hand. For contributors |
 
+Grok was verified on Linux only ([known issues](./known-issues.md#the-grok-install-was-tested-on-linux-only)). The npm-only paths (Codex, Copilot CLI, Antigravity, Muse Code) were tested on a machine that also had Claude Code, so a clean machine is untested; see [known issues](./known-issues.md#codex-copilot-cli-antigravity-and-muse-code-without-claude-code).
+
 Every path ends in two checks, kept separate on purpose. **Capture:** a new line landed in today's file under `_librarian/sessions/`. **Recall:** your client can answer from it. A record written by hand ([From source, M3](./from-source.md#m3--capture-your-first-memory-by-hand)) shows that storage and recall work. It does not show ambient capture, which needs a real session and a hook.
+
+### Installation verified when…
+
+Configured is not the same as tested. Your install works when all four are true:
+
+- [ ] A decision was captured: a new line landed in today's file under `_librarian/sessions/`.
+- [ ] It appears in the local record: `npm run recent` (or your client's recall) lists it with its date.
+- [ ] A later session in the same client can recall it.
+- [ ] A different client, if you set up a second one, retrieves it from the same notes folder.
+
+To switch capture off or remove a record, see [Manage and privacy](./manage-and-privacy.md).
 
 ## About this lesson
 

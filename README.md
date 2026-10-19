@@ -47,6 +47,8 @@ feature inside one tool.
 | Any other MCP (Model Context Protocol) client | [Recall only, with npx](./docs/getting-started.md#recall-only-with-npx) | One config entry. Search and recall only: with no hook, nothing is captured |
 | Claude Code, from a clone | [From source](./docs/from-source.md) | Eight steps (M1 to M8), starting with a record written by hand. For contributors |
 
+Grok was verified on Linux only ([known issues](./docs/known-issues.md#the-grok-install-was-tested-on-linux-only)). The npm-only paths (Codex, Copilot CLI, Antigravity, Muse Code) were tested on a machine that also had Claude Code, so a clean machine is untested; see [known issues](./docs/known-issues.md#codex-copilot-cli-antigravity-and-muse-code-without-claude-code).
+
 Every client can read the memory once its MCP server is registered. Writing needs a hook that runs after each turn, and these six
 have one. Any other MCP client can read but not write, running the server through `npx`
 ([recall only, with npx](./docs/getting-started.md#recall-only-with-npx)). The Antigravity row covers the `agy`
