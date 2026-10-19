@@ -15,7 +15,7 @@
 - [How it works](https://ruttermemory.com/memory-of-use.html): memory-of-use, the record of how you used your notes: capture, recall, enrichment, note identity, positions
 - [FAQ](https://ruttermemory.com/faq.html): how several clients share one memory, adding a client to a working setup, double capture, and missing records
 - [From source](https://ruttermemory.com/from-source.html): set up Claude Code from a clone, for contributors
-- [Manage and privacy](https://ruttermemory.com/manage-and-privacy.html): notice, pause, or remove capture, and what leaves your machine
+- [Pause, remove, and privacy](https://ruttermemory.com/manage-and-privacy.html): notice, pause, or remove capture, and what leaves your machine
 - [Known issues](https://ruttermemory.com/known-issues.html): what is confirmed broken or untested
 
 ## Optional

@@ -51,7 +51,7 @@
 <li><a href="memory-of-use.html">How it works</a></li>
 <li><a href="faq.html">FAQ</a></li>
 <li><a href="from-source.html">From source</a></li>
-<li><a href="manage-and-privacy.html">Manage and privacy</a></li>
+<li><a href="manage-and-privacy.html">Pause, remove, and privacy</a></li>
 <li><a href="known-issues.html">Known issues</a></li>
 </ul>
 </details>
@@ -132,7 +132,17 @@
 <td>Eight steps (M1 to M8), starting with a record written by hand. For contributors</td>
 </tr>
 </tbody></table>
+<p class="footnote">Grok was verified on Linux only (<a href="known-issues.html#the-grok-install-was-tested-on-linux-only">known issues</a>). The npm-only paths (Codex, Copilot CLI, Antigravity, Muse Code) were tested on a machine that also had Claude Code, so a clean machine is untested; see <a href="known-issues.html#codex-copilot-cli-antigravity-and-muse-code-without-claude-code">known issues</a>.</p>
 <p>Every path ends in two checks, kept separate on purpose. <strong>Capture:</strong> a new line landed in today&#39;s file under <code>_librarian/sessions/</code>. <strong>Recall:</strong> your client can answer from it. A record written by hand (<a href="from-source.html#m3--capture-your-first-memory-by-hand">From source, M3</a>) shows that storage and recall work. It does not show ambient capture, which needs a real session and a hook.</p>
+<h3 id="installation-verified-when">Installation verified when…</h3>
+<p>Configured is not the same as tested. Your install works when all four are true:</p>
+<ul>
+<li>A decision was captured: a new line landed in today&#39;s file under <code>_librarian/sessions/</code>.</li>
+<li>It appears in the local record: <code>npm run recent</code> (or your client&#39;s recall) lists it with its date.</li>
+<li>A later session in the same client can recall it.</li>
+<li>A different client, if you set up a second one, retrieves it from the same notes folder.</li>
+</ul>
+<p>To switch capture off or remove a record, see <a href="manage-and-privacy.html">Pause, remove, and privacy</a>.</p>
 <h2 id="about-this-lesson">About this lesson</h2>
 <p><em>Output shape verified against code. The sample output on this page is illustrative, not a recorded run: your dates, project names, and counts will differ.</em></p>
 <p>This lesson gets your notes answering <em>&quot;what was I working on lately?&quot;</em> The answer comes from short records your AI sessions (in Claude Code, Grok, Codex, Copilot CLI, Antigravity, or Muse Code) leave behind on their own. Every tool you set up writes to the same records, so each one can recall what the others decided.</p>
@@ -326,7 +336,7 @@ rutter-memory install-hook --client codex   # --client antigravity, --client cop
 <ul>
 <li><strong><a href="memory-of-use.html#capturing-session-summaries">Capturing session summaries</a> and <a href="memory-of-use.html#recalling-recent-work">Recalling recent work</a></strong> — capture and recall in depth, including <a href="memory-of-use.html#the-style-contract">the style contract</a> that decides whether these summaries are readable in six months.</li>
 <li><strong><a href="faq.html">FAQ</a></strong> — how several clients share one memory, and adding a client to a working setup.</li>
-<li><strong><a href="manage-and-privacy.html">Manage and privacy</a></strong> — how to notice when capture stops, pause it, remove a record, and what leaves your machine.</li>
+<li><strong><a href="manage-and-privacy.html">Pause, remove, and privacy</a></strong> — how to notice when capture stops, pause it, remove a record, and what leaves your machine.</li>
 <li><strong><a href="known-issues.html">Known issues</a></strong> — what is confirmed broken or untested.</li>
 <li><strong><a href="from-source.html">From source</a></strong> — the clone-based route for contributors.</li>
 <li><strong><a href="memory-of-use.html#search-enrichment">Search enrichment</a></strong> — the quiet prior-engagement note on search results.</li>
@@ -379,16 +389,16 @@ rutter-memory install-hook --client codex   # --client antigravity, --client cop
 <h3 id="step-8"><span id="step-8--recall-again-and-read-the-record"></span>Step 8 — Recall again, and read the record</h3>
 <p>Now <a href="from-source.html#m8--recall-again-and-read-the-record">M8</a> on From source.</p>
 <h3 id="check-pause-or-remove-capture">Check, pause, or remove capture</h3>
-<p>Now <a href="manage-and-privacy.html">Manage and privacy</a>.</p>
+<p>Now <a href="manage-and-privacy.html">Pause, remove, and privacy</a>.</p>
 <h4 id="notice-when-capture-stops">Notice when capture stops</h4>
-<p>Now in <a href="manage-and-privacy.html#notice-when-capture-stops">Manage and privacy</a>.</p>
+<p>Now in <a href="manage-and-privacy.html#notice-when-capture-stops">Pause, remove, and privacy</a>.</p>
 <h4 id="pause-capture">Pause capture</h4>
-<p>Pause capture now lives in <a href="manage-and-privacy.html#pause-capture">Manage and privacy</a>.</p>
+<p>Pause capture now lives in <a href="manage-and-privacy.html#pause-capture">Pause, remove, and privacy</a>.</p>
 <h4 id="remove-a-record-you-dont-want">Remove a record you don&#39;t want</h4>
-<p>Now in <a href="manage-and-privacy.html#remove-a-record-you-dont-want">Manage and privacy</a>.</p>
+<p>Now in <a href="manage-and-privacy.html#remove-a-record-you-dont-want">Pause, remove, and privacy</a>.</p>
 <h3 id="what-leaves-your-machine">What leaves your machine</h3>
-<p>Now in <a href="manage-and-privacy.html#what-leaves-your-machine">Manage and privacy</a>.</p>
-<p class="ref-line"><code>docs/getting-started.md@sha256:204f8302da8f · built from main@7ca75c6</code> · <time class="date" datetime="2026-10-19">19 October 2026</time> · <a href="sources.json">source hashes</a></p>
+<p>Now in <a href="manage-and-privacy.html#what-leaves-your-machine">Pause, remove, and privacy</a>.</p>
+<p class="ref-line"><code>docs/getting-started.md@sha256:204f8302da8f · built from main@1bb1d5c</code> · <time class="date" datetime="2026-10-19">19 October 2026</time> · <a href="sources.json">source hashes</a></p>
 <p class="to-dir"><a href="#doc-directory">Docs navigation</a></p>
 </article>
 </div>
@@ -397,7 +407,7 @@ rutter-memory install-hook --client codex   # --client antigravity, --client cop
 
 <footer class="site">
   <div class="footer-inner">
-    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/7ca75c6">main@7ca75c6</a> · <a href="sources.json">source hashes</a></p>
+    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source on GitHub</a>.</p>
     <nav class="footer-more" aria-label="More from the author">
       <ul>
         <li><a href="https://robin-cannon.com">robin-cannon.com</a></li>

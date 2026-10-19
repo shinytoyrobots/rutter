@@ -457,3 +457,13 @@ footer.site {
   .ref-line, .ref-line a, .outline-label, .crumbs, .dek, .footnote, .client-dir .dest, .version-line { color: #333; }
   .footer-inner, .footer-inner a { color: #333; }
 }
+
+/* --- FAQ: questions stand apart from their answers --- */
+.faq h3 {
+  font-size: 1.3rem;
+  color: #e6eef7;
+  margin-top: 2.75rem;
+  margin-bottom: 0.6rem;
+  padding-left: 0.85rem;
+  border-left: 3px solid var(--neon);
+}
