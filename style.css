@@ -467,3 +467,6 @@ footer.site {
   padding-left: 0.85rem;
   border-left: 3px solid var(--neon);
 }
+
+/* --- footer line runs the full width; the 68ch paragraph cap is for prose --- */
+.footer-inner p { max-width: none; }
