@@ -1,6 +1,6 @@
-# The design: why rutter is built this way
+# Recall past decisions and the notes your AI session cited
 
-*What rutter is, why it is built the way it is, and what that costs. For the short version, see the [home page](./index.md).*
+*What rutter is, why it is built the way it is, and what that costs.*
 
 Months after a working session, you want to know what you decided and which notes the session
 cited when it decided it. rutter keeps that. As an AI session decides something, your client
