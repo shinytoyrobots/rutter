@@ -133,8 +133,8 @@ Most memory features live inside one tool. Switch tools and you start again.
 
 rutter does not belong to a tool. It is a folder of markdown files plus an MCP (Model Context
 Protocol) server. Any MCP client can read the memory. Writing needs a hook that runs after each turn
-and a payload rutter knows how to read. Five clients have a supported hook today: Claude Code, Grok,
-Codex, GitHub Copilot CLI, and the Antigravity command-line tool (`agy`).
+and a payload rutter knows how to read. Six clients have a supported hook today: Claude Code, Grok,
+Codex, GitHub Copilot CLI, the Antigravity command-line tool (`agy`), and Muse Code.
 
 A session summary captured in any of them is available to all of them straight away. Positions
 appear after the next reindex. The memory belongs to the folder and to you. A tool you add later
