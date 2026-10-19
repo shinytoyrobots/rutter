@@ -36,7 +36,7 @@ one is a release-order decision. The probe is cheap and can run any time.
 | User hooks | A first-class `hooks` block in `~/.config/muse/settings.json` (plus a `managed_hooks_path` pointer for managed hooks). No separate trust step. |
 | Hook environment | Hooks run outside the sandbox **with a cleared environment** and a small allowlist. |
 | Project hooks | `<project>/.muse/hooks.json`, and only after the folder is trusted. |
-| Malformed hook config | A startup warning; the fix only takes effect in a new session. |
+| Malformed hook config | Two cases. Malformed project or managed hook files produce a startup warning. A malformed **user** `settings.json` fails settings validation, which may stop Muse from starting at all. The fix only takes effect in a new session. The probe edits user settings, so it must back them up first (step 4). |
 | Instruction files | At each directory level up to the `.git` boundary, the first of `AGENTS.md`, `CLAUDE.md`, `.agents/AGENTS.md`, `.claude/CLAUDE.md` wins; the others at that level are ignored. Project rules load only in trusted workspaces and win over user rules. Machine-wide user rules always load, but the docs don't give their path. |
 
 **Consequence:** `CLAUDE.md` is not a reliable fallback for the "write a session line" instruction.
@@ -66,20 +66,50 @@ whose path the probe has to find.
    on this Mac's PATH. Check `which -a muse`, and run Meta's CLI by full path (`~/.local/bin/muse`)
    for the whole probe. getting-started has to warn about this too. Record `muse --version`.
 3. Register rutter with `mode: "optional"` and confirm recall works (`/mcp`, then a `librarian-recent` call).
-4. **Event dump.** Add user-level hooks in the `hooks` block for `Stop`, `StopFailure`, `SessionEnd`
-   and `PostLLMCall`. Each runs one wrapper script that appends one JSON line per invocation to a
-   per-event file (`<scratch>/muse-probe/<event>.jsonl`): timestamp, event name, PID, the hook's
-   exit code, and the raw stdin verbatim. Append, never overwrite. Because the environment is
-   cleared, use absolute paths for `node` and the dump directory. Run two turns that each plant a
-   `librarian-session` line, then exit. Re-run the install step once to see whether entries duplicate.
-5. **Failure semantics.** In separate sessions, swap the `Stop` hook for one that exits 1, one that
-   exits 2, and one that sleeps past any timeout. Record what the user sees and whether the turn,
-   the next turn and the session continue.
+4. **Event dump.** First copy `~/.config/muse/settings.json` (and any user rules file the probe
+   will touch) to a backup, with checksums, and validate every edit before launching Muse: a
+   malformed user settings file can stop Muse from starting. Then add user-level hooks in the
+   `hooks` block for `Stop`, `StopFailure`, `SessionEnd` and `PostLLMCall`. Each runs one wrapper
+   script that appends one JSON line per invocation to a per-event file
+   (`<scratch>/muse-probe/<event>.jsonl`): timestamp, event name, PID, the hook's exit code, and the
+   raw stdin verbatim. Append, never overwrite. Because the environment is cleared, use absolute
+   paths for `node` and the dump directory. Re-run the install step once to see whether entries
+   duplicate.
+   - **Turn isolation.** Run at least these turns in one session, in order: (a) a turn whose
+     assistant reply plants a `librarian-session` line; (b) a turn with **no** directive anywhere
+     (a stale capture would return (a)'s line); (c) a turn where the directive appears only in the
+     user's input; (d) a turn where it appears only in tool output (for example, `cat` a file that
+     contains one). Only (a) should ever be captured. Record the role/type fields and the turn
+     boundary marker (turn ID, sequence number or similar) that let a reader exclude user, tool and
+     earlier-turn records.
+   - **Transcript readiness.** Inside the `Stop` hook itself, snapshot the transcript file (copy it,
+     with size and mtime) at invocation, then compare it with the finished session log. Do this for
+     a short reply, a long reply, and a tool-using turn. Record whether the final assistant message
+     was present at invocation. If it is absent, keep that snapshot as evidence and poll the
+     live transcript path (not the snapshot, which never changes) at fixed intervals up to a
+     bounded limit, for example 5 seconds, saving each observation (size, mtime, whether the final
+     message is present). Poll both inside the hook and from a detached child after the hook
+     returns, since Muse may not flush until the hook exits. Record whether any signal marks
+     completion (a trailing record type, a flush, a later event such as `SessionEnd`). The Copilot probe found the
+     final message missing at hook time on 10/10 turns, so a log read after the session ends proves
+     nothing.
+5. **Failure semantics.** Test two layers separately, in separate sessions.
+   - **Raw hook.** Swap the `Stop` hook for one that exits 1, one that exits 2, and one that sleeps
+     past any timeout. Record what the user sees and whether the turn, the next turn and the
+     session continue.
+   - **Production-style wrapper.** Repeat with a copy of `hooks/librarian-stop.sh` whose capture
+     command is replaced by a failing, crashing and hanging child, and with a bounded child timeout
+     added (the shipped wrapper has none, so a hung child would hang the hook). The wrapper already
+     converts child failure to exit 0; record whether that is enough.
+   - **Host-level failures.** Record separately any failure the wrapper cannot contain, such as the
+     host failing to launch it (missing or non-executable script, bad path, cleared `PATH`).
 6. **Instruction delivery.** Start a fresh session in a scratch git repo, do an ordinary small task
    with no planting, and check whether a directive appears. Repeat with the instruction in the
    user-level rules file (find its path first), then again in a repo that has its own `AGENTS.md`.
 7. **Preserve evidence before cleanup.** Copy the dump directory, the session ID(s), the Muse
-   version, and the session-log file(s) into the probe record. Then remove the hooks.
+   version, and the session-log file(s) into the probe record. Then restore `settings.json` and the
+   user rules file from the step 4 backups (not by hand-removing entries), verify the checksums
+   match the originals, and confirm Muse still starts.
 8. Record the answers to the six questions above in a probe table in this file.
 
 ## Decision after the probe
@@ -87,13 +117,18 @@ whose path the probe has to find.
 | Probe result | Path | Size |
 |---|---|---|
 | `Stop` fires after each turn and carries the assistant text | Codex-style: a payload shape plus `--client muse` | Small |
-| `Stop` fires after each turn with a transcript path only | Antigravity-style: a transcript reader | Medium |
+| `Stop` fires after each turn with a transcript path only | Antigravity-style: a transcript reader. Only if the final message is complete at hook time, or a bounded completion signal was observed, **and** the current turn can be isolated from user, tool and earlier-turn records. | Medium |
 | `Stop` fires only at session end | Read the whole session log at `SessionEnd`. Capture stops being incremental, which is a spec question before it is a code question. | Medium, needs a spec decision |
 | No hook gives access to the reply | Recall only: a getting-started section, no capture | Docs only |
 
-Capture is only viable if two more answers come back right: a hook failure must not block or abort
-the user's turn (the fail-open rule in the host-integration section; otherwise rutter's hook is a liability), and some instruction channel must reliably
-make the model emit directives without editing project files. If either fails, fall back to recall only.
+Capture is only viable if two more answers come back right. First, the **production-style wrapper**
+(with a bounded child timeout) must not block or abort the user's turn, even when the capture
+process fails or hangs (the fail-open rule in the host-integration section; otherwise rutter's hook
+is a liability). A raw hook that blocks on non-zero exit does not fail this gate by itself, because
+the wrapper contains that. Failures the wrapper cannot contain (the host failing to launch it) are
+separate evidence and do fail it if they block the turn. Second, some instruction channel must
+reliably make the model emit directives without editing project files. If either fails, fall back to
+recall only.
 
 Whatever the path, the installer follows the [host-integration rules](./memory-of-use.md#host-integration).
 Here that means baking in the vault path and an absolute `node` (the environment is cleared), touching
