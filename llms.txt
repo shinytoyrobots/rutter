@@ -2,16 +2,21 @@
 
 > A personal memory layer for AI agents. One memory, multiple agents, yours. rutter
 > keeps dated records in your own markdown notes folder, each with a content hash
-> of the notes it cites. An MCP server for Claude Code, Grok, Codex, Copilot CLI,
-> Antigravity CLI (agy), and Muse Code; a personal reference implementation.
+> of the notes it cites. An MCP (Model Context Protocol) server for six AI agent
+> harnesses, often used for non-coding work too: Claude Code, Grok, Codex, Copilot
+> CLI, Antigravity CLI (agy), and Muse Code; a personal reference implementation.
 
 ## Docs
 
 - [Home](https://ruttermemory.com/): what rutter is, in one page
-- [Design](https://ruttermemory.com/design.html): why it is built this way, and what each choice costs
-- [Getting started](https://ruttermemory.com/getting-started.html): a setup path for each client (the Claude Code plugin, or npm as rutter-memory), from install to first recall
-- [FAQ](https://ruttermemory.com/faq.html): how several clients share one memory, adding a client to a working setup, double capture, and known issues
-- [Memory of use](https://ruttermemory.com/memory-of-use.html): capture, recall, enrichment, note identity, positions
+- [Get started](https://ruttermemory.com/getting-started.html): a setup path for each client (the Claude Code plugin, or npm as rutter-memory), from install to first recall
+- [Docs](https://ruttermemory.com/docs.html): every page, in reading order
+- [Why is it built this way?](https://ruttermemory.com/design.html): the design, and what each choice costs
+- [How it works](https://ruttermemory.com/memory-of-use.html): memory-of-use, the record of how you used your notes: capture, recall, enrichment, note identity, positions
+- [FAQ](https://ruttermemory.com/faq.html): how several clients share one memory, adding a client to a working setup, double capture, and missing records
+- [From source](https://ruttermemory.com/from-source.html): set up Claude Code from a clone, for contributors
+- [Manage and privacy](https://ruttermemory.com/manage-and-privacy.html): notice, pause, or remove capture, and what leaves your machine
+- [Known issues](https://ruttermemory.com/known-issues.html): what is confirmed broken or untested
 
 ## Optional
 

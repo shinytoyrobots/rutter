@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>rutter — the design: why it is built this way</title>
+<title>rutter — why is it built this way?</title>
 <meta name="description" content="Why rutter is built the way it is, and what each choice costs. Append-only dated records in your own markdown notes folder, each reference carrying a content hash of the note it cites.">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
@@ -27,12 +27,10 @@
     <a class="wordmark" href="index.html">rutter_</a>
     <nav class="site-nav" aria-label="Site">
       <ul>
-        <li><a href="index.html">home</a></li>
-        <li><a href="design.html" aria-current="page">design</a></li>
-        <li><a href="getting-started.html">getting-started</a></li>
-        <li><a href="faq.html">faq</a></li>
-        <li><a href="memory-of-use.html">memory-of-use</a></li>
-        <li><a href="https://github.com/shinytoyrobots/rutter">source on GitHub</a></li>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="getting-started.html">Get started</a></li>
+        <li><a href="docs.html" aria-current="page">Docs</a></li>
+        <li><a href="https://github.com/shinytoyrobots/rutter">GitHub</a></li>
       </ul>
     </nav>
   </div>
@@ -73,7 +71,7 @@ options, and treat that as my decision.&quot;</em> The session picked fortnightl
 instructions ask, ended its reply with one line:</p>
 <pre><code class="language-text">&lt;!-- librarian-session {"summary":"Decided to move the newsletter from weekly to fortnightly, one long essay per issue, based on the autumn reader survey (48% want fewer, longer issues; top request was more depth per topic). Main risk: readers forgetting between issues.","refs":["Notes/reader-survey.md","Notes/publishing-cadence.md"]} --&gt;
 </code></pre>
-<p>The Stop hook stored that line in <code>_librarian/sessions/2026-10-09.md</code>, with the sha256 of each
+<p>The Stop hook (a script the client runs when a turn ends) stored that line in <code>_librarian/sessions/2026-10-09.md</code>, with the sha256 of each
 cited note as it stood at capture. Nobody typed the line or ran a command to save it.</p>
 <p><strong>A rename, then an edit and a rename.</strong> Next, outside any AI session, the survey note moved to
 <code>Research/reader-survey-autumn.md</code> with its contents untouched, and the folder was reindexed:</p>
@@ -124,10 +122,10 @@ notes each one cited.</p>
 <p>It gives an AI session a record of how <strong>you</strong> used a body of knowledge, rather than the specifics
 of the knowledge itself. Same store, two readers, two different memories. The
 store is objective and shareable. The memory of using it is neither.</p>
-<p>Worth being exact about the scope, because the shape of the code invites a wrong guess: this is not
-about coding sessions. A session might be research, drafting, planning, or just reading around a
-problem. The directory underneath is a knowledge vault, not a codebase — Obsidian is what it was
-built against, though nothing requires it. The inspiration is the Librarian in Neal Stephenson&#39;s
+<p>Worth being exact about the scope, because the shape of the code invites a wrong guess. The six
+clients rutter works with are coding harnesses, but its use is not limited to code. A session might
+be research, drafting, planning, or just reading around a problem. The directory underneath is a
+folder of notes, not a codebase — Obsidian is what it was built against, though nothing requires it. The inspiration is the Librarian in Neal Stephenson&#39;s
 <em>Snow Crash</em>: a companion that remembers across time and thinks alongside you — the one thing a
 stateless assistant cannot be. The name is from the age of sail: a rutter was the logbook of the
 routes actually sailed, as against the map. The map tells you what is known. The rutter is what
@@ -142,7 +140,7 @@ identity in full, read <a href="memory-of-use.html"><code>memory-of-use.md</code
 <p>Most memory features live inside one tool. Switch tools and you start again.</p>
 <p>rutter does not belong to a tool. It is a folder of markdown files plus an MCP (Model Context
 Protocol) server. Any MCP client can read the memory. Writing needs a hook that runs after each turn
-and a payload rutter knows how to read. Six clients have a supported hook today: Claude Code, Grok,
+and a payload rutter knows how to read. Six clients have a working hook today: Claude Code, Grok,
 Codex, GitHub Copilot CLI, the Antigravity command-line tool (<code>agy</code>), and Muse Code.</p>
 <p>A session summary captured in any of them is available to all of them straight away. Positions
 appear after the next reindex. The memory belongs to the folder and to you. A tool you add later
@@ -267,7 +265,7 @@ resolved or dropped. Each of those exists elsewhere.</p>
 <p>When an exact hash match cannot settle a reference, as with the edited note in the example, rutter
 leaves the call to you. Confirming a binding is a local terminal command,
 <code>npm run identity-confirm</code>, never an MCP tool. That is a firm line: a model must not be able to
-decide what a dead reference means. A confirmed binding is sticky afterwards. Suppose the vault later changes so
+decide what a dead reference means. A confirmed binding is sticky afterwards. Suppose your notes later change so
 that automatic matching would point somewhere else. The disagreement is rendered and left for you:
 <em>confirmed X; the hash now matches Y</em>.</p>
 <p>The cost is friction. Some references sit unresolved until you get round to them, and only you can
@@ -300,7 +298,7 @@ than any one. Semantic search is a stub — <code>embeddings.ts</code> is a port
 that is why the project exists. It exists for the part an ephemeral session cannot have, which is
 memory across time.</p>
 <p><strong>Not multi-user — though the store can be.</strong> Memory-of-use is personal. The store need not be.
-Several readers can point their own rutter at the same knowledge vault, each keeping their own
+Several readers can point their own rutter at the same notes folder, each keeping their own
 record of using it, and the same question gets a different answer for each, because the difference
 was never in the notes. Same store, two readers, two different memories — made literal. What stays
 single-user is the memory itself. Entries carry no user identity, so the overlay only works while
@@ -321,13 +319,14 @@ and an optional backfill of positions from records that predate capture. Both wa
 <h2 id="try-it">Try it</h2>
 <p>If you use Claude Code, install the plugin and you can be recalling in a few minutes: see the
 <a href="getting-started.html#fast-path-for-claude-code">fast path</a>. Everyone else:
-<a href="getting-started.html"><code>getting-started.md</code></a> has a setup path for Grok, Codex, Copilot CLI, Antigravity, and Muse Code, and a
-step-by-step manual route, each ending in a capture check and a recall check.</p>
+<a href="getting-started.html"><code>getting-started.md</code></a> has a setup path for Grok, Codex, Copilot CLI, Antigravity, and Muse Code,
+each ending in a capture check and a recall check. To work from a clone, see <a href="from-source.html">from source</a>.</p>
 <h2 id="further-reading">Further reading</h2>
 <ul>
 <li><a href="getting-started.html"><code>getting-started.md</code></a> — a setup path for each client, from install to first recall.</li>
 <li><a href="memory-of-use.html"><code>memory-of-use.md</code></a> — capture, recall, enrichment, note identity, positions,
 the trust boundary, and the usage gate, in full mechanical detail.</li>
+<li><a href="known-issues.html"><code>known-issues.md</code></a> — what is confirmed broken or untested.</li>
 <li><a href="https://github.com/shinytoyrobots/rutter/blob/main/docs/roadmap.md"><code>roadmap.md</code></a> — current sequencing, and what is deliberately not being built.</li>
 <li><a href="https://github.com/shinytoyrobots/rutter/blob/main/spec/spec.md"><code>../spec/spec.md</code></a> — the executable spec: Given-When-Then scenarios, the
 requirements derived from them, the tests that grade each one, and what every amendment rejected.
@@ -348,11 +347,23 @@ why every reference here carries a hash.</li>
   <p>That is the part nobody else can hold for you.</p>
 </div>
 
+<nav class="docs-nav" aria-labelledby="docs-nav-label">
+<p class="docs-nav-label" id="docs-nav-label">More in the <a href="docs.html">docs</a></p>
+<ul>
+<li><strong>Why is it built this way?</strong> — The argument for the design, and what each choice costs.</li>
+<li><a href="memory-of-use.html">How it works</a> — Capture, recall, note identity, and positions in full detail.</li>
+<li><a href="faq.html">FAQ</a> — Several clients, one memory; adding a client; missing records.</li>
+<li><a href="from-source.html">From source</a> — Set up Claude Code from a clone. For contributors.</li>
+<li><a href="manage-and-privacy.html">Manage and privacy</a> — Notice, pause, or remove capture; what leaves your machine.</li>
+<li><a href="known-issues.html">Known issues</a> — What is confirmed broken or untested.</li>
+</ul>
+</nav>
+
 </main>
 
 <footer class="site">
   <div class="footer-inner">
-    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/abb6a04">main@abb6a04</a> · <a href="sources.json">source hashes</a>.</p>
+    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/PENDING">main@PENDING</a> · <a href="sources.json">source hashes</a></p>
     <nav class="footer-more" aria-label="More from the author">
       <ul>
         <li><a href="https://robin-cannon.com">robin-cannon.com</a></li>

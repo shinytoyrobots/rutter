@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FAQ — rutter</title>
-<meta name="description" content="Answers for people using more than one AI client with rutter: shared memory, adding Grok beside Claude Code, double capture, missing records, and known issues.">
+<meta name="description" content="Answers for people using more than one AI client with rutter: shared memory, adding Grok beside Claude Code, double capture, and missing records.">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -27,12 +27,10 @@
     <a class="wordmark" href="index.html">rutter_</a>
     <nav class="site-nav" aria-label="Site">
       <ul>
-        <li><a href="index.html">home</a></li>
-        <li><a href="design.html">design</a></li>
-        <li><a href="getting-started.html">getting-started</a></li>
-        <li><a href="faq.html" aria-current="page">faq</a></li>
-        <li><a href="memory-of-use.html">memory-of-use</a></li>
-        <li><a href="https://github.com/shinytoyrobots/rutter">source on GitHub</a></li>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="getting-started.html">Get started</a></li>
+        <li><a href="docs.html" aria-current="page">Docs</a></li>
+        <li><a href="https://github.com/shinytoyrobots/rutter">GitHub</a></li>
       </ul>
     </nav>
   </div>
@@ -40,16 +38,16 @@
 
 <div class="hero">
   <h1>Frequently asked questions<span class="cursor" aria-hidden="true">▌</span></h1>
-  <p class="dek">How several clients share one memory, how to add a client to a working setup, and what is known to be broken or untested.</p>
+  <p class="dek">How several clients share one memory, and how to add a client to a working setup.</p>
 </div>
 
 <main id="main">
 
-<p>These answers are for someone who has not read the rest of the docs. They cover how rutter behaves with more than one AI client, how to add a client to a working setup, and where to look when a record does not appear. <a href="#known-issues">Known issues</a> is at the end.</p>
+<p>These answers are for someone who has not read the rest of the docs. They cover how rutter behaves with more than one AI client, how to add a client to a working setup, and where to look when a record does not appear. <a href="known-issues.html">Known issues</a> has its own page.</p>
 <p>rutter&#39;s tools (<code>librarian-*</code>), environment variables (<code>LIBRARIAN_*</code>), and the <code>_librarian/</code> folder keep the project&#39;s earlier name, <em>librarian</em>. They are all parts of rutter.</p>
 <h2 id="how-the-pieces-fit">How the pieces fit</h2>
 <h3 id="do-my-clients-share-one-memory">Do my clients share one memory?</h3>
-<p>Yes, if they all point at the same notes folder. Each client&#39;s capture hook writes to <code>_librarian/sessions/&lt;date&gt;.md</code> inside that folder. Each client reads those files back through its own rutter server. A decision captured in Grok is recalled in Codex.</p>
+<p>Yes, if they all point at the same notes folder. Each client&#39;s capture hook (a script the client runs after each turn) writes to <code>_librarian/sessions/&lt;date&gt;.md</code> inside that folder. Each client reads those files back through its own rutter server. A decision captured in Grok is recalled in Codex.</p>
 <p>If two clients point at different folders, each has its own memory. Nothing merges them.</p>
 <p>&quot;Shared&quot; means one person&#39;s tools. It does not mean sharing with other people.</p>
 <h3 id="what-is-shared-and-what-belongs-to-one-client">What is shared, and what belongs to one client?</h3>
@@ -57,7 +55,7 @@
 <ul>
 <li><code>sessions/&lt;UTC date&gt;.md</code>: one line per captured session</li>
 <li><code>positions/&lt;YYYY-MM&gt;.md</code>: stances you have formed or changed</li>
-<li><code>stateful-use.jsonl</code>: which notes your sessions touched</li>
+<li><code>stateful-use.jsonl</code>: a log of when recall and enriched search were used (timestamps only)</li>
 </ul>
 <p>Per client:</p>
 <table>
@@ -99,15 +97,12 @@
 <td>a marked block in <code>~/.config/muse/AGENTS.md</code></td>
 </tr>
 </tbody></table>
-<p>Each client also has its own MCP registration. <code>$CODEX_HOME</code>, <code>$COPILOT_HOME</code>, and <code>$GROK_HOME</code> move those clients&#39; locations.</p>
+<p>Each client also has its own MCP (Model Context Protocol) registration. <code>$CODEX_HOME</code>, <code>$COPILOT_HOME</code>, and <code>$GROK_HOME</code> move those clients&#39; locations.</p>
 <h3 id="is-there-one-rutter-server-or-several">Is there one rutter server or several?</h3>
 <p>Each client starts its own server from its own registration. Nothing connects the servers to each other. The notes folder is the shared state.</p>
 <p>The search index is a rebuildable cache, so servers can keep separate index files. The Claude Code plugin keeps its index in the plugin&#39;s data folder. An npm install keeps one under <code>~/.local/share/rutter/</code>, or under <code>$XDG_DATA_HOME</code> if you set it. A source clone uses <code>data/librarian.db</code>. All are rebuilt from your notes.</p>
 <h3 id="how-do-i-tell-which-client-wrote-a-record">How do I tell which client wrote a record?</h3>
 <p>Each record carries a <code>client</code> label in its frontmatter: <code>claude</code>, <code>grok</code>, <code>codex</code>, <code>agy</code>, <code>copilot</code>, or <code>muse</code>. The label names the host, not the model. The hook leaves it off when it cannot tell. You cannot yet filter or search by client.</p>
-<h3 id="do-i-need-claude-code-to-use-rutter">Do I need Claude Code to use rutter?</h3>
-<p>Not for Grok. The <a href="getting-started.html#grok-path">Grok path</a> installs from npm and was verified on a machine that has never had Claude Code.</p>
-<p>For Codex, Copilot CLI, Antigravity, Muse Code, and the recall-only route, the docs describe npm-only installs. Those were tested only on a machine that also had Claude Code. See <a href="#known-issues">Known issues</a>.</p>
 <h2 id="adding-a-client">Adding a client</h2>
 <h3 id="i-have-claude-code-with-the-plugin-and-want-to-add-grok-what-do-i-do">I have Claude Code with the plugin and want to add Grok. What do I do?</h3>
 <p>Grok already runs the plugin&#39;s capture hook through its Claude Code compatibility layer. You have two routes. Pick one.</p>
@@ -117,7 +112,7 @@
 <li><p><strong>Use the Grok installer.</strong> Run the following, then follow the <a href="getting-started.html#grok-path">Grok path</a>. Skip its <code>grok mcp add</code> step if the plugin already supplies the server:</p>
 <pre><code class="language-bash">rutter-memory install-hook --client grok
 </code></pre>
-<p>If the installer finds the plugin&#39;s hook, it writes nothing and names the route it found. It still prints a <code>grok mcp add</code> line. The plugin may already supply a server, so skip that line unless you want a native registration. See the <a href="#grok-may-load-two-rutter-servers">two servers issue</a>.</p>
+<p>If the installer finds the plugin&#39;s hook, it writes nothing and names the route it found. It still prints a <code>grok mcp add</code> line. The plugin may already supply a server, so skip that line unless you want a native registration. See the <a href="known-issues.html#grok-may-load-two-rutter-servers">two servers issue</a>.</p>
 </li>
 </ol>
 <p>Check what Grok loaded with <code>grok inspect</code>, or open <code>/hooks</code> inside Grok.</p>
@@ -130,7 +125,7 @@
 <li>Run the <code>grok mcp add</code> line the installer prints. The installer never runs it for you.</li>
 <li>Start a new Grok session, do some real work, and check <code>_librarian/sessions/</code>.</li>
 </ol>
-<p>This route was verified on Linux with Grok 1.0.62 only. See <a href="#known-issues">Known issues</a> for macOS and Windows.</p>
+<p>This route was verified on Linux with Grok 1.0.62 only. See <a href="known-issues.html">Known issues</a> for macOS and Windows.</p>
 <h3 id="i-have-codex-copilot-cli-antigravity-or-muse-code-does-adding-grok-disturb-it">I have Codex, Copilot CLI, Antigravity, or Muse Code. Does adding Grok disturb it?</h3>
 <p>No. Each installer writes only its own client&#39;s files and never edits another client&#39;s. All of them write records to the same notes folder, so the new client can recall what the others captured.</p>
 <h3 id="can-a-client-that-has-no-hook-still-recall">Can a client that has no hook still recall?</h3>
@@ -169,91 +164,60 @@
 <p>The record files are rewritten whole through a temporary file and a rename, so two clients should not corrupt one. The documented effect is smaller. When a server rebuilds its index, its tables are briefly empty, and a search from another open session at that moment can return nothing. Repeat the search.</p>
 <h2 id="stopping-upgrading-and-privacy">Stopping, upgrading, and privacy</h2>
 <h3 id="how-do-i-stop-capture-for-one-client">How do I stop capture for one client?</h3>
-<p>rutter has no pause switch or uninstall command. You delete the client&#39;s hook. The list for every client is in <a href="getting-started.html#pause-capture">Pause capture</a>.</p>
+<p>rutter has no pause switch or uninstall command. You delete the client&#39;s hook. The list for every client is in <a href="manage-and-privacy.html#pause-capture">Pause capture</a>.</p>
 <h3 id="what-leaves-my-machine">What leaves my machine?</h3>
-<p>rutter makes no network calls and runs no model. What its tools return becomes part of your client&#39;s context and goes to that client&#39;s model provider. With several clients, a record captured in one is sent to whichever provider serves the client you ask in. See <a href="getting-started.html#what-leaves-your-machine">What leaves your machine</a>.</p>
+<p>rutter makes no network calls and runs no model. What its tools return becomes part of your client&#39;s context and goes to that client&#39;s model provider. With several clients, a record captured in one is sent to whichever provider serves the client you ask in. See <a href="manage-and-privacy.html#what-leaves-your-machine">What leaves your machine</a>.</p>
 <h2 id="known-issues">Known issues</h2>
-<p>Issues are listed as what you see, why, and what to do. Each is either <strong>confirmed</strong>, meaning the docs, tests, or a recorded run show it, or <strong>not tested</strong>. Not tested means it follows from reading the code and nobody has run it. rutter is a personal tool with no support commitment.</p>
-<h3 id="confirmed">Confirmed</h3>
-<h4 id="the-grok-install-was-tested-on-linux-only">The Grok install was tested on Linux only</h4>
-<p><strong>What you see:</strong> nothing yet. This is a coverage gap.</p>
-<p><strong>Why:</strong> the Grok route without Claude Code was verified in a Linux environment. The macOS recheck is still open. Windows was never tried.</p>
-<p><strong>What to do:</strong> on macOS, follow the Grok path and report what differs. See also the <a href="#not-tested">not tested</a> issues.</p>
-<h4 id="a-long-grok-turn-can-lose-the-summary-line">A long Grok turn can lose the summary line</h4>
-<p><strong>What you see:</strong> no record from a Grok session whose final reply was very long.</p>
-<p><strong>Why:</strong> Grok truncates the final message it gives the hook at 32,768 characters, and the summary line is at the end.</p>
-<p><strong>What to do:</strong> keep the final reply well under that length, so the summary line stays in the part Grok passes on.</p>
-<h4 id="capture-depends-on-the-model">Capture depends on the model</h4>
-<p><strong>What you see:</strong> a session with real work and no record.</p>
-<p><strong>Why:</strong> the hook only lifts a line the model wrote. Models skipped it in tests. Muse Code wrote it on four of five ordinary tasks. In the Copilot CLI trial it wrote the line only with a Copilot-specific lead line. <code>agy</code> models wrote none without the always-on rule file.</p>
-<p><strong>What to do:</strong> keep each client&#39;s instructions file in place. Do not delete it as clutter.</p>
-<h4 id="two-summary-lines-collapse-to-one">Two summary lines collapse to one</h4>
-<p><strong>What you see:</strong> only the last of two lines in a final reply is stored.</p>
-<p><strong>Why:</strong> the hook keeps the last directive it finds in what it reads.</p>
-<p><strong>What to do:</strong> write one line per turn.</p>
-<h4 id="muse-code-codex-and-copilot-cli-have-client-specific-limits">Muse Code, Codex, and Copilot CLI have client-specific limits</h4>
-<ul>
-<li><strong>Muse Code:</strong> a project <code>AGENTS.md</code> in an untrusted workspace may suppress the user-level rule. The <code>muse</code> command name can also collide with a cmux binary.</li>
-<li><strong>Codex:</strong> the hook never runs until you trust it in <code>/hooks</code>. It needs Node on <code>PATH</code>, which a Dock launch may not provide.</li>
-<li><strong>Copilot CLI:</strong> the server receives only <code>PATH</code>, so the notes folder must be in the <code>copilot mcp add</code> line.</li>
+<p>Known issues now have their own page: <a href="known-issues.html">Known issues</a>. It lists what is confirmed, such as the Grok install being tested on Linux only, and what is not tested yet.</p>
+<p>The entries that used to be on this page, each linking to its new home:</p>
+<ul class="moved">
+<li id="confirmed"><a href="known-issues.html#confirmed">Confirmed</a>: now on the Known issues page.</li>
+<li id="the-grok-install-was-tested-on-linux-only"><a href="known-issues.html#the-grok-install-was-tested-on-linux-only">The Grok install was tested on Linux only</a>: now on the Known issues page.</li>
+<li id="a-long-grok-turn-can-lose-the-summary-line"><a href="known-issues.html#a-long-grok-turn-can-lose-the-summary-line">A long Grok turn can lose the summary line</a>: now on the Known issues page.</li>
+<li id="capture-depends-on-the-model"><a href="known-issues.html#capture-depends-on-the-model">Capture depends on the model</a>: now on the Known issues page.</li>
+<li id="two-summary-lines-collapse-to-one"><a href="known-issues.html#two-summary-lines-collapse-to-one">Two summary lines collapse to one</a>: now on the Known issues page.</li>
+<li id="muse-code-codex-and-copilot-cli-have-client-specific-limits"><a href="known-issues.html#muse-code-codex-and-copilot-cli-have-client-specific-limits">Muse Code, Codex, and Copilot CLI have client-specific limits</a>: now on the Known issues page.</li>
+<li id="some-labels-are-missing"><a href="known-issues.html#some-labels-are-missing">Some labels are missing</a>: now on the Known issues page.</li>
+<li id="there-is-no-pause-or-uninstall-command"><a href="known-issues.html#there-is-no-pause-or-uninstall-command">There is no pause or uninstall command</a>: now on the Known issues page.</li>
+<li id="the-default-notes-folder-is-the-authors"><a href="known-issues.html#the-default-notes-folder-is-the-authors">The default notes folder is the author&#39;s</a>: now on the Known issues page.</li>
+<li id="a-new-position-is-not-recalled-at-once"><a href="known-issues.html#a-new-position-is-not-recalled-at-once">A new position is not recalled at once</a>: now on the Known issues page.</li>
+<li id="references-show-what-the-session-listed"><a href="known-issues.html#references-show-what-the-session-listed">References show what the session listed</a>: now on the Known issues page.</li>
+<li id="some-clients-are-not-covered"><a href="known-issues.html#some-clients-are-not-covered">Some clients are not covered</a>: now on the Known issues page.</li>
+<li id="not-tested"><a href="known-issues.html#not-tested">Not tested</a>: now on the Known issues page.</li>
+<li id="grok-may-load-two-rutter-servers"><a href="known-issues.html#grok-may-load-two-rutter-servers">Grok may load two rutter servers</a>: now on the Known issues page.</li>
+<li id="codex-copilot-cli-antigravity-and-muse-code-without-claude-code"><a href="known-issues.html#codex-copilot-cli-antigravity-and-muse-code-without-claude-code">Codex, Copilot CLI, Antigravity, and Muse Code without Claude Code</a>: now on the Known issues page.</li>
+<li id="macos-and-windows"><a href="known-issues.html#macos-and-windows">macOS and Windows</a>: now on the Known issues page.</li>
+<li id="launching-a-client-from-the-desktop-on-macos"><a href="known-issues.html#launching-a-client-from-the-desktop-on-macos">Launching a client from the desktop on macOS</a>: now on the Known issues page.</li>
+<li id="native-windows"><a href="known-issues.html#native-windows">Native Windows</a>: now on the Known issues page.</li>
+<li id="symlinked-configuration-files"><a href="known-issues.html#symlinked-configuration-files">Symlinked configuration files</a>: now on the Known issues page.</li>
+<li id="newer-client-versions"><a href="known-issues.html#newer-client-versions">Newer client versions</a>: now on the Known issues page.</li>
+<li id="do-i-need-claude-code-to-use-rutter"><a href="known-issues.html#codex-copilot-cli-antigravity-and-muse-code-without-claude-code">Do I need Claude Code to use rutter?</a>: answered in the known issues entry on running without Claude Code.</li>
 </ul>
-<h4 id="some-labels-are-missing">Some labels are missing</h4>
-<p><strong>What you see:</strong> a record with no <code>client</code> label.</p>
-<p><strong>Why:</strong> hand-registered hooks from before the label existed, and turns the hook cannot attribute, get none. There is no filter by client yet.</p>
-<p><strong>What to do:</strong> none needed. A label is left off rather than guessed.</p>
-<h4 id="there-is-no-pause-or-uninstall-command">There is no pause or uninstall command</h4>
-<p><strong>What you see:</strong> you cannot turn capture off with a command.</p>
-<p><strong>Why:</strong> the installers only add files.</p>
-<p><strong>What to do:</strong> delete the hook file, as described in <a href="getting-started.html#pause-capture">Pause capture</a>.</p>
-<h4 id="the-default-notes-folder-is-the-authors">The default notes folder is the author&#39;s</h4>
-<p><strong>What you see:</strong> zero notes found, and no error.</p>
-<p><strong>Why:</strong> an unreadable or wrong folder produces a successful empty index. The default is <code>~/Documents/knowledge-vault</code>.</p>
-<p><strong>What to do:</strong> set <code>LIBRARIAN_VAULT_PATH</code>, then check that <code>/mcp</code> or <code>rutter-memory recent</code> shows your notes.</p>
-<h4 id="a-new-position-is-not-recalled-at-once">A new position is not recalled at once</h4>
-<p><strong>What you see:</strong> a position you just captured is not found.</p>
-<p><strong>Why:</strong> positions are recalled from the index, which updates when a server starts or you reindex.</p>
-<p><strong>What to do:</strong> restart the client, or reindex.</p>
-<h4 id="references-show-what-the-session-listed">References show what the session listed</h4>
-<p><strong>What you see:</strong> a reference that matches a note whose text has since changed.</p>
-<p><strong>Why:</strong> a reference records which notes the session cited, not which it read. A note edited in place at the same path is not flagged.</p>
-<p><strong>What to do:</strong> compare the stored hash with the note when it matters.</p>
-<h4 id="some-clients-are-not-covered">Some clients are not covered</h4>
-<p>Capture is not checked in Cowork. The Antigravity IDE is not covered, only the <code>agy</code> command-line tool.</p>
-<h3 id="not-tested">Not tested</h3>
-<p>These come from reading the code and the docs, not from running them.</p>
-<h4 id="grok-may-load-two-rutter-servers">Grok may load two rutter servers</h4>
-<p><strong>What you see:</strong> the Claude Code plugin and a native <code>grok mcp add rutter</code> registration are both present.</p>
-<p><strong>Why:</strong> the plugin may supply a server, and the installer prints the registration line even when it finds the plugin. Only hook double-firing was probed. Whether Grok then shows two servers is not confirmed.</p>
-<p><strong>What to do:</strong> register one route. If you use the plugin, skip the printed <code>grok mcp add</code> line. Fixing this is on the <a href="https://github.com/shinytoyrobots/rutter/blob/main/docs/roadmap.md#phase-7--grok-without-claude-code-proposal">roadmap</a>.</p>
-<h4 id="macos-and-windows">macOS and Windows</h4>
-<p>The Grok installer, the hook, and the instructions-file writers assume a POSIX shell and home-directory layout. Most of the next entries follow from that.</p>
-<h4 id="launching-a-client-from-the-desktop-on-macos">Launching a client from the desktop on macOS</h4>
-<p><strong>What you might see:</strong> captures in the default folder, or a hook that cannot find <code>node</code>.</p>
-<p><strong>Why:</strong> desktop launches do not carry your shell exports. The docs report this for Codex and the <code>npx</code> route. The same likely applies to Grok.</p>
-<p><strong>What to do:</strong> launch from a terminal, or follow the <a href="getting-started.html#grok-path">Grok path</a> checks.</p>
-<h4 id="native-windows">Native Windows</h4>
-<p><strong>What you might see:</strong> the hook never runs, or the installer registers a second entry on every run.</p>
-<p><strong>Why:</strong> the hook is a bash script. Native Windows has no bash unless you use WSL or Git Bash. The installer recognizes its own entries only by forward-slash paths, and its quoting is POSIX-style. Muse Code&#39;s installer rejects vault paths that contain a backslash.</p>
-<p><strong>What to do:</strong> use WSL, where the Linux behavior applies. This is also untested.</p>
-<h4 id="symlinked-configuration-files">Symlinked configuration files</h4>
-<p><strong>What you might see:</strong> the installer refuses to continue.</p>
-<p><strong>Why:</strong> it will not replace a symlinked <code>rutter.json</code> or Muse Code settings file. Dotfile managers can create such links.</p>
-<p><strong>What to do:</strong> replace the link with a real file, then re-run.</p>
-<h4 id="newer-client-versions">Newer client versions</h4>
-<p><strong>What you might see:</strong> a hook that stops firing after a client update.</p>
-<p><strong>Why:</strong> the Grok route was verified on Grok 1.0.62. Hook formats and compatibility behavior can change.</p>
-<p><strong>What to do:</strong> re-run the installer after updating, and check for a new record.</p>
 <h2 id="see-also">See also</h2>
 <ul>
 <li><a href="getting-started.html#choose-your-path">Getting started</a>: one path per client</li>
-<li><a href="memory-of-use.html">Memory of use</a>: how capture and records work</li>
-<li><a href="design.html">Overview</a>: why rutter is built this way</li>
+<li><a href="memory-of-use.html">How it works</a>: how capture and records work (memory-of-use)</li>
+<li><a href="design.html">Why is it built this way?</a>: the design, and what each choice costs</li>
+<li><a href="known-issues.html">Known issues</a></li>
 </ul>
 
+<nav class="docs-nav" aria-labelledby="docs-nav-label">
+<p class="docs-nav-label" id="docs-nav-label">More in the <a href="docs.html">docs</a></p>
+<ul>
+<li><a href="design.html">Why is it built this way?</a> — The argument for the design, and what each choice costs.</li>
+<li><a href="memory-of-use.html">How it works</a> — Capture, recall, note identity, and positions in full detail.</li>
+<li><strong>FAQ</strong> — Several clients, one memory; adding a client; missing records.</li>
+<li><a href="from-source.html">From source</a> — Set up Claude Code from a clone. For contributors.</li>
+<li><a href="manage-and-privacy.html">Manage and privacy</a> — Notice, pause, or remove capture; what leaves your machine.</li>
+<li><a href="known-issues.html">Known issues</a> — What is confirmed broken or untested.</li>
+</ul>
+</nav>
+
 </main>
+
 <footer class="site">
   <div class="footer-inner">
-    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/abb6a04">main@abb6a04</a> · <a href="sources.json">source hashes</a>.</p>
+    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/PENDING">main@PENDING</a> · <a href="sources.json">source hashes</a></p>
     <nav class="footer-more" aria-label="More from the author">
       <ul>
         <li><a href="https://robin-cannon.com">robin-cannon.com</a></li>
