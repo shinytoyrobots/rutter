@@ -271,8 +271,10 @@ Without `--vault` it uses `LIBRARIAN_VAULT_PATH` from this shell, then `~/Docume
 
 It changes two files under `~/.config/muse`, and nothing in any project:
 
-- `settings.json`: adds rutter's `Stop` hook and a `rutter` server entry with `mode: "optional"`. Muse's default, `required`, aborts the whole run when a server fails to start. Your other settings, hooks and servers are left as they are. If the file isn't valid JSON, the installer stops and changes nothing, because a broken `settings.json` can stop Muse from starting.
-- `AGENTS.md`: adds a marked block asking the model to end a reply that settles something with the session line. Your own text in that file is never touched. Muse's server instructions alone did not make the model write the line, but this user-level file did.
+- `settings.json`: adds rutter's `Stop` hook and a `rutter` server entry with `mode: "optional"`. Muse's default, `required`, aborts the whole run when a server fails to start. Your other settings, hooks and servers are kept. A hook of your own that runs rutter's script is left as it is, and so is no other command; an existing `rutter` server entry that isn't this package's is refused, not replaced. If the file isn't valid JSON, or is a symlink, the installer stops and changes nothing, because a broken `settings.json` can stop Muse from starting.
+- `AGENTS.md`: adds a block between rutter's own marker lines, asking the model to end a reply that settles something with the session line. Your text in that file is never changed; re-running replaces only the block. If the marker words appear anywhere else in the file (in prose, or inside a code fence), the installer refuses rather than guess. Muse's server instructions alone did not make the model write the line, but this user-level file did.
+
+Both files are staged before either is replaced. If Muse saved `settings.json` while the installer ran, it stops and asks you to re-run.
 
 **3. Start a new Muse session and do one small real task.** Hooks and rules load when a session starts. The session line is an HTML comment in the final reply. If the reply holds two lines, only the last is kept.
 
@@ -287,7 +289,7 @@ ls "$HOME/path/to/your/notes/_librarian/sessions/"
 Things to know:
 
 - **The `muse` name can collide.** cmux ships its own `muse` binary. If `which -a muse` lists more than one, run Meta's by full path, `~/.local/bin/muse`.
-- **A stuck hook holds up your turn.** Muse waits for a Stop hook as long as it runs. rutter's hook kills its capture process after 20 seconds (`LIBRARIAN_CAPTURE_TIMEOUT_SEC` changes that).
+- **A stuck hook holds up your turn.** Muse waits for a Stop hook as long as it runs. rutter's hook stops its capture process after 20 seconds, and force-kills it 2 seconds later if it ignores the first signal. Muse clears the hook's environment, so a shell export cannot change the limit; to change it, add `LIBRARIAN_CAPTURE_TIMEOUT_SEC=<seconds>` in front of the command in `settings.json`.
 - **Capture depends on the model writing the line.** In a trial with this rule in place, Muse wrote it on four of five ordinary tasks and left it out of small talk. A project with its own `AGENTS.md` may compete with the user-level rule.
 - **To remove it,** delete the hook and `rutter` entries from `settings.json` and the marked block from `AGENTS.md`.
 

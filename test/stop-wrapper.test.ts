@@ -89,3 +89,19 @@ test("wrapper: LIBRARIAN_NODE selects the node binary (Muse clears PATH)", () =>
   assert.equal(res.status, 0);
   assert.equal(fs.readFileSync(marker, "utf8"), "ran");
 });
+
+test("wrapper: a noisy child cannot put anything on the hook's stdout", () => {
+  const root = rig(`console.log("banner"); process.stdout.write("more");`);
+  const res = run(root, "{}");
+  assert.equal(res.status, 0);
+  assert.equal(res.stdout, "");
+});
+
+test("wrapper: a timed-out child leaves no process behind", () => {
+  const marker = path.join(vaultRoot, `wrapper-pid-${n}.txt`);
+  const root = rig(`process.getBuiltinModule("node:fs").writeFileSync(${JSON.stringify(marker)}, String(process.pid)); setInterval(() => {}, 1000);`);
+  const res = run(root, "{}", { LIBRARIAN_CAPTURE_TIMEOUT_SEC: "1" });
+  assert.equal(res.status, 0);
+  const pid = Number(fs.readFileSync(marker, "utf8"));
+  assert.throws(() => process.kill(pid, 0), "the hung child is gone");
+});

@@ -290,19 +290,36 @@ async function installMuse() {
   const END = "<!-- END rutter-capture-rule -->";
   const sq = (v) => (/[^A-Za-z0-9_@%+=:,./-]/.test(v) ? `'${v.replaceAll("'", "'\\''")}'` : v);
   const expandHome = (v) => (v === "~" ? os.homedir() : v.startsWith("~/") ? path.join(os.homedir(), v.slice(2)) : v);
-  const isOursCmd = (c) => typeof c === "string" && c.includes("/hooks/librarian-stop.sh") && /--client muse(\s|$)/.test(c);
   const mentionsScript = (c) => typeof c === "string" && c.includes("/hooks/librarian-stop.sh");
-  const vaultIn = (cmd) => {
-    const m = cmd.match(/LIBRARIAN_VAULT_PATH="\$\{LIBRARIAN_VAULT_PATH:-([^}"]*)\}"/);
-    return m ? path.resolve(expandHome(m[1].trim())) : undefined;
+  // Exactly the command this installer writes, and nothing else, counts as ours. A user's own command
+  // that merely runs the script (`... && my-audit`) is custom and is never rewritten or removed.
+  const OURS = /^LIBRARIAN_NODE=('(?:[^']|'\\'')*'|[^\s'"]+) LIBRARIAN_VAULT_PATH="\$\{LIBRARIAN_VAULT_PATH:-([^}"]*)\}" ('(?:[^']|'\\'')*'|[^\s']+) --client muse$/;
+  const parseOursCmd = (c) => {
+    const m = typeof c === "string" ? c.match(OURS) : null;
+    return m && unquote(m[3]).endsWith("/hooks/librarian-stop.sh") ? { vault: path.resolve(expandHome(m[2].trim())), script: unquote(m[3]) } : null;
   };
 
-  // ---- read and validate everything before writing anything ----
-  let cfg = {};
-  if (fs.existsSync(cfgPath)) {
-    const raw = fs.readFileSync(cfgPath, "utf8");
+  // A symlinked file would be silently replaced by a regular one on rename, cutting it off from wherever it
+  // is managed (dotfiles). Refuse rather than guess a policy.
+  for (const f of [cfgPath, rulesPath]) {
+    let st;
     try {
-      cfg = raw.trim() === "" ? {} : JSON.parse(raw);
+      st = fs.lstatSync(f);
+    } catch {
+      continue;
+    }
+    if (st.isSymbolicLink()) fail(`${f} is a symlink -- edit the real file by hand, or replace the link with a regular file, then re-run (nothing was changed).`);
+    if (!st.isFile()) fail(`${f} is not a regular file (nothing was changed).`);
+  }
+  const readIf = (f) => (fs.existsSync(f) ? fs.readFileSync(f, "utf8") : undefined);
+
+  // ---- read and validate everything before writing anything ----
+  const cfgRaw = readIf(cfgPath);
+  const rulesRaw = readIf(rulesPath);
+  let cfg = {};
+  if (cfgRaw !== undefined) {
+    try {
+      cfg = cfgRaw.trim() === "" ? {} : JSON.parse(cfgRaw);
     } catch {
       fail(`${cfgPath} is not valid JSON -- fix or move it, then re-run (nothing was changed). A broken settings.json can stop Muse from starting.`);
     }
@@ -310,6 +327,8 @@ async function installMuse() {
       fail(`${cfgPath} is not a JSON object -- fix it, then re-run (nothing was changed).`);
     }
   }
+  // Muse's validation requires this on the user file; a fresh file would otherwise fail it.
+  if (Object.keys(cfg).length === 0) cfg = { schema_version: 1 };
   if (cfg.hooks !== undefined && (cfg.hooks === null || typeof cfg.hooks !== "object" || Array.isArray(cfg.hooks))) {
     fail(`${cfgPath} has a non-object "hooks" -- fix it, then re-run (nothing was changed).`);
   }
@@ -329,13 +348,14 @@ async function installMuse() {
   const custom = [];
   for (const group of stop) {
     for (const h of Array.isArray(group?.hooks) ? group.hooks : []) {
-      if (isOursCmd(h?.command)) known.push({ group, hook: h });
+      const parsed = parseOursCmd(h?.command);
+      if (parsed) known.push({ group, hook: h, parsed });
       else if (mentionsScript(h?.command)) custom.push(h.command);
     }
   }
 
   // ONE vault for the hook and the server, decided here: the hook cannot inherit a shell's.
-  const preserved = known.length > 0 ? vaultIn(known[0].hook.command) : undefined;
+  const preserved = known.length > 0 ? known[0].parsed.vault : undefined;
   const vaultSource =
     vaultArg !== undefined ? "--vault" : preserved !== undefined ? "the existing hook" : process.env.LIBRARIAN_VAULT_PATH ? "LIBRARIAN_VAULT_PATH in this shell" : "default";
   const vaultRaw =
@@ -349,11 +369,22 @@ async function installMuse() {
   if (/[\n\r]/.test(node)) fail("the node path contains a newline.");
   const command = `LIBRARIAN_NODE=${sq(node)} LIBRARIAN_VAULT_PATH="\${LIBRARIAN_VAULT_PATH:-${vault}}" ${hookCommand} --client muse`;
 
+  // The server entry is ours only if it runs THIS package's stdio.js, identified by the package it
+  // belongs to, not by a filename another product could share.
   const stdio = path.join(import.meta.dirname, "..", "dist", "stdio.js");
+  const isRutterStdio = (a) => {
+    if (typeof a !== "string" || !/[\\/]dist[\\/]stdio\.js$/.test(a)) return false;
+    try {
+      return JSON.parse(fs.readFileSync(path.join(path.dirname(a), "..", "package.json"), "utf8")).name === "rutter-memory";
+    } catch {
+      return false;
+    }
+  };
   const existingMcp = cfg[mcpKey]?.rutter;
   if (existingMcp !== undefined) {
-    const argsOk = existingMcp !== null && typeof existingMcp === "object" && Array.isArray(existingMcp.args) && existingMcp.args.some((a) => typeof a === "string" && /[\\/]dist[\\/]stdio\.js$/.test(a));
-    if (!argsOk) fail(`${cfgPath} already has a "${mcpKey}.rutter" entry that is not this server (its args do not run dist/stdio.js) -- rename or remove it, then re-run (nothing was changed).`);
+    const ok =
+      existingMcp !== null && typeof existingMcp === "object" && !Array.isArray(existingMcp) && Array.isArray(existingMcp.args) && existingMcp.args.length === 1 && isRutterStdio(existingMcp.args[0]);
+    if (!ok) fail(`${cfgPath} already has a "${mcpKey}.rutter" entry that is not this server (it does not run rutter-memory's dist/stdio.js) -- rename or remove it, then re-run (nothing was changed).`);
   }
   const mcpEntry = {
     ...(existingMcp ?? {}),
@@ -373,29 +404,46 @@ async function installMuse() {
   const block = `${BEGIN}\n${lead}\n\n${await captureContract()}\n${END}`;
   let rulesBody;
   let rulesStatus;
-  if (fs.existsSync(rulesPath)) {
-    const existing = fs.readFileSync(rulesPath, "utf8");
-    // Detect by the marker stems, so a hand-edited marker is refused rather than duplicated.
-    const BEGIN_STEM = "BEGIN rutter-capture-rule";
-    const END_STEM = "END rutter-capture-rule";
-    const count = (needle) => existing.split(needle).length - 1;
-    const b = existing.indexOf(BEGIN);
-    const e = existing.indexOf(END);
-    if (count(BEGIN_STEM) === 0 && count(END_STEM) === 0) {
-      rulesBody = `${existing.replace(/\s*$/, "")}\n\n${block}\n`;
+  if (rulesRaw !== undefined) {
+    // Markers count only on a line of their own and outside a code fence; the same words anywhere else
+    // (prose, an example, a fenced sample) make the file ambiguous, so it is refused, not edited.
+    const lines = rulesRaw.split("\n");
+    let fence = null;
+    let markerInFence = false;
+    const begins = [];
+    const ends = [];
+    lines.forEach((line, i) => {
+      const fm = line.match(/^\s*(`{3,}|~{3,})/);
+      if (fm) {
+        if (fence === null) fence = fm[1][0];
+        else if (fm[1][0] === fence) fence = null;
+        return;
+      }
+      const bare = line.replace(/\r$/, "").trim();
+      if (bare !== BEGIN && bare !== END) return;
+      if (fence !== null) markerInFence = true;
+      else (bare === BEGIN ? begins : ends).push(i);
+    });
+    const stems = (rulesRaw.match(/(BEGIN|END) rutter-capture-rule/g) ?? []).length;
+    if (stems === 0) {
+      // Append only: every existing byte stays as it is.
+      rulesBody = rulesRaw === "" ? `${block}\n` : `${rulesRaw}${rulesRaw.endsWith("\n") ? "\n" : "\n\n"}${block}\n`;
       rulesStatus = `added the rutter block to your existing ${rulesPath}`;
-    } else if (count(BEGIN_STEM) === 1 && count(END_STEM) === 1 && b !== -1 && e > b) {
-      rulesBody = `${existing.slice(0, b)}${block}${existing.slice(e + END.length)}`;
-      rulesStatus = rulesBody === existing ? `${rulesPath} already up to date` : `updated the rutter block in ${rulesPath}`;
+    } else if (!markerInFence && begins.length === 1 && ends.length === 1 && stems === 2 && begins[0] < ends[0]) {
+      rulesBody = [...lines.slice(0, begins[0]), block, ...lines.slice(ends[0] + 1)].join("\n");
+      rulesStatus = rulesBody === rulesRaw ? `${rulesPath} already up to date` : `updated the rutter block in ${rulesPath}`;
     } else {
-      fail(`${rulesPath} has a damaged rutter block (unmatched, repeated or edited markers) -- fix or remove the block, then re-run (nothing was changed).`);
+      fail(
+        `${rulesPath} mentions the rutter block's markers somewhere other than one well-formed block on lines of their own ` +
+          "(unmatched, repeated, edited, or inside a code fence) -- fix or remove them, then re-run (nothing was changed)."
+      );
     }
   } else {
     rulesBody = `${block}\n`;
     rulesStatus = `wrote ${rulesPath}`;
   }
 
-  // ---- apply the hook ----
+  // ---- build the new settings ----
   cfg.hooks ??= {};
   cfg.hooks.Stop ??= [];
   let hookStatus;
@@ -406,36 +454,80 @@ async function installMuse() {
     for (const { group, hook } of extra) group.hooks = group.hooks.filter((h) => h !== hook);
     cfg.hooks.Stop = cfg.hooks.Stop.filter((g) => !Array.isArray(g?.hooks) || g.hooks.length > 0);
     hookStatus = `updated the Stop hook in ${cfgPath}${extra.length > 0 ? ` (removed ${extra.length} duplicate registration(s))` : ""}`;
+  } else if (custom.length > 0) {
+    // The user already runs this script their own way; adding ours would fire it twice.
+    hookStatus = `left your own Stop hook that runs this script unchanged in ${cfgPath} (its vault is whatever it sets, NOT necessarily ${vault})`;
   } else {
     cfg.hooks.Stop.push({ hooks: [{ type: "command", command }] });
     hookStatus = `registered the Stop hook in ${cfgPath}`;
   }
   cfg[mcpKey] ??= {};
   cfg[mcpKey].rutter = mcpEntry;
+  const cfgNext = `${JSON.stringify(cfg, null, 2)}\n`;
+  const cfgChanged = cfgNext !== cfgRaw;
+  const rulesChanged = rulesBody !== rulesRaw;
+  if (!cfgChanged) hookStatus = `already registered in ${cfgPath}; unchanged`;
 
-  const next = `${JSON.stringify(cfg, null, 2)}\n`;
-  const prev = fs.existsSync(cfgPath) ? fs.readFileSync(cfgPath, "utf8") : undefined;
-  if (prev === next) {
-    hookStatus = `already registered in ${cfgPath}; unchanged`;
-  } else {
-    fs.mkdirSync(museHome, { recursive: true });
-    const tmp = `${cfgPath}.librarian-tmp`;
-    fs.writeFileSync(tmp, next, "utf8");
-    fs.renameSync(tmp, cfgPath);
+  // ---- stage both files, then commit ----
+  // Unique, exclusively-created temp files (a predictable name could be a planted symlink, or shared
+  // with a second installer), both staged before either destination is replaced, and each original
+  // re-read just before its rename: a settings.json Muse saved in the meantime is never overwritten
+  // with a stale copy. A narrow window remains between that check and the rename.
+  const staged = [];
+  const stage = (dest, body, original) => {
+    const mode = fs.existsSync(dest) ? fs.statSync(dest).mode & 0o777 : dest === cfgPath ? 0o600 : 0o644;
+    const tmp = `${dest}.librarian-tmp-${process.pid}-${Math.random().toString(36).slice(2, 10)}`;
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    const fd = fs.openSync(tmp, "wx", mode);
+    staged.push({ dest, tmp, original, body });
+    try {
+      fs.writeFileSync(fd, body, "utf8");
+    } finally {
+      fs.closeSync(fd);
+    }
+  };
+  const cleanup = () => staged.forEach(({ tmp }) => fs.rmSync(tmp, { force: true }));
+  try {
+    if (cfgChanged) stage(cfgPath, cfgNext, cfgRaw);
+    if (rulesChanged) stage(rulesPath, rulesBody, rulesRaw);
+  } catch (err) {
+    cleanup();
+    fail(`could not stage the new files (${err.code ?? err.message}); nothing was changed.`);
   }
-  if (rulesBody !== undefined && !(fs.existsSync(rulesPath) && fs.readFileSync(rulesPath, "utf8") === rulesBody)) {
-    fs.mkdirSync(museHome, { recursive: true });
-    const tmp = `${rulesPath}.librarian-tmp`;
-    fs.writeFileSync(tmp, rulesBody, "utf8");
-    fs.renameSync(tmp, rulesPath);
+  for (const { dest, original } of staged) {
+    if (readIf(dest) !== original) {
+      cleanup();
+      fail(`${dest} changed while the installer was running (Muse or another editor saved it) -- re-run; nothing was changed.`);
+    }
+  }
+  const done = [];
+  try {
+    for (const s of staged) {
+      fs.renameSync(s.tmp, s.dest);
+      done.push(s);
+    }
+  } catch (err) {
+    // Put back whatever already moved, but only if it is still what we wrote.
+    for (const s of done.reverse()) {
+      try {
+        if (readIf(s.dest) === s.body) {
+          if (s.original === undefined) fs.rmSync(s.dest, { force: true });
+          else fs.writeFileSync(s.dest, s.original, "utf8");
+        }
+      } catch {
+        /* best effort */
+      }
+    }
+    cleanup();
+    fail(`could not write ${err.path ?? "the files"} (${err.code ?? err.message}); the earlier changes were rolled back.`);
   }
 
   console.error(`[install-hook] ${hookStatus}. Server entry: ${mcpKey}.rutter (mode optional). Capture rule: ${rulesStatus}.`);
   console.error(`[install-hook] VAULT for capture AND reads: ${vault}  (from ${vaultSource})`);
   if (vaultSource === "default") console.error("[install-hook]   that is the default vault. To use another, re-run with --vault <path>.");
   console.error("[install-hook] Muse runs hooks with a cleared environment, so this vault is baked into the hook; start a new Muse session to pick it up.");
-  if (custom.length > 0) {
-    console.error(`[install-hook] note: another Stop hook already runs this script without --client muse (${custom.length}); it will fire too (capture dedupes).`);
+  if (custom.length > 0 && known.length > 0) {
+    console.error(`[install-hook] note: another Stop hook already runs this script by a custom command (${custom.length}); it will fire too (capture dedupes).`);
   }
   console.error("[install-hook] The `muse` command may collide with another tool on PATH (cmux ships one): run Meta's by full path, ~/.local/bin/muse.");
   console.error(`[install-hook] Then check ${vault}/_librarian/sessions/ after a turn. The session line must be in the final reply.`);
