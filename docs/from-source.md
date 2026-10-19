@@ -2,7 +2,7 @@
 
 This page is for contributors. It sets up Claude Code from a clone of the repository instead of the plugin, which is the route to take if you want to change rutter's code. Everyone else should use a path on [Getting started](./getting-started.md#choose-your-path).
 
-The steps are numbered M1 to M8 so they never collide with the numbered steps on the per-client paths. They start with a record written by hand, so you can see storage and recall work before adding the hook, then turn on ambient capture. A record written by hand shows that storage and recall work. It does not show ambient capture, which needs a real session and a hook.
+The steps are numbered M1 to M8 so they never collide with the numbered steps on the per-client paths. They start with a record written by hand, so you can see storage and recall work before adding the hook (a script the client runs after each turn), then turn on ambient capture. A record written by hand shows that storage and recall work. It does not show ambient capture, which needs a real session and a hook.
 
 *Output shape verified against code. The sample output on this page is illustrative, not a recorded run: your paths, dates, counts, and version strings will differ.*
 

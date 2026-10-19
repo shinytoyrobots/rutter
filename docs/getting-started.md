@@ -282,7 +282,7 @@ npm install -g rutter-memory
 rutter-memory install-hook --client muse --vault "$HOME/path/to/your/notes"
 ```
 
-Without `--vault` it uses `LIBRARIAN_VAULT_PATH` from this shell, then `~/Documents/knowledge-vault`. Re-running keeps the vault the hook already uses unless you pass a new one.
+Without `--vault` it uses `LIBRARIAN_VAULT_PATH` from this shell, then `~/Documents/knowledge-vault`. Re-running keeps the notes folder the hook already uses unless you pass a new one.
 
 It changes two files under `~/.config/muse`, and nothing in any project:
 
@@ -368,13 +368,13 @@ You now have ambient capture running end-to-end. These are worth reading once th
 
 The project also measures whether any of this actually gets used. `npm run gate`, from a [clone](./from-source.md), shows the per-ISO-week count; [Measuring whether it gets used](./memory-of-use.md#measuring-whether-it-gets-used) explains what it is for.
 
-The server refreshes its index each time it starts, so a new session picks up changes to your notes on its own. Run `rutter-memory reindex` when you want a refresh without restarting. The index is a disposable cache — your files stay the source of truth.
+The server refreshes its index each time it starts, so a new session picks up changes to your notes on its own. Run `rutter-memory reindex` (`npm run reindex` from a [clone](./from-source.md)) when you want a refresh without restarting. The index is a disposable cache — your files stay the source of truth.
 
 ## If something goes wrong
 
 Each entry starts with what you see, then the usual cause, then the fix. Questions about using several clients together are in the [FAQ](./faq.md).
 
-**`0 notes indexed` after a reindex.** The notes path is wrong, and an unreadable directory is not an error. Check the `vault:` line against where your notes actually are, re-export `LIBRARIAN_VAULT_PATH`, and reindex again with `rutter-memory reindex`.
+**`0 notes indexed` after a reindex.** The notes path is wrong, and an unreadable directory is not an error. Check the `vault:` line against where your notes actually are, re-export `LIBRARIAN_VAULT_PATH`, and reindex again with `rutter-memory reindex` (`npm run reindex` from a clone).
 
 **Every tool answers "rutter's index … belongs to the vault …".** Two notes folders share one index file, because both clients set the same `LIBRARIAN_DB_PATH`. The index serves only the folder that built it, so the second is refused rather than shown the first folder's notes. Remove `LIBRARIAN_DB_PATH` from one client so it gets its own index, or give it a different path. To hand the file over to the second folder instead, run `rutter-memory reindex --force` with that folder; the first client is then refused.
 
@@ -383,7 +383,7 @@ Each entry starts with what you see, then the usual cause, then the fix. Questio
 **No file appears in `_librarian/sessions/`.** Work through these in order:
 
 1. Hooks are read at session start. Quit your client and start it again.
-2. Re-run the hook installer for your client (`rutter-memory install-hook --client <name>`, or no flag for Claude Code) and read what it prints. From a clone, it should print `registered the Stop hook` or `already registered`; if it prints `dist/capture-cli.js is missing`, run `npm run build` and install again ([From source, M6](./from-source.md#m6--install-the-stop-hook)).
+2. Re-run the hook installer for your client (`rutter-memory install-hook --client <name>`, or no flag for Claude Code; `npm run install-hook` from a clone) and read what it prints. From a clone, it should print `registered the Stop hook` or `already registered`; if it prints `dist/capture-cli.js is missing`, run `npm run build` and install again ([From source, M6](./from-source.md#m6--install-the-stop-hook)).
 3. Check that the notes path your client sees is the one you meant. The `env` block in `~/.claude/settings.json` covers Claude Code. Grok and Codex read the shell that launched them. Antigravity uses the folder its installer chose.
 4. Do real work first. An empty summary, or one still wrapped in `<angle brackets>`, captures nothing.
 5. If captures still refuse to land, the README documents a `CLAUDE.md` paste-in as a last-resort fallback.

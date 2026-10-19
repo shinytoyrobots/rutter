@@ -20,7 +20,7 @@ Shared, in the notes folder under `_librarian/`:
 
 - `sessions/<UTC date>.md`: one line per captured session
 - `positions/<YYYY-MM>.md`: stances you have formed or changed
-- `stateful-use.jsonl`: which notes your sessions touched
+- `stateful-use.jsonl`: a log of when recall and enriched search were used (timestamps only)
 
 Per client:
 
