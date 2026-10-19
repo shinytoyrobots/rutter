@@ -45,12 +45,6 @@ The search index is a rebuildable cache, so servers can keep separate index file
 
 Each record carries a `client` label in its frontmatter: `claude`, `grok`, `codex`, `agy`, `copilot`, or `muse`. The label names the host, not the model. The hook leaves it off when it cannot tell. You cannot yet filter or search by client.
 
-### Do I need Claude Code to use rutter?
-
-Not for Grok. The [Grok path](./getting-started.md#grok-path) installs from npm and was verified on a machine that has never had Claude Code.
-
-For Codex, Copilot CLI, Antigravity, Muse Code, and the recall-only route, the docs describe npm-only installs. Those were tested only on a machine that also had Claude Code. See [Known issues](#known-issues).
-
 ## Adding a client
 
 ### I have Claude Code with the plugin and want to add Grok. What do I do?
@@ -248,6 +242,14 @@ These come from reading the code and the docs, not from running them.
 **Why:** the plugin may supply a server, and the installer prints the registration line even when it finds the plugin. Only hook double-firing was probed. Whether Grok then shows two servers is not confirmed.
 
 **What to do:** register one route. If you use the plugin, skip the printed `grok mcp add` line. Fixing this is on the [roadmap](./roadmap.md#phase-7--grok-without-claude-code-proposal).
+
+#### Codex, Copilot CLI, Antigravity, and Muse Code without Claude Code
+
+**What you see:** nothing known. These installs use npm and do not need the Claude Code plugin.
+
+**Why:** they were tested only on a machine that also had Claude Code, so a problem on a clean machine is possible.
+
+**What to do:** if one fails on a machine without Claude Code, please [open an issue](https://github.com/shinytoyrobots/rutter/issues).
 
 #### macOS and Windows
 
