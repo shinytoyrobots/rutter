@@ -132,7 +132,17 @@
 <td>Eight steps (M1 to M8), starting with a record written by hand. For contributors</td>
 </tr>
 </tbody></table>
+<p class="footnote">Grok was verified on Linux only (<a href="known-issues.html#the-grok-install-was-tested-on-linux-only">known issues</a>). The npm-only paths (Codex, Copilot CLI, Antigravity, Muse Code) were tested on a machine that also had Claude Code, so a clean machine is untested; see <a href="known-issues.html#codex-copilot-cli-antigravity-and-muse-code-without-claude-code">known issues</a>.</p>
 <p>Every path ends in two checks, kept separate on purpose. <strong>Capture:</strong> a new line landed in today&#39;s file under <code>_librarian/sessions/</code>. <strong>Recall:</strong> your client can answer from it. A record written by hand (<a href="from-source.html#m3--capture-your-first-memory-by-hand">From source, M3</a>) shows that storage and recall work. It does not show ambient capture, which needs a real session and a hook.</p>
+<h3 id="installation-verified-when">Installation verified when…</h3>
+<p>Configured is not the same as tested. Your install works when all four are true:</p>
+<ul>
+<li>A decision was captured: a new line landed in today&#39;s file under <code>_librarian/sessions/</code>.</li>
+<li>It appears in the local record: <code>npm run recent</code> (or your client&#39;s recall) lists it with its date.</li>
+<li>A later session in the same client can recall it.</li>
+<li>A different client, if you set up a second one, retrieves it from the same notes folder.</li>
+</ul>
+<p>To switch capture off or remove a record, see <a href="manage-and-privacy.html">Manage and privacy</a>.</p>
 <h2 id="about-this-lesson">About this lesson</h2>
 <p><em>Output shape verified against code. The sample output on this page is illustrative, not a recorded run: your dates, project names, and counts will differ.</em></p>
 <p>This lesson gets your notes answering <em>&quot;what was I working on lately?&quot;</em> The answer comes from short records your AI sessions (in Claude Code, Grok, Codex, Copilot CLI, Antigravity, or Muse Code) leave behind on their own. Every tool you set up writes to the same records, so each one can recall what the others decided.</p>

@@ -51,7 +51,9 @@ hook (a script the client runs after each turn): Claude Code, Codex, Grok, GitHu
 Antigravity CLI (<code>agy</code>), and Muse Code. These tools are built for coding, and people also use them
 for research, drafting, and planning. rutter records any of it. Capture needs the hook to run and the
 model to leave a line.</p>
-<p><a href="design.html">Why is it built this way?</a></p>
+<p><strong><a href="getting-started.html#fast-path-for-claude-code">Get started</a></strong> takes a few minutes with Claude
+Code. <strong><a href="https://github.com/shinytoyrobots/rutter">View source</a></strong> on GitHub, or read
+<a href="design.html">why it is built this way</a>.</p>
 </div>
 <nav class="client-dir" aria-labelledby="client-dir-label">
 <p class="client-dir-label" id="client-dir-label">Choose your client</p>
@@ -67,9 +69,20 @@ model to leave a line.</p>
 </nav>
 </div>
 <h2 id="one-memory-multiple-agents">One memory. Multiple agents.</h2>
-<p>Most AI memory belongs to the tool that created it. Switch tools and you start again.</p>
-<p>rutter does not belong to a tool. A decision captured in one agent is recalled in another. The agent
-changes; the memory does not.</p>
+<h3 id="why-not-built-in-memory">Why not built-in memory?</h3>
+<p><strong>The model isn&#39;t the memory. Your notes are.</strong> The records are plain Markdown files in your own
+notes folder (in a <code>_librarian/</code> folder beside the notes), not inside a model or a vendor&#39;s account.</p>
+<p>Memory built into one tool stays with that tool. Switch tools and you start again. rutter differs in
+three ways:</p>
+<ul>
+<li><strong>It travels.</strong> A decision captured in one agent is recalled in another. The agent changes; the
+memory does not.</li>
+<li><strong>It keeps order.</strong> Records are dated and only appended, so a later decision sits beside the
+earlier one instead of replacing it.</li>
+<li><strong>It shows its sources.</strong> Each record lists the notes the session cited, with a content hash (a
+fingerprint of a note&#39;s contents) taken at capture. Listed is not read: a reference does not show
+that the model opened the note.</li>
+</ul>
 <p>&quot;Shared&quot; means one person&#39;s agents sharing one memory. It does not mean shared between people.</p>
 <h2 id="six-clients"><span id="six-clients-one-memory"></span>Six clients, one memory</h2>
 <p>Start with the one you use most and add the others later. Point them all at the same notes folder
@@ -131,50 +144,46 @@ run.</p>
 entry</a>. It cannot capture, because capture needs a hook.</p>
 <h2 id="a-record-not-a-summary">A record, not a summary</h2>
 <p>A summary on its own is an assertion. rutter stores the summary together with the notes it cited,
-and a hash of each note&#39;s contents taken when the line was captured. That pair is a record you can
+and a content hash (a fingerprint of the note&#39;s contents) taken when the line was captured. That pair is a record you can
 compare against later. The <a href="design.html#an-example">worked example</a> shows one end to end.</p>
 <h2 id="inspectable-by-design">Inspectable by design</h2>
 <p>Records are append-only, dated Markdown files in your own notes folder. You can read them in a
 terminal and commit them to git. rutter infers no profile of you. A reference it cannot place is
 shown to you as unresolved, not dropped.</p>
-<h2 id="proof">Proof</h2>
-<p>This is a real run, recorded on <time class="date" datetime="2026-10-09">9 October 2026</time>. The two notes are fictional. The output below is the
-recorded output, unedited. The <a href="design.html#an-example">full run</a> has the rename steps in between.</p>
+<h2 id="proof">Proof: a decision, recalled in another agent</h2>
+<p>Recorded on <time class="date" datetime="2026-10-09">9 October 2026</time> with Claude Code 2.1.296 and Codex 0.162.0, against rutter 0.5.0. The two
+notes are fictional. The run is real.</p>
 <ol class="route" role="list">
 <li>
 <h3>Captured in Claude Code</h3>
-<p>The session ended its reply with one line:</p>
-<pre><code class="language-text">&lt;!-- librarian-session {"summary":"Decided to move the newsletter from weekly to fortnightly, one long essay per issue, based on the autumn reader survey (48% want fewer, longer issues; top request was more depth per topic). Main risk: readers forgetting between issues.","refs":["Notes/reader-survey.md","Notes/publishing-cadence.md"]} --&gt;
-</code></pre>
+<p>A newsletter writer decides to move from weekly to fortnightly issues, citing <code>Notes/reader-survey.md</code> and <code>Notes/publishing-cadence.md</code>. The reply ends with one
+line. The hook (a script the client runs after each turn) stores it, with a content hash of each
+cited note.</p>
 </li>
 <li>
-<h3>One note renamed, one edited and renamed</h3>
-<p>Asking for recent work shows both references:</p>
-<pre><code class="language-text">$ npm run recent
-2026-10-09 22:16:53 [newsletter-notes] — Decided to move the newsletter from weekly to fortnightly, one long essay per issue, based on the autumn reader survey (48% want fewer, longer issues; top request was more depth per topic). Main risk: readers forgetting between issues.
-   <span data-state="renamed">refs: Notes/reader-survey.md@sha256:fa2bbeb8033a613517730bb689d49da31c9a1abf1601be48cd26dae4402cf75f (renamed to Research/reader-survey-autumn.md)</span>
-   <span data-state="unresolved">refs: Notes/publishing-cadence.md@sha256:e9b42627bcb83a2945080d28cc99ab7ce0248cad5e342fefab45f9f54b2e9dcb [UNRESOLVED -- candidates: none]</span>
-</code></pre>
+<h3>One note is renamed</h3>
+<p>The survey note moves to <code>Research/reader-survey-autumn.md</code>, contents
+unchanged. After a reindex (a rescan of the notes folder), rutter finds the one note with the
+stored content hash. The reference resolves, meaning it points at a note, at the new path.</p>
+</li>
+<li>
+<h3>A different note is edited and renamed</h3>
+<p>The cadence note gains a line and becomes
+<code>Notes/cadence-decision.md</code>. After a second reindex, neither the old path nor the old content hash
+matches anything. The reference is unresolved, meaning rutter cannot place it, and rutter shows it
+that way instead of guessing.</p>
 </li>
 <li>
 <h3>Recalled in Codex</h3>
-<p>Asked <em>&quot;What did I decide about my newsletter&#39;s publishing cadence, when, and
-which notes did that decision cite?&quot;</em>, Codex answered:</p>
-<pre><code class="language-text">Your recorded decision was to **publish every two weeks, with one long essay per issue, replacing the weekly roundup**—because readers wanted more depth and tended to skim the roundup.
-
-It was recorded on **October 9, 2026**, with no revisions. That decision’s session cited:
-
-- **`Notes/reader-survey.md`**, now renamed `Research/reader-survey-autumn.md`: the October 2 survey favored fewer, longer issues and deeper coverage.
-- **`Notes/publishing-cadence.md`**: this reference is currently unresolved, so I couldn’t verify its contents.
-
-A separate October 5 note, `Notes/cadence-decision.md`, says **“going fortnightly from November.”** It isn’t verified as the missing cited note.
-
-Both readable notes are explicitly labeled fictional demo notes, so this describes the demo’s recorded decision.
-</code></pre>
+<p>Asked what was decided about the newsletter, when, and which notes it
+cited, Codex gave the decision and its date, listed the survey note at its new path, and flagged
+the cadence note as unresolved.</p>
 </li>
 </ol>
-<p class="version-line">This is the only recorded run on this site: captured with Claude Code 2.1.296 and recalled with
-Codex 0.162.0, against rutter 0.5.0.</p>
+<p>One boundary the run does not show. An edit to a note at the same path is not detected, and a
+reference that resolves does not check that the contents are unchanged.</p>
+<p><a href="design.html#an-example">See the full demonstration</a>: the commands, the output and the Codex
+answer, unedited.</p>
 <h2 id="honest-fit-and-limits">Honest fit and limits</h2>
 <ul>
 <li>A line exists only if your client wrote one and its hook found it.</li>
