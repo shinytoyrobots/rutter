@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>rutter — a personal memory layer for AI agents</title>
-<meta name="description" content="A personal memory layer for AI agents. One memory, multiple agents, yours: rutter keeps what you decided and the notes each session cited as plain Markdown in a folder you own, captured and recalled in six clients: Claude Code, Codex, Grok, GitHub Copilot CLI, Antigravity CLI (agy), and Muse Code.">
+<meta name="description" content="A personal memory layer for AI agents. One memory, multiple agents, yours: rutter keeps what you decided and the notes each session cited as plain Markdown in a folder you own, captured and recalled in six AI agent harnesses: Claude Code, Codex, Grok, GitHub Copilot CLI, Antigravity CLI (agy), and Muse Code.">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -27,12 +27,10 @@
     <a class="wordmark" href="index.html">rutter_</a>
     <nav class="site-nav" aria-label="Site">
       <ul>
-        <li><a href="index.html" aria-current="page">home</a></li>
-        <li><a href="design.html">design</a></li>
-        <li><a href="getting-started.html">getting-started</a></li>
-        <li><a href="faq.html">faq</a></li>
-        <li><a href="memory-of-use.html">memory-of-use</a></li>
-        <li><a href="https://github.com/shinytoyrobots/rutter">source on GitHub</a></li>
+        <li><a href="index.html" aria-current="page">Home</a></li>
+        <li><a href="getting-started.html">Get started</a></li>
+        <li><a href="docs.html">Docs</a></li>
+        <li><a href="https://github.com/shinytoyrobots/rutter">GitHub</a></li>
       </ul>
     </nav>
   </div>
@@ -41,7 +39,7 @@
 <div class="hero">
   <h1>A personal memory layer for AI agents<span class="cursor" aria-hidden="true">▌</span></h1>
   <p class="dek">One memory. Multiple agents. Yours.</p>
-  <p class="works-with-label" id="works-with-label">WORKS WITH SIX AI CODING CLIENTS</p>
+  <p class="works-with-label" id="works-with-label">WORKS WITH SIX AI AGENT HARNESSES</p>
   <ul class="works-with" aria-labelledby="works-with-label">
     <li><a href="getting-started.html#fast-path-for-claude-code">Claude Code</a></li>
     <li><a href="getting-started.html#codex-path">Codex</a></li>
@@ -55,51 +53,88 @@
 <main id="main">
 
 <p>rutter keeps a record of what you decided, which notes the session cited, and how your thinking
-changed. Once it is registered in each client and pointed at the same notes folder, each can recall
-the same records. They are stored as plain Markdown in a folder you own.</p>
-<p>Six clients capture and recall: Claude Code, Codex, Grok, GitHub Copilot CLI, Antigravity CLI
-(<code>agy</code>), and Muse Code. Any other MCP client can recall what they wrote. Capture needs the
-client&#39;s hook to run and the model to leave a line.</p>
-<p class="cta"><a class="button" href="getting-started.html#choose-your-path">Choose your client</a> <a class="button" href="design.html">Read the design</a></p>
-
-<h2>One memory. Multiple agents.</h2>
+changed (a stance you formed or changed is called a <em>position</em>). Once it is registered in each
+client and pointed at the same notes folder, each can recall the same records. They are stored as
+plain Markdown in a folder you own.</p>
+<p>Any MCP (Model Context Protocol) client can recall. Six AI agent harnesses have a working capture
+hook (a script the client runs after each turn): Claude Code, Codex, Grok, GitHub Copilot CLI,
+Antigravity CLI (<code>agy</code>), and Muse Code. These tools are built for coding, and people also use them
+for research, drafting, and planning. rutter records any of it. Capture needs the hook to run and the
+model to leave a line.</p>
+<p class="cta"><a class="button" href="getting-started.html#choose-your-path">Choose your client</a> <a class="button" href="design.html">Why is it built this way?</a></p>
+<h2 id="one-memory-multiple-agents">One memory. Multiple agents.</h2>
 <p>Most AI memory belongs to the tool that created it. Switch tools and you start again.</p>
 <p>rutter does not belong to a tool. A decision captured in one agent is recalled in another. The agent
 changes; the memory does not.</p>
 <p>&quot;Shared&quot; means one person&#39;s agents sharing one memory. It does not mean shared between people.</p>
-<h2 id="six-clients">Six clients, one memory</h2>
+<h2 id="six-clients"><span id="six-clients-one-memory"></span>Six clients, one memory</h2>
 <p>Start with the one you use most and add the others later. Point them all at the same notes folder
-and each recalls what the rest recorded. Each row links to a setup path that ends in a check you can run.</p>
+and each recalls what the rest recorded. Each row links to a setup path that ends in a check you can
+run.</p>
 <div class="table-scroll">
 <table>
 <thead>
-<tr><th scope="col">Client</th><th scope="col">What the hook reads</th><th scope="col">Setup</th><th scope="col">Verified with</th></tr>
+<tr>
+<th>Client</th>
+<th>What the hook reads</th>
+<th>Setup</th>
+<th>Verified with<sup><a href="#fn-verified" id="fnref-verified">1</a></sup></th>
+</tr>
 </thead>
-<tbody>
-<tr><th scope="row">Claude Code</th><td>The whole session transcript</td><td><a href="getting-started.html#fast-path-for-claude-code">Install the plugin</a></td><td>2.1.296</td></tr>
-<tr><th scope="row">Codex</th><td>The final reply</td><td><a href="getting-started.html#codex-path">npm install and a hook you trust</a></td><td>0.160.0</td></tr>
-<tr><th scope="row">Grok</th><td>The final reply</td><td><a href="getting-started.html#grok-path">npm install and one installer run; no Claude Code needed</a></td><td>1.0.62</td></tr>
-<tr><th scope="row">GitHub Copilot CLI</th><td>The current turn, from Copilot&#39;s transcript</td><td><a href="getting-started.html#copilot-cli-path">npm install, a hook, and an instructions file</a></td><td>1.0.98</td></tr>
-<tr><th scope="row">Antigravity CLI (<code>agy</code>)</th><td>The current turn, from <code>agy</code>&#39;s transcript</td><td><a href="getting-started.html#antigravity-path">npm install, a hook, and a rule file</a></td><td>1.3.2</td></tr>
-<tr><th scope="row">Muse Code</th><td>The final reply</td><td><a href="getting-started.html#muse-code-path">npm install and one installer run</a></td><td>1.4.10</td></tr>
-</tbody>
-</table>
+<tbody><tr>
+<td>Claude Code</td>
+<td>The whole session transcript</td>
+<td><a href="getting-started.html#fast-path-for-claude-code">Install the plugin</a></td>
+<td>2.1.296</td>
+</tr>
+<tr>
+<td>Codex</td>
+<td>The final reply</td>
+<td><a href="getting-started.html#codex-path">npm install and a hook you trust</a></td>
+<td>0.160.0</td>
+</tr>
+<tr>
+<td>Grok</td>
+<td>The final reply</td>
+<td><a href="getting-started.html#grok-path">npm install and one installer run; no Claude Code needed</a></td>
+<td>1.0.62</td>
+</tr>
+<tr>
+<td>GitHub Copilot CLI</td>
+<td>The current turn, from Copilot&#39;s transcript</td>
+<td><a href="getting-started.html#copilot-cli-path">npm install, a hook, and an instructions file</a></td>
+<td>1.0.98</td>
+</tr>
+<tr>
+<td>Antigravity CLI (<code>agy</code>)</td>
+<td>The current turn, from <code>agy</code>&#39;s transcript</td>
+<td><a href="getting-started.html#antigravity-path">npm install, a hook, and a rule file</a></td>
+<td>1.3.2</td>
+</tr>
+<tr>
+<td>Muse Code</td>
+<td>The final reply</td>
+<td><a href="getting-started.html#muse-code-path">npm install and one installer run</a></td>
+<td>1.4.10</td>
+</tr>
+</tbody></table>
 </div>
-<p>Using something else? Any MCP client can <a href="getting-started.html#recall-only-with-npx">search and recall with one config entry</a>.
-It cannot capture, because capture needs a hook.</p>
-<h2>A record, not a summary</h2>
+<p class="footnote" id="fn-verified"><sup>1</sup> The client version each setup path was last tested on. Grok was verified on Linux only (<a href="known-issues.html#the-grok-install-was-tested-on-linux-only">known issues</a>). The npm-only paths (Codex, Copilot CLI, Antigravity, Muse Code) were tested on a machine that also had Claude Code, so a clean machine is untested; see <a href="known-issues.html#codex-copilot-cli-antigravity-and-muse-code-without-claude-code">known issues</a>. The recorded run in the Proof section below used a later Codex build, 0.162.0. <a href="#fnref-verified" aria-label="Back to the table">↩</a></p>
+<p>Using something else? Any MCP client can <a href="getting-started.html#recall-only-with-npx">search and recall with one config
+entry</a>. It cannot capture, because capture needs a hook.</p>
+<h2 id="a-record-not-a-summary">A record, not a summary</h2>
 <p>A summary on its own is an assertion. rutter stores the summary together with the notes it cited,
 and a hash of each note&#39;s contents taken when the line was captured. That pair is a record you can
 compare against later. The <a href="design.html#an-example">worked example</a> shows one end to end.</p>
-<h2>Inspectable by design</h2>
+<h2 id="inspectable-by-design">Inspectable by design</h2>
 <p>Records are append-only, dated Markdown files in your own notes folder. You can read them in a
 terminal and commit them to git. rutter infers no profile of you. A reference it cannot place is
 shown to you as unresolved, not dropped.</p>
-<h2>Proof</h2>
+<h2 id="proof">Proof</h2>
 <p>This is a real run, recorded on 9 October 2026. The two notes are fictional. The output below is the
 recorded output, unedited. The <a href="design.html#an-example">full run</a> has the rename steps in between.</p>
 <p><strong>Captured in Claude Code.</strong> The session ended its reply with one line:</p>
-<pre><code class="language-text">&lt;!-- librarian-session {&quot;summary&quot;:&quot;Decided to move the newsletter from weekly to fortnightly, one long essay per issue, based on the autumn reader survey (48% want fewer, longer issues; top request was more depth per topic). Main risk: readers forgetting between issues.&quot;,&quot;refs&quot;:[&quot;Notes/reader-survey.md&quot;,&quot;Notes/publishing-cadence.md&quot;]} --&gt;
+<pre><code class="language-text">&lt;!-- librarian-session {"summary":"Decided to move the newsletter from weekly to fortnightly, one long essay per issue, based on the autumn reader survey (48% want fewer, longer issues; top request was more depth per topic). Main risk: readers forgetting between issues.","refs":["Notes/reader-survey.md","Notes/publishing-cadence.md"]} --&gt;
 </code></pre>
 <p><strong>One note renamed, one edited and renamed.</strong> Asking for recent work shows both references:</p>
 <pre><code class="language-text">$ npm run recent
@@ -120,8 +155,9 @@ A separate October 5 note, `Notes/cadence-decision.md`, says **“going fortnigh
 
 Both readable notes are explicitly labeled fictional demo notes, so this describes the demo’s recorded decision.
 </code></pre>
-<p>Captured with Claude Code 2.1.296 and recalled with Codex 0.162.0, against rutter 0.5.0.</p>
-<h2>Honest fit and limits</h2>
+<p>This is the only recorded run on this site: captured with Claude Code 2.1.296 and recalled with
+Codex 0.162.0, against rutter 0.5.0.</p>
+<h2 id="honest-fit-and-limits">Honest fit and limits</h2>
 <ul>
 <li>A line exists only if your client wrote one and its hook found it.</li>
 <li>A reference shows which notes the session listed, not that the model read them.</li>
@@ -129,14 +165,20 @@ Both readable notes are explicitly labeled fictional demo notes, so this describ
 <li>rutter is one person&#39;s tool, MIT-licensed and published as a reference implementation, with no
 support commitment.</li>
 </ul>
-<p>The full list is in <a href="design.html#what-rutter-can-and-cannot-establish">what rutter can and cannot establish</a>.
+<p>The full list is in <a href="design.html#what-rutter-can-and-cannot-establish">what rutter can and cannot establish</a>,
+and <a href="known-issues.html">known issues</a> lists what has been seen to break.
 It suits someone who keeps Markdown notes and is comfortable configuring an AI client.</p>
-<h2>Where next</h2>
+<h2 id="where-next">Where next</h2>
 <ul>
-<li><a href="getting-started.html">Getting started</a>: a setup path for each client, from install to first recall.</li>
-<li><a href="design.html">The design</a>: the argument for how rutter is built, and what each choice costs.</li>
-<li><a href="faq.html">FAQ</a>: how several clients share one memory, adding a client, and known issues.</li>
-<li><a href="memory-of-use.html">Memory of use</a>: capture, recall, and note identity in full detail.</li>
+<li><a href="getting-started.html">Get started</a>: a setup path for each client, from install to first recall.</li>
+<li><a href="docs.html">Docs</a>: the full list of pages.<ul>
+<li><a href="design.html">Why is it built this way?</a>: the argument for the design, and what each choice costs.</li>
+<li><a href="memory-of-use.html">How it works</a>: memory-of-use is the record of how you used your notes. This page
+covers capture, recall, and note identity in full detail.</li>
+<li><a href="faq.html">FAQ</a>: how several clients share one memory, and adding a client.</li>
+<li><a href="known-issues.html">Known issues</a>: what is confirmed broken or untested.</li>
+</ul>
+</li>
 <li><a href="https://github.com/shinytoyrobots/rutter">Source on GitHub</a>.</li>
 </ul>
 
@@ -144,7 +186,7 @@ It suits someone who keeps Markdown notes and is comfortable configuring an AI c
 
 <footer class="site">
   <div class="footer-inner">
-    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/abb6a04">main@abb6a04</a> · <a href="sources.json">source hashes</a>.</p>
+    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/4a49913">main@4a49913</a> · <a href="sources.json">source hashes</a></p>
     <nav class="footer-more" aria-label="More from the author">
       <ul>
         <li><a href="https://robin-cannon.com">robin-cannon.com</a></li>

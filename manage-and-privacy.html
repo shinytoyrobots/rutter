@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manage and privacy — rutter</title>
+<meta name="description" content="How to notice when rutter capture stops, pause it, remove a record, and what leaves your machine.">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="canonical" href="https://ruttermemory.com/manage-and-privacy.html">
+<link rel="stylesheet" href="style.css">
+<!-- Privacy-friendly analytics by Plausible -->
+<script async src="https://plausible.io/js/pa-4uYr10ruU_MEGNd7hGilg.js"></script>
+<script>
+  window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
+  plausible.init()
+</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<div class="scanlines" aria-hidden="true"></div>
+<div class="dead-channel" aria-hidden="true"></div>
+
+<header class="site">
+  <div class="site-inner">
+    <a class="wordmark" href="index.html">rutter_</a>
+    <nav class="site-nav" aria-label="Site">
+      <ul>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="getting-started.html">Get started</a></li>
+        <li><a href="docs.html" class="current-section">Docs</a></li>
+        <li><a href="https://github.com/shinytoyrobots/rutter">GitHub</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<div class="hero">
+  <h1>Manage capture, and what leaves your machine<span class="cursor" aria-hidden="true">▌</span></h1>
+  <p class="dek">See capture, stop it, undo it, and know what your client sends on.</p>
+</div>
+
+<main id="main">
+
+<p><em>Output shape verified against code. The sample line below is illustrative, not a recorded run: your dates, paths, and version string will differ.</em></p>
+<p>Capture runs without asking, so it helps to know how to see it, stop it, and undo it. This page describes what exists today. Where rutter has no feature for something, it says so.</p>
+<h2 id="notice-when-capture-stops">Notice when capture stops</h2>
+<ul>
+<li><strong>Look for the line.</strong> After a session that decided something, today&#39;s file in <code>_librarian/sessions/</code> should have a new entry, and <code>rutter-memory recent</code> (<code>npm run recent</code> from a <a href="from-source.html">clone</a>), or asking your client, should show it. A session with no new line was not captured.</li>
+<li><strong>Read the hook&#39;s status line.</strong> The hook is the script your client runs after each turn. After each turn it writes one line to stderr, for example <code>no session directive found; nothing captured.</code> or <code>captured 1 entry into 2026-08-05 session record in vault /Users/you/Documents/notes (rutter &lt;version&gt;).</code> When <code>LIBRARIAN_VAULT_PATH</code> was not set for the hook, the line says the default folder was used. Where a client shows hook output varies; <code>agy</code> keeps it in its log under <code>~/.gemini/antigravity-cli/log/</code>.</li>
+<li><strong>Check the <code>client</code> label.</strong> Each entry names the client that wrote it, when the hook can tell. If one client&#39;s entries stop appearing while others continue, that client has stopped capturing.</li>
+</ul>
+<p>The usage count from <code>npm run gate</code> (from a clone) measures recall, not capture. It is not a capture monitor.</p>
+<h2 id="pause-capture">Pause capture</h2>
+<p>rutter has no pause switch. A line is captured whenever the hook runs and the model has left one. To stop capture, stop the hook:</p>
+<ul>
+<li><strong>Claude Code plugin:</strong> <code>/plugin disable rutter@rutter</code> turns off the plugin&#39;s server and hook together. If you installed from the Anthropic Directory, use <code>rutter@anthropic-plugin-directory</code> wherever a command names the plugin.</li>
+<li><strong>Grok, installed with <code>install-hook --client grok</code>:</strong> delete <code>~/.grok/hooks/rutter.json</code> (or turn the hook off in Grok&#39;s <code>/hooks</code> tab).</li>
+<li><strong>Grok, through the Claude Code plugin:</strong> Grok loads the hook from your Claude Code plugin install, and it does not honor the plugin being disabled in Claude Code. Setting <code>GROK_CLAUDE_HOOKS_ENABLED=false</code> does not reach plugin hooks either. Two things do: turn the hook off in Grok&#39;s <code>/hooks</code> tab (select it and press Space), or uninstall the plugin from Claude Code with <code>/plugin uninstall rutter@rutter</code>, which removes it from Grok as well. The disable and uninstall behavior was checked with <code>grok inspect</code> on Grok 1.0.50; the <code>/hooks</code> toggle is from Grok&#39;s own documentation.</li>
+<li><strong>A hook added by <code>install-hook</code></strong> (<code>rutter-memory install-hook</code> or <code>npm run install-hook</code>): delete its entry from the hook file named in <a href="getting-started.html#before-you-start">Before you start</a>. There is no uninstall command.</li>
+<li><strong>Codex:</strong> remove the entry from <code>~/.codex/hooks.json</code>. A hook you have not trusted in <code>/hooks</code> never runs, so an untrusted hook is already paused.</li>
+<li><strong>Antigravity:</strong> remove the hook entry, and delete <code>~/.gemini/config/rules/rutter-capture.md</code> so the model stops writing lines.</li>
+<li><strong>Copilot CLI:</strong> delete <code>~/.copilot/hooks/rutter.json</code>, and delete <code>~/.copilot/instructions/rutter.instructions.md</code> so the model stops writing lines.</li>
+<li><strong>Muse Code:</strong> delete the hook and <code>rutter</code> entries from <code>~/.config/muse/settings.json</code>, and the marked block from <code>~/.config/muse/AGENTS.md</code>.</li>
+</ul>
+<p>Hooks are read at session start, so restart the client after a change. Asking the model not to leave a line in one session usually works, but nothing enforces it.</p>
+<h2 id="remove-a-record-you-dont-want">Remove a record you don&#39;t want</h2>
+<p>The server only appends; it has no delete command. The records are your markdown, so you remove an entry by hand:</p>
+<ul>
+<li><strong>A session line:</strong> open <code>_librarian/sessions/&lt;day&gt;.md</code> and delete the entry from the <code>sessions:</code> list in the frontmatter. The frontmatter is the record. The body below it is regenerated from the frontmatter the next time that day&#39;s file grows, so delete the matching body line too if you want it gone now. The day&#39;s top-level <code>refs:</code> list is also rebuilt on the next write. Recall reads these files directly, so the entry disappears from recall at once.</li>
+<li><strong>A position</strong> (a stance you formed or changed): delete the event from <code>_librarian/positions/&lt;YYYY-MM&gt;.md</code>, then run <code>rutter-memory reindex</code> (<code>npm run reindex</code> from a clone) or restart the server, because positions are recalled from the index.</li>
+<li><strong>Keep the YAML valid.</strong> If a file stops parsing, recall skips it, and capture refuses to write into it rather than overwrite it.</li>
+<li><strong>Mind your history.</strong> If your notes folder is a git repository, the line stays in its history until you rewrite that history.</li>
+</ul>
+<p>A hand edit is outside the append-only rule, which binds only the server, and nothing detects it.</p>
+<h2 id="what-leaves-your-machine">What leaves your machine</h2>
+<p>rutter&#39;s server and hook make no network calls and run no model. Your records and index stay in your notes folder and the index file.</p>
+<p>That does not settle what your AI client sends. Whatever rutter&#39;s tools return becomes part of the client&#39;s context: search snippets, a full note from <code>librarian-get-note</code>, recalled summaries, and positions. The client sends its context to its model provider under the client&#39;s own terms. rutter cannot see or change that, and makes no promise about how a provider handles it. Point rutter at a folder you are content for your client to read.</p>
+
+<nav class="docs-nav" aria-labelledby="docs-nav-label">
+<p class="docs-nav-label" id="docs-nav-label">More in the <a href="docs.html">docs</a></p>
+<ul>
+<li><a href="design.html">Why is it built this way?</a> — The argument for the design, and what each choice costs.</li>
+<li><a href="memory-of-use.html">How it works</a> — Capture, recall, note identity, and positions in full detail.</li>
+<li><a href="faq.html">FAQ</a> — Several clients, one memory; adding a client; missing records.</li>
+<li><a href="from-source.html">From source</a> — Set up Claude Code from a clone. For contributors.</li>
+<li><a href="manage-and-privacy.html" aria-current="page">Manage and privacy</a> — Notice, pause, or remove capture; what leaves your machine.</li>
+<li><a href="known-issues.html">Known issues</a> — What is confirmed broken or untested.</li>
+</ul>
+</nav>
+
+</main>
+
+<footer class="site">
+  <div class="footer-inner">
+    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/4a49913">main@4a49913</a> · <a href="sources.json">source hashes</a></p>
+    <nav class="footer-more" aria-label="More from the author">
+      <ul>
+        <li><a href="https://robin-cannon.com">robin-cannon.com</a></li>
+        <li><a href="https://static-drift.com">Fiction at static-drift.com</a>, an inspiration for this tool</li>
+      </ul>
+    </nav>
+  </div>
+</footer>
+</body>
+</html>

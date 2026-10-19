@@ -1,12 +1,16 @@
 {
-  "comment": "Content hashes of the repo docs this site was built from — the site's own ref line. Run `npm run site-drift` on main to compare; drift here means the published site has gone stale against its sources, which is exactly the failure this project exists to make visible.",
-  "builtFrom": "abb6a04",
+  "comment": "Content hashes of the repo docs this site was built from \u2014 the site's own ref line. Run `npm run site-drift` on main to compare; drift here means the published site has gone stale against its sources, which is exactly the failure this project exists to make visible.",
+  "builtFrom": "4a49913",
   "generated": "2026-10-19",
   "sources": {
-    "docs/index.md": "sha256:b749f7780b56bcb393cef22e16647cfbfdbd8ad413e159ab5b30a21411004e1a",
-    "docs/overview.md": "sha256:362c43d18281dd17310b42e9ae2a67f97b48e4815fef0636441dce9005a6d27a",
-    "docs/getting-started.md": "sha256:30aada79144a851f01b55a5fe7091f34d29c9b2b00573c4f8ea4432af945fd0b",
-    "docs/faq.md": "sha256:e7d0881efe6f22ba64bcc780e4f6949c32e63315a83c2cdfdd3974919f4534aa",
-    "docs/memory-of-use.md": "sha256:f32d304da2db6f2273b06ca88276ae3a78d367fe9f7d655dd11ac5fd157a4ec8"
+    "docs/index.md": "sha256:f6db518679262e8d625932e7652b2a637008248d7a85004b45a07582eacab6b2",
+    "docs/overview.md": "sha256:7d2d8c99b180e5e1c146ffe1aac93931f382c4fa085da56a2995db2b70bc5f58",
+    "docs/getting-started.md": "sha256:85b3f671b46fe32f72f7f0e143610e3854103d25db073d2d1e3aece1b7f6ab52",
+    "docs/faq.md": "sha256:02449c2be44c1abc302f0bdf114f24d87c20553a0103ccebb057edd49e9774a8",
+    "docs/memory-of-use.md": "sha256:93a1a2922326f6bbccf1e9ac0d3b68763475219e066e8a82722e878dc4ba2d2e",
+    "docs/from-source.md": "sha256:3c5b7175370f0ff49c2a13ccd1b44bf6e3f98a1a61eb137433f61cc50cbf043f",
+    "docs/manage-and-privacy.md": "sha256:85c3c6c66670db4642fd93d2f1818dcc318820ebf0bb02a33a4e83ca178c2031",
+    "docs/known-issues.md": "sha256:8acb881b33f34e4a10a3f9983a10dd952c241d13ce1635f882743301d2b79a8e",
+    "docs/docs.md": "sha256:8273cc642c84405ddb3abfe3752cd5c655c57687239bb1bf0b8325855cca4e8e"
   }
 }
