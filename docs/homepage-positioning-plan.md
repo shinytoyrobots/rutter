@@ -59,7 +59,7 @@ Do not fold the notes into the existing `index.html`. Make `index.html` a short 
 | A punchier page overclaims | Landing copy reviewed against the limits list; no "unique", no "never lose context". "Shared" means one person's agents, stated on the page. |
 | Two pages say the same thing differently | The landing page owns the pitch; the essay owns the argument and the limits. Shared claims get one wording. |
 | Broken inbound links | `ruttermemory.com/` stays the landing page. Check the README, `package.json`, `server.json` and registry listings for deep links to the old overview; keep the essay's content reachable at a new URL and leave a pointer. |
-| Site drift tooling | `sources.json` and `npm run site-drift` track `docs/overview.md`. Decide whether the landing page gets a source doc (preferred: `docs/index.md`) so drift detection covers it. |
+| Site drift tooling | `scripts/site-drift.mjs` has no source list of its own. It reads `sources.json` from `origin/gh-pages` and checks every source that manifest names. The landing page gets a source doc (`docs/index.md`), and drift coverage comes from adding it to `sources.json` on gh-pages. No change to the script. |
 | Scope creep | The earlier plan put layout changes out of scope. This work needs one new template page. Reuse `style.css` and the existing hero; no new visual system. |
 
 If Robin prefers the lower-effort route, the fallback is to integrate: rewrite the hero and subhead, add the "One memory. Multiple agents." section directly after the hero, and leave the rest alone. That gets about 60% of the benefit. The page stays long and the pitch stays above a wall of text, but it is a smaller change and avoids new URLs.
@@ -70,12 +70,12 @@ If Robin prefers the lower-effort route, the fallback is to integrate: rewrite t
 
 Order follows the notes:
 
-1. **Hero.** H1 "A personal memory layer for AI agents". Supporting copy: Rutter keeps a record of what you decided, which notes the session cited, and how your thinking changed. The same memory works across Claude Code, Codex, Grok, Copilot CLI and Antigravity, stored as plain Markdown in a folder you own. Tagline: "One memory. Multiple agents. Yours." Two buttons: Get started, Read the design.
+1. **Hero.** H1 "A personal memory layer for AI agents". Supporting copy: Rutter keeps a record of what you decided, which notes the session cited, and how your thinking changed. Once Rutter is registered in each client and pointed at the same notes folder, each can recall the same records, stored as plain Markdown in a folder you own. Any MCP client can recall. The five clients with supported capture hooks are Claude Code, Codex, Grok, Copilot CLI and Antigravity CLI (`agy`), and capture also needs that client's hook to write a line. Keep the condition in the hero, not only lower down. Tagline: "One memory. Multiple agents. Yours." Two buttons: Get started, Read the design.
 2. **One memory. Multiple agents.** "Most AI memory belongs to the tool that created it. Switch tools and you start again." A decision captured in one agent is recalled in another. The agent changes; the memory does not. One sentence: shared means one person's agents, not several people.
 3. **A record, not a summary.** A summary plus the notes it cited, with the content hash taken at capture. Link the worked example.
 4. **Inspectable by design.** Append-only dated Markdown in your folder; no inferred profile; references Rutter cannot place are shown, not dropped.
 5. **Proof.** A condensed three-step version of the existing real example (capture in Claude Code, rename, recall in Codex). Use the existing recorded output verbatim; do not write new output.
-6. **Honest fit and limits.** Three lines: capture happens only if the client writes the line; a reference shows what the session listed, not what the model read; one person's tool, MIT licensed, reference implementation with no support commitment. Link to the full limits.
+6. **Honest fit and limits.** Four lines: capture happens only if the client writes the line; a reference shows what the session listed, not what the model read; a note changed in place, at the same path, is not flagged today; one person's tool, MIT licensed, reference implementation with no support commitment. Link to the full limits. Re-check the list against the overview's limits paragraph at edit time so none is dropped.
 7. **Where next.** Getting started, the design argument, GitHub.
 
 ## Wording rules
@@ -84,6 +84,7 @@ Order follows the notes:
 - Keep "notes the session cited" and avoid "receipts" and "sources it rested on" (PR #68 rationale).
 - "Shared across agents, personal to you" is the positioning line. Do not claim multi-user sharing.
 - No uniqueness or "better memory" claims. The framing is who owns the memory, not retrieval quality.
+- Name the Antigravity host as "Antigravity CLI (`agy`)" everywhere on the landing page, never bare "Antigravity". The docs expressly exclude the Antigravity IDE, and the bare name implies it is supported.
 - American English. Head title and meta description updated to match the H1.
 - Rutter's own "Memory" label: the notes say "personal memory layer". The essay says rutter keeps a "record of how you used a body of knowledge". Check that "memory layer" doesn't contradict "this is not a summarizing memory tool" language anywhere in the docs.
 
@@ -91,8 +92,8 @@ Order follows the notes:
 
 Each docs PR branches from `main`; Robin merges. gh-pages is hand-authored; work in a temporary worktree and push to `gh-pages` after the paired source PR merges.
 
-1. **PR A (main):** add `docs/index.md` (landing source) and rename the role of `docs/overview.md` to the design page. Update README opening sentence to match the new H1; leave the `SERVER_INSTRUCTIONS` block alone. Update the `site-drift` manifest list to include the new source.
-2. **gh-pages port:** new `index.html` (landing), the current overview moved to `design.html`, nav changed from "overview" to "design" (or "why"), `llms.txt`, `sitemap.xml`, canonical and meta tags, `sources.json` rehash, footers `main@<short-hash>`.
+1. **PR A (main):** add `docs/index.md` (landing source) and rename the role of `docs/overview.md` to the design page. Update README opening sentence to match the new H1; leave the `SERVER_INSTRUCTIONS` block alone.
+2. **gh-pages port:** new `index.html` (landing), the current overview moved to `design.html`, nav changed from "overview" to "design" (or "why"), `llms.txt`, `sitemap.xml`, canonical and meta tags, `sources.json` rehash (add `docs/index.md` to its `sources` map, which is what puts it under `site-drift`), footers `main@<short-hash>`.
 3. **Redirect/links check:** grep README, `package.json`, `server.json`, CHANGELOG and getting-started for links to the old overview; fix or keep.
 4. **Verify deployed site:** fetch each live page, confirm text and footer, run `npm run site-drift`. Check at phone width, with the skip link, and the `prefers-reduced-motion` behavior of the scanline and cursor effects.
 5. **Optional later:** a single "decision captured in X, recalled in Y" figure on the landing page.
