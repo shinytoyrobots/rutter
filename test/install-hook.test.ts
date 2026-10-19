@@ -566,3 +566,283 @@ t("printed registrations name a lasting node on PATH when it is this same binary
   assert.ok(agy.stderr.includes(`rutter ${link} `), agy.stderr);
   assert.ok(agy.stderr.includes(`"command": ${JSON.stringify(path.join(linked, "node"))}`), agy.stderr);
 });
+
+// --- Grok: rutter owns $GROK_HOME/hooks/rutter.json; no Claude Code needed ---
+
+function grokInstall(sb: { home: string; codexHome: string }, vars: Record<string, string> = {}, ...extra: string[]) {
+  const grokHome = path.join(sb.home, ".grok-x");
+  // A developer's own GROK_* / LIBRARIAN_* settings (say GROK_CLAUDE_HOOKS_ENABLED=false) must not steer these runs.
+  const base: Record<string, string | undefined> = { ...process.env };
+  for (const k of Object.keys(base)) if (k.startsWith("GROK_") || k.startsWith("LIBRARIAN_")) delete base[k];
+  const res = spawnSync(process.execPath, [script, "--client", "grok", ...extra], {
+    env: { ...base, HOME: sb.home, CODEX_HOME: sb.codexHome, GROK_HOME: grokHome, LIBRARIAN_VAULT_PATH: "/v/notes", ...vars },
+    encoding: "utf8",
+  });
+  return { ...res, grokHome, hooksFile: path.join(grokHome, "hooks", "rutter.json") };
+}
+const grokBody = (cmd: string): string => `${JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: "command", command: cmd }] }] } }, null, 2)}\n`;
+const writeAt = (file: string, text: string): void => {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, text, "utf8");
+};
+
+t("grok: writes rutter.json under GROK_HOME with no ~/.claude, and prints a registration carrying the vault", () => {
+  const sb = sandbox();
+  const res = grokInstall(sb);
+  assert.equal(res.status, 0, res.stderr);
+  assert.deepEqual(JSON.parse(fs.readFileSync(res.hooksFile, "utf8")), {
+    hooks: { Stop: [{ hooks: [{ type: "command", command: `${hookPath} --client grok` }] }] },
+  });
+  assert.equal(fs.existsSync(path.join(sb.home, ".claude")), false, "no Claude config created");
+  assert.equal(fs.existsSync(path.join(res.grokHome, "config.toml")), false, "config.toml untouched");
+  const line = res.stderr.split("\n").find((l) => l.includes("grok mcp add"))!;
+  assert.ok(line.includes("LIBRARIAN_VAULT_PATH=/v/notes"), line);
+  assert.ok(line.includes("dist/stdio.js"), line);
+  assert.match(res.stderr, /does not run it/, "never runs the registration itself");
+});
+
+t("grok: re-running with current content writes nothing", () => {
+  const sb = sandbox();
+  const first = grokInstall(sb);
+  assert.equal(first.status, 0, first.stderr);
+  const before = fs.statSync(first.hooksFile);
+  const bytes = fs.readFileSync(first.hooksFile, "utf8");
+  fs.utimesSync(first.hooksFile, 1_000_000, 1_000_000);
+  const again = grokInstall(sb);
+  assert.equal(again.status, 0, again.stderr);
+  assert.match(again.stderr, /unchanged/);
+  assert.equal(fs.readFileSync(first.hooksFile, "utf8"), bytes);
+  assert.equal(fs.statSync(first.hooksFile).mtimeMs, 1_000_000_000, "mtime untouched, so no write happened");
+  assert.ok(before.size > 0);
+});
+
+t("grok: a moved install path is rewritten in place, with one entry", () => {
+  const sb = sandbox();
+  const file = path.join(sb.home, ".grok-x", "hooks", "rutter.json");
+  writeAt(file, grokBody("/old/prefix/lib/node_modules/rutter-memory/hooks/librarian-stop.sh --client grok"));
+  const res = grokInstall(sb);
+  assert.equal(res.status, 0, res.stderr);
+  assert.match(res.stderr, /moved from \/old\/prefix/);
+  const cfg = JSON.parse(fs.readFileSync(file, "utf8"));
+  assert.equal(cfg.hooks.Stop.length, 1);
+  assert.equal(cfg.hooks.Stop[0].hooks.length, 1);
+  assert.equal(cfg.hooks.Stop[0].hooks[0].command, `${hookPath} --client grok`);
+});
+
+t("grok: refuses a rutter.json it did not write, and one that is not JSON, changing nothing", () => {
+  for (const content of [
+    "{ not json",
+    JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: "command", command: "echo mine" }] }] } }),
+    JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: "command", command: `${hookPath} --client grok` }, { type: "command", command: "echo extra" }] }] } }),
+    JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: "command", command: `${hookPath} --client grok` }] }], SessionStart: [] } }),
+  ]) {
+    const sb = sandbox();
+    const file = path.join(sb.home, ".grok-x", "hooks", "rutter.json");
+    writeAt(file, content);
+    const res = grokInstall(sb);
+    assert.equal(res.status, 1, content);
+    assert.match(res.stderr, /nothing was changed/);
+    assert.equal(fs.readFileSync(file, "utf8"), content);
+  }
+});
+
+t("grok: leaves other files in the hooks folder alone", () => {
+  const sb = sandbox();
+  const other = path.join(sb.home, ".grok-x", "hooks", "mine.json");
+  writeAt(other, JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: "command", command: "echo mine" }] }] } }));
+  const before = fs.readFileSync(other, "utf8");
+  const res = grokInstall(sb);
+  assert.equal(res.status, 0, res.stderr);
+  assert.equal(fs.readFileSync(other, "utf8"), before);
+  assert.ok(fs.existsSync(res.hooksFile));
+});
+
+t("grok: rejects --vault, which only Antigravity and Muse take", () => {
+  const sb = sandbox();
+  const res = grokInstall(sb, {}, "--vault", "/x");
+  assert.equal(res.status, 1);
+  assert.match(res.stderr, /--vault is only for/);
+});
+
+// The competing routes, one at a time: each means Grok already runs rutter's hook.
+const claudeStop = (cmd: string): string => JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: "command", command: cmd }] }] } });
+
+for (const name of ["settings.json", "settings.local.json"]) {
+  t(`grok: skips creating an entry when ~/.claude/${name} already runs the hook`, () => {
+    const sb = sandbox();
+    writeAt(path.join(sb.home, ".claude", name), claudeStop(`${hookPath} --client claude`));
+    const res = grokInstall(sb);
+    assert.equal(res.status, 0, res.stderr);
+    assert.equal(fs.existsSync(res.hooksFile), false, "no native entry created");
+    assert.ok(res.stderr.includes(path.join(sb.home, ".claude", name)), "names the competing file");
+    assert.match(res.stderr, /grok mcp add/, "still prints the registration");
+  });
+}
+
+t("grok: skips creating an entry when the Claude Code plugin is installed", () => {
+  const sb = sandbox();
+  const installPath = path.join(sb.home, ".claude", "plugins", "cache", "rutter", "rutter", "0.8.0");
+  writeAt(path.join(installPath, "hooks", "hooks.json"), claudeStop('"${CLAUDE_PLUGIN_ROOT}"/hooks/librarian-stop.sh --client claude'));
+  writeAt(path.join(sb.home, ".claude", "plugins", "installed_plugins.json"), JSON.stringify({ version: 2, plugins: { "rutter@rutter": [{ scope: "user", installPath }] } }));
+  const res = grokInstall(sb);
+  assert.equal(res.status, 0, res.stderr);
+  assert.equal(fs.existsSync(res.hooksFile), false);
+  assert.ok(res.stderr.includes(path.join(installPath, "hooks", "hooks.json")), res.stderr);
+});
+
+t("grok: a marketplace clone or an unrelated plugin is not a competing hook", () => {
+  const sb = sandbox();
+  // The marketplace clone holds the hook file, but nothing was installed from it.
+  writeAt(path.join(sb.home, ".claude", "plugins", "marketplaces", "rutter", "hooks", "hooks.json"), claudeStop("${CLAUDE_PLUGIN_ROOT}/hooks/librarian-stop.sh"));
+  const other = path.join(sb.home, ".claude", "plugins", "cache", "x", "other", "1.0.0");
+  writeAt(path.join(other, "hooks", "hooks.json"), claudeStop("echo other"));
+  writeAt(path.join(sb.home, ".claude", "plugins", "installed_plugins.json"), JSON.stringify({ version: 2, plugins: { "other@x": [{ installPath: other }] } }));
+  writeAt(path.join(sb.home, ".claude", "settings.json"), claudeStop("echo unrelated"));
+  const res = grokInstall(sb);
+  assert.equal(res.status, 0, res.stderr);
+  assert.ok(fs.existsSync(res.hooksFile), res.stderr);
+});
+
+t("grok: skips creating an entry when a plugin folder under GROK_HOME runs the hook", () => {
+  const sb = sandbox();
+  const file = path.join(sb.home, ".grok-x", "plugins", "rutter", "hooks", "hooks.json");
+  writeAt(file, claudeStop("${CLAUDE_PLUGIN_ROOT}/hooks/librarian-stop.sh --client grok"));
+  const res = grokInstall(sb);
+  assert.equal(res.status, 0, res.stderr);
+  assert.equal(fs.existsSync(res.hooksFile), false);
+  assert.ok(res.stderr.includes(file), res.stderr);
+});
+
+t("grok: skips creating an entry when another file in ~/.grok/hooks runs the hook", () => {
+  const sb = sandbox();
+  const file = path.join(sb.home, ".grok-x", "hooks", "mine.json");
+  writeAt(file, claudeStop(`${hookPath} --client grok`));
+  const res = grokInstall(sb);
+  assert.equal(res.status, 0, res.stderr);
+  assert.equal(fs.existsSync(res.hooksFile), false);
+  assert.ok(res.stderr.includes(file), res.stderr);
+});
+
+t("grok: with a competing hook present, an entry rutter already owns is still updated, never added to", () => {
+  const sb = sandbox();
+  writeAt(path.join(sb.home, ".claude", "settings.json"), claudeStop(`${hookPath} --client claude`));
+  const file = path.join(sb.home, ".grok-x", "hooks", "rutter.json");
+  writeAt(file, grokBody("/old/prefix/hooks/librarian-stop.sh --client grok"));
+  const res = grokInstall(sb);
+  assert.equal(res.status, 0, res.stderr);
+  assert.match(res.stderr, /twice per turn/, "warns that both now exist");
+  const cfg = JSON.parse(fs.readFileSync(file, "utf8"));
+  assert.equal(cfg.hooks.Stop[0].hooks.length, 1);
+  assert.equal(cfg.hooks.Stop[0].hooks[0].command, `${hookPath} --client grok`);
+  // Unchanged content with a competitor present writes nothing.
+  fs.utimesSync(file, 1_000_000, 1_000_000);
+  assert.equal(grokInstall(sb).status, 0);
+  assert.equal(fs.statSync(file).mtimeMs, 1_000_000_000);
+});
+
+// --- Grok, adversarial-review hardening ---
+
+t("grok: a shell command that merely looks like a moved install is refused, not overwritten", () => {
+  const sb = sandbox();
+  const file = path.join(sb.home, ".grok-x", "hooks", "rutter.json");
+  const content = grokBody("echo>/user/hooks/librarian-stop.sh --client grok");
+  writeAt(file, content);
+  const res = grokInstall(sb);
+  assert.equal(res.status, 1, res.stderr);
+  assert.equal(fs.readFileSync(file, "utf8"), content);
+});
+
+t("grok: a symlinked or dangling rutter.json is refused, and a symlinked temp name is never written through", () => {
+  const sb = sandbox();
+  const dir = path.join(sb.home, ".grok-x", "hooks");
+  fs.mkdirSync(dir, { recursive: true });
+  const target = path.join(sb.home, "managed.json");
+  fs.symlinkSync(target, path.join(dir, "rutter.json")); // dangling
+  const res = grokInstall(sb);
+  assert.equal(res.status, 1, res.stderr);
+  assert.match(res.stderr, /symlink/);
+  assert.equal(fs.existsSync(target), false, "nothing written through the link");
+
+  const sb2 = sandbox();
+  const dir2 = path.join(sb2.home, ".grok-x", "hooks");
+  fs.mkdirSync(dir2, { recursive: true });
+  const victim = path.join(sb2.home, "victim.txt");
+  fs.writeFileSync(victim, "keep me");
+  fs.symlinkSync(victim, path.join(dir2, "rutter.json.librarian-tmp"));
+  assert.equal(grokInstall(sb2).status, 0);
+  assert.equal(fs.readFileSync(victim, "utf8"), "keep me", "the fixed temp name is not used");
+});
+
+t("grok: an escaped-slash hook command is still recognized as a competing hook", () => {
+  const sb = sandbox();
+  const raw = `{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"\\/pkg\\/hooks\\/librarian-stop.sh --client claude"}]}]}}`;
+  writeAt(path.join(sb.home, ".grok-x", "hooks", "mine.json"), raw);
+  const res = grokInstall(sb);
+  assert.equal(res.status, 0, res.stderr);
+  assert.equal(fs.existsSync(res.hooksFile), false);
+});
+
+t("grok: a non-Stop mention, a description, or unparseable JSON is not a competing hook", () => {
+  const sb = sandbox();
+  const dir = path.join(sb.home, ".grok-x", "hooks");
+  writeAt(path.join(dir, "a.json"), JSON.stringify({ hooks: { SessionStart: [{ hooks: [{ type: "command", command: `${hookPath}` }] }] } }));
+  writeAt(path.join(dir, "b.json"), JSON.stringify({ description: "see /pkg/hooks/librarian-stop.sh" }));
+  writeAt(path.join(dir, "c.json"), `{ broken /hooks/librarian-stop.sh`);
+  const res = grokInstall(sb);
+  assert.equal(res.status, 0, res.stderr);
+  assert.ok(fs.existsSync(res.hooksFile), res.stderr);
+});
+
+t("grok: settings.json hooks do not count while Grok's Claude hook compatibility is off, but the plugin still does", () => {
+  for (const off of ["env", "toml"]) {
+    const sb = sandbox();
+    writeAt(path.join(sb.home, ".claude", "settings.json"), claudeStop(`${hookPath} --client claude`));
+    const vars: Record<string, string> = {};
+    if (off === "env") vars.GROK_CLAUDE_HOOKS_ENABLED = "false";
+    else writeAt(path.join(sb.home, ".grok-x", "config.toml"), `[model]\nname = "x"\n\n[compat.claude]\nhooks = false\n\n[other]\nhooks = true\n`);
+    const res = grokInstall(sb, vars);
+    assert.equal(res.status, 0, res.stderr);
+    assert.ok(fs.existsSync(res.hooksFile), `${off}: settings route is inert, so a native entry is needed`);
+  }
+  const sb = sandbox();
+  const installPath = path.join(sb.home, ".claude", "plugins", "cache", "rutter", "rutter", "0.8.0");
+  writeAt(path.join(installPath, "hooks", "hooks.json"), claudeStop("${CLAUDE_PLUGIN_ROOT}/hooks/librarian-stop.sh"));
+  writeAt(path.join(sb.home, ".claude", "plugins", "installed_plugins.json"), JSON.stringify({ version: 2, plugins: { "rutter@rutter": [{ installPath }] } }));
+  const res = grokInstall(sb, { GROK_CLAUDE_HOOKS_ENABLED: "false" });
+  assert.equal(fs.existsSync(res.hooksFile), false, "the compat switch does not reach plugin hooks");
+});
+
+t("grok: Claude hook compatibility is read from real TOML (comments, quoted keys, other tables, dotted and inline forms)", () => {
+  const off = [
+    `[compat.claude] # off\nhooks = false\n`,
+    `[compat.claude]\n"hooks" = false\n`,
+    `compat.claude.hooks = false\n`,
+    `[compat]\nclaude = { hooks = false }\n`,
+    `  [ compat . claude ]\n  hooks = false # no\n`,
+  ];
+  const on = [`[compat.claude]\nhooks = true\n\n  [other]\n  hooks = false\n`, `[compat.claude]\nagents = false\n`, `[other]\nhooks = false\n`];
+  for (const [toml, expectNative] of [...off.map((x) => [x, true] as const), ...on.map((x) => [x, false] as const)]) {
+    const sb = sandbox();
+    writeAt(path.join(sb.home, ".claude", "settings.json"), claudeStop(`${hookPath} --client claude`));
+    writeAt(path.join(sb.home, ".grok-x", "config.toml"), toml);
+    const res = grokInstall(sb);
+    assert.equal(res.status, 0, res.stderr);
+    assert.equal(fs.existsSync(res.hooksFile), expectNative, toml);
+  }
+});
+
+t("grok: a Stop command that only names the script is not a competing hook; real invocations are", () => {
+  for (const [command, competing] of [
+    ["echo /pkg/hooks/librarian-stop.sh", false],
+    ["/pkg/hooks/librarian-stop.sh --client claude", true],
+    ["'/with space/hooks/librarian-stop.sh' --client claude", true],
+    ['"${CLAUDE_PLUGIN_ROOT}"/hooks/librarian-stop.sh --client claude', true],
+    ["LIBRARIAN_NODE=/n /pkg/hooks/librarian-stop.sh", true],
+  ] as const) {
+    const sb = sandbox();
+    writeAt(path.join(sb.home, ".grok-x", "hooks", "mine.json"), claudeStop(command));
+    const res = grokInstall(sb);
+    assert.equal(res.status, 0, res.stderr);
+    assert.equal(fs.existsSync(res.hooksFile), !competing, command);
+  }
+});

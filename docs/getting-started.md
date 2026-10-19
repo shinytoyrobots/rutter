@@ -7,7 +7,7 @@ Pick the path for your client. Each one is a single sequence, and each ends with
 | You use | Follow | What it takes |
 |---------|--------|---------------|
 | Claude Code | [Fast path for Claude Code](#fast-path-for-claude-code) | A few minutes; nothing to clone |
-| Grok | [Grok path](#grok-path) | The Claude Code plugin, plus one environment variable |
+| Grok | [Grok path](#grok-path) | One npm install, a hook, and one `grok mcp add`. No Claude Code needed |
 | Codex | [Codex path](#codex-path) | One npm install, and a hook you trust |
 | GitHub Copilot CLI | [Copilot CLI path](#copilot-cli-path) | One npm install, a hook, and an instructions file |
 | Antigravity CLI (`agy`) | [Antigravity path](#antigravity-path) | One npm install, a hook, and a rule file |
@@ -85,33 +85,45 @@ Your client calls `librarian-recent` and reports the session you just finished, 
 
 - **Node 22 or newer.** Check with `node -v`. npm warns at install time on an older Node — heed it, because the built-in `node:sqlite` this depends on will simply be missing. Verified on Node 26.
 - **npm**, plus git if you take the manual route from a clone.
-- **Claude Code, Grok, Codex, Copilot CLI, Antigravity, or Muse Code.** The four MCP tools work with any MCP client; the Stop hook that powers ambient capture runs in all six of these. Where each finds the hook: Claude Code runs the plugin's hook or one registered in `~/.claude/settings.json`, and Grok runs those same Claude Code hooks; Codex reads `~/.codex/hooks.json` (or `$CODEX_HOME/hooks.json`); Copilot CLI reads every file in `~/.copilot/hooks/` (or `$COPILOT_HOME/hooks/`); Antigravity reads `~/.gemini/config/hooks.json`; Muse Code reads the `hooks` block of `~/.config/muse/settings.json`. Where each finds your notes folder is a separate question, answered in [Make the path stick](#make-the-path-stick): Grok, Codex, and Copilot CLI take it from the shell that launched them, not from `~/.claude/settings.json`; Muse Code runs hooks with a cleared environment, so its installer bakes the folder into the hook.
+- **Claude Code, Grok, Codex, Copilot CLI, Antigravity, or Muse Code.** The four MCP tools work with any MCP client; the Stop hook that powers ambient capture runs in all six of these. Where each finds the hook: Claude Code runs the plugin's hook or one registered in `~/.claude/settings.json`, and Grok also runs those Claude Code hooks, but reads its own `~/.grok/hooks/` (or `$GROK_HOME/hooks/`) too, so it needs no Claude Code; Codex reads `~/.codex/hooks.json` (or `$CODEX_HOME/hooks.json`); Copilot CLI reads every file in `~/.copilot/hooks/` (or `$COPILOT_HOME/hooks/`); Antigravity reads `~/.gemini/config/hooks.json`; Muse Code reads the `hooks` block of `~/.config/muse/settings.json`. Where each finds your notes folder is a separate question, answered in [Make the path stick](#make-the-path-stick): Grok, Codex, and Copilot CLI take it from the shell that launched them, not from `~/.claude/settings.json`; Muse Code runs hooks with a cleared environment, so its installer bakes the folder into the hook.
 - **A directory of markdown notes.** Obsidian is what rutter was built against — it understands wikilinks and frontmatter — but nothing requires Obsidian itself.
 - **No compiler toolchain.** There are zero native dependencies. The index is Node's built-in SQLite, so there is nothing to build and no database to install.
 
 ## Grok path
 
-Grok picks up the rutter plugin from your Claude Code install, server and hook included. There is no separate Grok registration step, and no `grok mcp add`.
+This covers xAI's `grok` command-line tool, and it needs no Claude Code. You install rutter from npm instead. Check [Before you start](#before-you-start) first. Verified with Grok 1.0.62 on a machine that has never had Claude Code (October 2026).
 
-**1. Install the Claude Code plugin.** Follow item 1 of the [fast path](#fast-path-for-claude-code).
+**1. Install rutter.** The npm package is named `rutter-memory`, because `rutter` on npm is an unrelated library.
 
-**2. Give Grok your notes folder.** Grok does not fill in the plugin's notes-folder option. If your notes are not in the default `~/Documents/knowledge-vault`, add this to the shell profile that launches Grok, then re-source it:
+```bash
+npm install -g rutter-memory
+```
+
+**2. Choose your notes folder.** Grok runs the hook with the environment of the shell that launched it, so put this in the shell profile that starts Grok, then re-source it. If your notes are in the default `~/Documents/knowledge-vault`, skip it.
 
 ```bash
 export LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes"
 ```
 
-A line on stderr says when the default folder was used for that reason.
+**3. Install the hook, then register the server.**
 
-**3. Do one small real task.** Start Grok from that shell and make one decision or one small change. The summary line belongs at the end of Grok's final reply. The hook reads only the final assistant message, and Grok clips that message at 32,768 characters, so on a very long turn a trailing line can be cut off and lost. If the final message holds two lines, only the last is kept.
+```bash
+rutter-memory install-hook --client grok
+```
 
-**4. Check capture.** A file for today's UTC day should exist, and its new entry should carry `client: grok`:
+This writes one file, `~/.grok/hooks/rutter.json` (or `$GROK_HOME/hooks/rutter.json`), and touches nothing else. It refuses to replace a `rutter.json` it did not write. It does not register the server: it prints a `grok mcp add` line with your notes folder in it, and you run that line yourself. Grok needs no instructions file, because it shows the model the server's instructions on its own.
+
+If Grok already runs rutter's hook from the Claude Code plugin or from `~/.claude/settings.json`, the installer says which and creates no second entry, since a second hook would only run the first one twice (it still keeps a `rutter.json` it already wrote current). Capture works either way. A `~/.claude/settings.json` hook only counts while Grok's Claude compatibility for hooks is on.
+
+**4. Do one small real task.** Start a new Grok session from that shell and make one decision or one small change. The summary line belongs at the end of Grok's final reply. The hook reads only the final assistant message, and Grok clips that message at 32,768 characters, so on a very long turn a trailing line can be cut off and lost. If the final message holds two lines, only the last is kept. In testing on Linux, Grok also ran the hook once more when a headless run ended; that run had no reply to read and captured nothing.
+
+**5. Check capture.** A file for today's UTC day should exist, and its new entry should carry `client: grok`:
 
 ```bash
 ls "$LIBRARIAN_VAULT_PATH/_librarian/sessions/"
 ```
 
-**5. Check recall.** Ask Grok *"What was I working on lately?"* It should call `librarian-recent` and report the session you just finished.
+**6. Check recall.** Ask Grok *"What was I working on lately?"* It should call `librarian-recent` and report the session you just finished. If you also use Claude Code, you can instead [install its plugin](#fast-path-for-claude-code) and Grok will pick that up; use one route, not both.
 
 ## Codex path
 
@@ -335,7 +347,7 @@ The server rebuilds its index on the next start if anything it depends on has ch
 
 ```bash
 npm install -g rutter-memory
-rutter-memory install-hook --client codex   # --client antigravity, --client muse, or no flag for Claude Code
+rutter-memory install-hook --client codex   # --client antigravity, --client muse, --client grok, or no flag for Claude Code
 ```
 
 A global install lives inside one Node version's folder, so switching versions leaves the hook pointing at a path that may no longer exist. Re-running the installer moves the existing hook to the new path instead of adding a second one, and keeps the notes folder it was using. It prints the old and new paths. If you registered the server by absolute path (the Antigravity line, or the Codex fallback that names `node` and `dist/cli.js`), register it again too.
@@ -613,7 +625,8 @@ The usage count from `npm run gate` (from a clone) measures recall, not capture.
 rutter has no pause switch. A line is captured whenever the hook runs and the model has left one. To stop capture, stop the hook:
 
 - **Claude Code plugin:** `/plugin disable rutter@rutter` turns off the plugin's server and hook together.
-- **Grok:** Grok loads the hook from your Claude Code plugin install, and it does not honor the plugin being disabled in Claude Code. Setting `GROK_CLAUDE_HOOKS_ENABLED=false` does not reach plugin hooks either. Two things do: turn the hook off in Grok's `/hooks` tab (select it and press Space), or uninstall the plugin from Claude Code with `/plugin uninstall rutter@rutter`, which removes it from Grok as well. The disable and uninstall behavior was checked with `grok inspect` on Grok 1.0.50; the `/hooks` toggle is from Grok's own documentation.
+- **Grok, installed with `install-hook --client grok`:** delete `~/.grok/hooks/rutter.json` (or turn the hook off in Grok's `/hooks` tab).
+- **Grok, through the Claude Code plugin:** Grok loads the hook from your Claude Code plugin install, and it does not honor the plugin being disabled in Claude Code. Setting `GROK_CLAUDE_HOOKS_ENABLED=false` does not reach plugin hooks either. Two things do: turn the hook off in Grok's `/hooks` tab (select it and press Space), or uninstall the plugin from Claude Code with `/plugin uninstall rutter@rutter`, which removes it from Grok as well. The disable and uninstall behavior was checked with `grok inspect` on Grok 1.0.50; the `/hooks` toggle is from Grok's own documentation.
 - **A hook added by `install-hook`** (`rutter-memory install-hook` or `npm run install-hook`): delete its entry from the hook file named in [Before you start](#before-you-start). There is no uninstall command.
 - **Codex:** remove the entry from `~/.codex/hooks.json`. A hook you have not trusted in `/hooks` never runs, so an untrusted hook is already paused.
 - **Antigravity:** remove the hook entry, and delete `~/.gemini/config/rules/rutter-capture.md` so the model stops writing lines.
