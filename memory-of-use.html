@@ -30,6 +30,7 @@
         <li><a href="index.html">home</a></li>
         <li><a href="design.html">design</a></li>
         <li><a href="getting-started.html">getting-started</a></li>
+        <li><a href="faq.html">faq</a></li>
         <li><a href="memory-of-use.html" aria-current="page">memory-of-use</a></li>
         <li><a href="https://github.com/shinytoyrobots/rutter">source on GitHub</a></li>
       </ul>
@@ -161,8 +162,8 @@ record&#39;s frontmatter, not the body.</p>
 <p>Capture is <strong>ambient</strong>: it happens after each turn with no action from you inside the session. It
 is wired through a <strong>Stop hook</strong>, a hook the host runs when the assistant finishes a turn, in
 Claude Code, Grok, Codex, Copilot CLI, Antigravity, and Muse Code.</p>
-<p><strong>Setup is the hook.</strong> Register it with <code>npm run install-hook</code>, adding <code>--client codex</code>,
-<code>--client copilot</code>, <code>--client antigravity</code>, or <code>--client muse</code> for those hosts. <a href="getting-started.html#choose-your-path">Getting started</a> has a
+<p><strong>Setup is the hook.</strong> Register it with <code>npm run install-hook</code>, adding <code>--client grok</code>,
+<code>--client codex</code>, <code>--client copilot</code>, <code>--client antigravity</code>, or <code>--client muse</code> for those hosts. <a href="getting-started.html#choose-your-path">Getting started</a> has a
 setup path for each host, with its commands and checks. Two facts change behavior:</p>
 <ul>
 <li>Codex will not run the hook until you review and trust it with <code>/hooks</code>. Installing does not
@@ -173,7 +174,7 @@ grant trust, and an untrusted hook never runs.</li>
 refuses to run against an unbuilt repo. The registered script always exits cleanly, so a capture
 failure can never break your session.</p>
 <h3 id="host-differences">Host differences</h3>
-<p>All four hosts fire the same hook after each turn and store the same records, in the same notes
+<p>All six hosts fire the same hook after each turn and store the same records, in the same notes
 folder. That shared folder is how a decision captured in one tool is recalled in another. Each
 record carries a <code>client</code> label naming the host that wrote it (see <a href="#which-client-wrote-it">Which client wrote
 it</a>). The hosts differ in what text the hook reads. On every host the rule
@@ -646,7 +647,7 @@ stateful behavior does not get reached for.</p>
 
 <footer class="site">
   <div class="footer-inner">
-    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/0815f04">main@0815f04</a> · <a href="sources.json">source hashes</a>.</p>
+    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/abb6a04">main@abb6a04</a> · <a href="sources.json">source hashes</a>.</p>
     <nav class="footer-more" aria-label="More from the author">
       <ul>
         <li><a href="https://robin-cannon.com">robin-cannon.com</a></li>
