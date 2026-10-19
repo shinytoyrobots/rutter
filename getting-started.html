@@ -62,7 +62,7 @@
 <tr>
 <td>Grok</td>
 <td><a href="#grok-path">Grok path</a></td>
-<td>The Claude Code plugin, plus one environment variable</td>
+<td>One npm install, a hook, and one <code>grok mcp add</code>. No Claude Code needed</td>
 </tr>
 <tr>
 <td>Codex</td>
@@ -134,22 +134,28 @@
 <ul>
 <li><strong>Node 22 or newer.</strong> Check with <code>node -v</code>. npm warns at install time on an older Node — heed it, because the built-in <code>node:sqlite</code> this depends on will simply be missing. Verified on Node 26.</li>
 <li><strong>npm</strong>, plus git if you take the manual route from a clone.</li>
-<li><strong>Claude Code, Grok, Codex, Copilot CLI, Antigravity, or Muse Code.</strong> The four MCP tools work with any MCP client; the Stop hook that powers ambient capture runs in all six of these. Where each finds the hook: Claude Code runs the plugin&#39;s hook or one registered in <code>~/.claude/settings.json</code>, and Grok runs those same Claude Code hooks; Codex reads <code>~/.codex/hooks.json</code> (or <code>$CODEX_HOME/hooks.json</code>); Copilot CLI reads every file in <code>~/.copilot/hooks/</code> (or <code>$COPILOT_HOME/hooks/</code>); Antigravity reads <code>~/.gemini/config/hooks.json</code>; Muse Code reads the <code>hooks</code> block of <code>~/.config/muse/settings.json</code>. Where each finds your notes folder is a separate question, answered in <a href="#make-the-path-stick">Make the path stick</a>: Grok, Codex, and Copilot CLI take it from the shell that launched them, not from <code>~/.claude/settings.json</code>; Muse Code runs hooks with a cleared environment, so its installer bakes the folder into the hook.</li>
+<li><strong>Claude Code, Grok, Codex, Copilot CLI, Antigravity, or Muse Code.</strong> The four MCP tools work with any MCP client; the Stop hook that powers ambient capture runs in all six of these. Where each finds the hook: Claude Code runs the plugin&#39;s hook or one registered in <code>~/.claude/settings.json</code>, and Grok also runs those Claude Code hooks, but reads its own <code>~/.grok/hooks/</code> (or <code>$GROK_HOME/hooks/</code>) too, so it needs no Claude Code; Codex reads <code>~/.codex/hooks.json</code> (or <code>$CODEX_HOME/hooks.json</code>); Copilot CLI reads every file in <code>~/.copilot/hooks/</code> (or <code>$COPILOT_HOME/hooks/</code>); Antigravity reads <code>~/.gemini/config/hooks.json</code>; Muse Code reads the <code>hooks</code> block of <code>~/.config/muse/settings.json</code>. Where each finds your notes folder is a separate question, answered in <a href="#make-the-path-stick">Make the path stick</a>: Grok, Codex, and Copilot CLI take it from the shell that launched them, not from <code>~/.claude/settings.json</code>; Muse Code runs hooks with a cleared environment, so its installer bakes the folder into the hook.</li>
 <li><strong>A directory of markdown notes.</strong> Obsidian is what rutter was built against — it understands wikilinks and frontmatter — but nothing requires Obsidian itself.</li>
 <li><strong>No compiler toolchain.</strong> There are zero native dependencies. The index is Node&#39;s built-in SQLite, so there is nothing to build and no database to install.</li>
 </ul>
 <h2 id="grok-path">Grok path</h2>
-<p>Grok picks up the rutter plugin from your Claude Code install, server and hook included. There is no separate Grok registration step, and no <code>grok mcp add</code>.</p>
-<p><strong>1. Install the Claude Code plugin.</strong> Follow item 1 of the <a href="#fast-path-for-claude-code">fast path</a>.</p>
-<p><strong>2. Give Grok your notes folder.</strong> Grok does not fill in the plugin&#39;s notes-folder option. If your notes are not in the default <code>~/Documents/knowledge-vault</code>, add this to the shell profile that launches Grok, then re-source it:</p>
+<p>This covers xAI&#39;s <code>grok</code> command-line tool, and it needs no Claude Code. You install rutter from npm instead. Check <a href="#before-you-start">Before you start</a> first. Verified with Grok 1.0.62 on a machine that has never had Claude Code (October 2026).</p>
+<p><strong>1. Install rutter.</strong> The npm package is named <code>rutter-memory</code>, because <code>rutter</code> on npm is an unrelated library.</p>
+<pre><code class="language-bash">npm install -g rutter-memory
+</code></pre>
+<p><strong>2. Choose your notes folder.</strong> Grok runs the hook with the environment of the shell that launched it, so put this in the shell profile that starts Grok, then re-source it. If your notes are in the default <code>~/Documents/knowledge-vault</code>, skip it.</p>
 <pre><code class="language-bash">export LIBRARIAN_VAULT_PATH="$HOME/path/to/your/notes"
 </code></pre>
-<p>A line on stderr says when the default folder was used for that reason.</p>
-<p><strong>3. Do one small real task.</strong> Start Grok from that shell and make one decision or one small change. The summary line belongs at the end of Grok&#39;s final reply. The hook reads only the final assistant message, and Grok clips that message at 32,768 characters, so on a very long turn a trailing line can be cut off and lost. If the final message holds two lines, only the last is kept.</p>
-<p><strong>4. Check capture.</strong> A file for today&#39;s UTC day should exist, and its new entry should carry <code>client: grok</code>:</p>
+<p><strong>3. Install the hook, then register the server.</strong></p>
+<pre><code class="language-bash">rutter-memory install-hook --client grok
+</code></pre>
+<p>This writes one file, <code>~/.grok/hooks/rutter.json</code> (or <code>$GROK_HOME/hooks/rutter.json</code>), and touches nothing else. It refuses to replace a <code>rutter.json</code> it did not write. It does not register the server: it prints a <code>grok mcp add</code> line with your notes folder in it, and you run that line yourself. Grok needs no instructions file, because it shows the model the server&#39;s instructions on its own.</p>
+<p>If Grok already runs rutter&#39;s hook from the Claude Code plugin or from <code>~/.claude/settings.json</code>, the installer says which and creates no second entry, since a second hook would only run the first one twice (it still keeps a <code>rutter.json</code> it already wrote current). Capture works either way. A <code>~/.claude/settings.json</code> hook only counts while Grok&#39;s Claude compatibility for hooks is on.</p>
+<p><strong>4. Do one small real task.</strong> Start a new Grok session from that shell and make one decision or one small change. The summary line belongs at the end of Grok&#39;s final reply. The hook reads only the final assistant message, and Grok clips that message at 32,768 characters, so on a very long turn a trailing line can be cut off and lost. If the final message holds two lines, only the last is kept. In testing on Linux, Grok also ran the hook once more when a headless run ended; that run had no reply to read and captured nothing.</p>
+<p><strong>5. Check capture.</strong> A file for today&#39;s UTC day should exist, and its new entry should carry <code>client: grok</code>:</p>
 <pre><code class="language-bash">ls "$LIBRARIAN_VAULT_PATH/_librarian/sessions/"
 </code></pre>
-<p><strong>5. Check recall.</strong> Ask Grok <em>&quot;What was I working on lately?&quot;</em> It should call <code>librarian-recent</code> and report the session you just finished.</p>
+<p><strong>6. Check recall.</strong> Ask Grok <em>&quot;What was I working on lately?&quot;</em> It should call <code>librarian-recent</code> and report the session you just finished. If you also use Claude Code, you can instead <a href="#fast-path-for-claude-code">install its plugin</a> and Grok will pick that up; use one route, not both.</p>
 <h2 id="codex-path">Codex path</h2>
 <p>Codex cannot use the plugin: it fills in none of a plugin&#39;s variables and installs no hook. You install rutter from npm instead. Check <a href="#before-you-start">Before you start</a> first. Verified with Codex 0.160.0 (October 2026).</p>
 <p><strong>1. Install rutter.</strong> The npm package is named <code>rutter-memory</code>, because <code>rutter</code> on npm is an unrelated library.</p>
@@ -271,7 +277,7 @@
 <p><strong>The npx route</strong> runs the version named in <code>args</code>. To upgrade, change that version to the new release number, then restart the client. The <a href="https://www.npmjs.com/package/rutter-memory?activeTab=versions">releases page</a> lists the published versions. If you left the version out, <code>npx</code> may already have moved you to a newer release on its own.</p>
 <p><strong>After switching Node versions</strong> with nvm or another version manager, reinstall, then re-run the hook installer for your client:</p>
 <pre><code class="language-bash">npm install -g rutter-memory
-rutter-memory install-hook --client codex   # --client antigravity, --client muse, or no flag for Claude Code
+rutter-memory install-hook --client codex   # --client antigravity, --client muse, --client grok, or no flag for Claude Code
 </code></pre>
 <p>A global install lives inside one Node version&#39;s folder, so switching versions leaves the hook pointing at a path that may no longer exist. Re-running the installer moves the existing hook to the new path instead of adding a second one, and keeps the notes folder it was using. It prints the old and new paths. If you registered the server by absolute path (the Antigravity line, or the Codex fallback that names <code>node</code> and <code>dist/cli.js</code>), register it again too.</p>
 <h2 id="the-manual-route-step-by-step">The manual route, step by step</h2>
@@ -442,7 +448,8 @@ refs:
 <p>rutter has no pause switch. A line is captured whenever the hook runs and the model has left one. To stop capture, stop the hook:</p>
 <ul>
 <li><strong>Claude Code plugin:</strong> <code>/plugin disable rutter@rutter</code> turns off the plugin&#39;s server and hook together.</li>
-<li><strong>Grok:</strong> Grok loads the hook from your Claude Code plugin install, and it does not honor the plugin being disabled in Claude Code. Setting <code>GROK_CLAUDE_HOOKS_ENABLED=false</code> does not reach plugin hooks either. Two things do: turn the hook off in Grok&#39;s <code>/hooks</code> tab (select it and press Space), or uninstall the plugin from Claude Code with <code>/plugin uninstall rutter@rutter</code>, which removes it from Grok as well. The disable and uninstall behavior was checked with <code>grok inspect</code> on Grok 1.0.50; the <code>/hooks</code> toggle is from Grok&#39;s own documentation.</li>
+<li><strong>Grok, installed with <code>install-hook --client grok</code>:</strong> delete <code>~/.grok/hooks/rutter.json</code> (or turn the hook off in Grok&#39;s <code>/hooks</code> tab).</li>
+<li><strong>Grok, through the Claude Code plugin:</strong> Grok loads the hook from your Claude Code plugin install, and it does not honor the plugin being disabled in Claude Code. Setting <code>GROK_CLAUDE_HOOKS_ENABLED=false</code> does not reach plugin hooks either. Two things do: turn the hook off in Grok&#39;s <code>/hooks</code> tab (select it and press Space), or uninstall the plugin from Claude Code with <code>/plugin uninstall rutter@rutter</code>, which removes it from Grok as well. The disable and uninstall behavior was checked with <code>grok inspect</code> on Grok 1.0.50; the <code>/hooks</code> toggle is from Grok&#39;s own documentation.</li>
 <li><strong>A hook added by <code>install-hook</code></strong> (<code>rutter-memory install-hook</code> or <code>npm run install-hook</code>): delete its entry from the hook file named in <a href="#before-you-start">Before you start</a>. There is no uninstall command.</li>
 <li><strong>Codex:</strong> remove the entry from <code>~/.codex/hooks.json</code>. A hook you have not trusted in <code>/hooks</code> never runs, so an untrusted hook is already paused.</li>
 <li><strong>Antigravity:</strong> remove the hook entry, and delete <code>~/.gemini/config/rules/rutter-capture.md</code> so the model stops writing lines.</li>
@@ -496,7 +503,7 @@ refs:
 
 <footer class="site">
   <div class="footer-inner">
-    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/a87730a">main@a87730a</a> · <a href="sources.json">source hashes</a>.</p>
+    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/0815f04">main@0815f04</a> · <a href="sources.json">source hashes</a>.</p>
     <nav class="footer-more" aria-label="More from the author">
       <ul>
         <li><a href="https://robin-cannon.com">robin-cannon.com</a></li>
