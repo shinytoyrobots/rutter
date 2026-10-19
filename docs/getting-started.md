@@ -28,7 +28,7 @@ Configured is not the same as tested. Your install works when all four are true:
 - [ ] A later session in the same client can recall it.
 - [ ] A different client, if you set up a second one, retrieves it from the same notes folder.
 
-To switch capture off or remove a record, see [Manage and privacy](./manage-and-privacy.md).
+To switch capture off or remove a record, see [Pause, remove, and privacy](./manage-and-privacy.md).
 
 ## About this lesson
 
@@ -374,7 +374,7 @@ You now have ambient capture running end-to-end. These are worth reading once th
 
 - **[Capturing session summaries](./memory-of-use.md#capturing-session-summaries) and [Recalling recent work](./memory-of-use.md#recalling-recent-work)** — capture and recall in depth, including [the style contract](./memory-of-use.md#the-style-contract) that decides whether these summaries are readable in six months.
 - **[FAQ](./faq.md)** — how several clients share one memory, and adding a client to a working setup.
-- **[Manage and privacy](./manage-and-privacy.md)** — how to notice when capture stops, pause it, remove a record, and what leaves your machine.
+- **[Pause, remove, and privacy](./manage-and-privacy.md)** — how to notice when capture stops, pause it, remove a record, and what leaves your machine.
 - **[Known issues](./known-issues.md)** — what is confirmed broken or untested.
 - **[From source](./from-source.md)** — the clone-based route for contributors.
 - **[Search enrichment](./memory-of-use.md#search-enrichment)** — the quiet prior-engagement note on search results.
@@ -465,20 +465,20 @@ Now [M8](./from-source.md#m8--recall-again-and-read-the-record) on From source.
 
 ### Check, pause, or remove capture
 
-Now [Manage and privacy](./manage-and-privacy.md).
+Now [Pause, remove, and privacy](./manage-and-privacy.md).
 
 #### Notice when capture stops
 
-Now in [Manage and privacy](./manage-and-privacy.md#notice-when-capture-stops).
+Now in [Pause, remove, and privacy](./manage-and-privacy.md#notice-when-capture-stops).
 
 #### Pause capture
 
-Pause capture now lives in [Manage and privacy](./manage-and-privacy.md#pause-capture).
+Pause capture now lives in [Pause, remove, and privacy](./manage-and-privacy.md#pause-capture).
 
 #### Remove a record you don't want
 
-Now in [Manage and privacy](./manage-and-privacy.md#remove-a-record-you-dont-want).
+Now in [Pause, remove, and privacy](./manage-and-privacy.md#remove-a-record-you-dont-want).
 
 ### What leaves your machine
 
-Now in [Manage and privacy](./manage-and-privacy.md#what-leaves-your-machine).
+Now in [Pause, remove, and privacy](./manage-and-privacy.md#what-leaves-your-machine).
