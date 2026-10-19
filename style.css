@@ -104,7 +104,8 @@ nav.site-nav a {
   letter-spacing: 0.05em;
 }
 nav.site-nav a:hover { text-decoration: underline; }
-nav.site-nav a[aria-current="page"] {
+nav.site-nav a[aria-current="page"],
+nav.site-nav a.current-section {
   color: var(--neon);
   border-bottom: 2px solid var(--neon);
 }
@@ -359,6 +360,7 @@ a.button:hover, a.button:focus-visible { background: var(--bg-panel); text-decor
 }
 .docs-nav ul { list-style: none; margin: 0; padding: 0; }
 .docs-nav li { margin: 0.4rem 0; color: var(--ink-muted); }
+.docs-nav a[aria-current="page"] { color: var(--neon); font-weight: bold; text-decoration: none; }
 .footnote { font-size: 0.85rem; color: var(--ink-muted); }
 
 /* --- phone width: the nav is a vertical list, not a wrapping row --- */
@@ -371,5 +373,6 @@ a.button:hover, a.button:focus-visible { background: var(--bg-panel); text-decor
     padding: 0.55rem 0;
     font-size: 0.95rem;
   }
-  nav.site-nav a[aria-current="page"] { border-bottom: 0; border-left: 2px solid var(--neon); padding-left: 0.6rem; }
+  nav.site-nav a[aria-current="page"],
+  nav.site-nav a.current-section { border-bottom: 0; border-left: 2px solid var(--neon); padding-left: 0.6rem; }
 }
