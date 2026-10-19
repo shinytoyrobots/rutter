@@ -4,6 +4,7 @@
 **Amended:** 2026-08-05 — gate axis reframed from call origin to intent (Phase 0, kill
 conditions); discursive-librarian direction added (Phase 5).
 **Amended:** 2026-10-10 — unprompted recall noted as a future possibility, outside Phase 5.
+**Amended:** 2026-10-18 — Phase 6 added: state the host-integration rules once.
 **Status:** proposal, not ratified. `spec/spec.md` remains the executable source of truth;
 nothing here is a requirement until it lands there.
 **Purpose:** high-level sequencing for work after the S1.5 desirability gate. Phases are
@@ -221,6 +222,31 @@ is real and acted on. A personality on a write-only record is a costume.
 `docs/gate-verdict-2026-08.md` (Phase 0) and `docs/read-value-verdict-2026-08.md`
 (read-value, decided qualitatively). This clears the gate; Phase 5 is still a
 direction, not scheduled, until someone decides to build it.
+
+---
+
+## Phase 6 — State the host-integration rules once (done 2026-10-18)
+
+**Done:** the "Host integration" section is in `docs/memory-of-use.md`, and the Copilot and Muse
+plans cite it. The gh-pages port and `sources.json` rehash for `memory-of-use` are still owed.
+
+Added 2026-10-18. `spec/constitution.md` and the spec invariants (INV-1..6) cover the
+server, but nothing states the rules for plugging rutter into a host client. They live
+plan by plan (`copilot-cli-plan.md`, `muse-code-plan.md`, `grok-stop-adapter.md`) or only
+in code, so each new client re-derives them:
+
+- A capture hook fails open: it never blocks or aborts the user's turn.
+- Installers touch only user-level files, edit only their own marked entries, are
+  idempotent on re-run, and never write project `AGENTS.md`/`CLAUDE.md`.
+- Hosts that clear the environment get a baked-in vault path and an absolute `node`.
+- MCP registration is optional, never required (Muse's `mode: "required"` aborts the run).
+- Capture never rejects or rewrites a record (SR-023; provenance never blocks a capture).
+
+**Shape:** a "Host integration" section in `docs/memory-of-use.md`, next to "Host
+differences", that per-client plans cite. Promote the fail-open rule to a constitution
+prohibition (major version, HITL) only if a new client tempts breaking it.
+
+**Exit:** the section exists, and the Copilot and Muse plans cite it instead of restating it.
 
 ---
 

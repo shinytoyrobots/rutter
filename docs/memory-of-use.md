@@ -184,6 +184,28 @@ last position in the text it reads, and two directives in that text collapse to 
   line, so writes and reads cannot disagree. An exported `LIBRARIAN_VAULT_PATH` still overrides the
   hook's default, and each capture logs the vault it wrote to.
 
+### Host integration
+
+These rules hold for every host, present and future. A per-client plan cites them and records only
+what differs.
+
+- **A capture hook fails open.** It never blocks, aborts, or delays the user's turn. The registered
+  script exits 0 even when capture fails, and says why on stderr.
+- **Installers touch only user-level files.** They edit only their own marked entries (or a file
+  rutter owns outright), are idempotent on re-run, refuse rather than overwrite a file that isn't
+  recognizably theirs, and never write a project `AGENTS.md` or `CLAUDE.md`.
+- **A host that clears the environment gets the vault baked in.** The installer writes the vault
+  path and an absolute `node` into the hook command instead of relying on `LIBRARIAN_VAULT_PATH`,
+  and prints the same vault in the MCP registration line so recall and capture cannot disagree.
+- **MCP registration is optional, never required.** If a host lets a failed server abort the run
+  (Muse's default `mode: "required"` does), register rutter as optional. The installer prints the
+  registration line and does not run it.
+- **Capture never rejects or rewrites a record.** Provenance, style, and length never block a
+  capture (SR-023, INV-6). The record may be noisier; it is never refused.
+
+If a new client tempts breaking the fail-open rule, promote it to a constitution prohibition. That
+is a major version bump and needs a human decision.
+
 ### The directive
 
 **How the summary is produced (no AI in the server).** The server never summarizes anything, which
