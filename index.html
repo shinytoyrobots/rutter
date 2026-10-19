@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>rutter — a personal memory layer for AI agents</title>
-<meta name="description" content="A personal memory layer for AI agents. One memory, multiple agents, yours: rutter keeps what you decided and the notes each session cited as plain Markdown in a folder you own, recalled by Claude Code, Codex, Grok, GitHub Copilot CLI, Antigravity CLI (agy), and Muse Code.">
+<meta name="description" content="A personal memory layer for AI agents. One memory, multiple agents, yours: rutter keeps what you decided and the notes each session cited as plain Markdown in a folder you own, captured and recalled in six clients: Claude Code, Codex, Grok, GitHub Copilot CLI, Antigravity CLI (agy), and Muse Code.">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -40,6 +40,15 @@
 <div class="hero">
   <h1>A personal memory layer for AI agents<span class="cursor" aria-hidden="true">▌</span></h1>
   <p class="dek">One memory. Multiple agents. Yours.</p>
+  <p class="works-with-label" id="works-with-label">WORKS WITH SIX AI CODING CLIENTS</p>
+  <ul class="works-with" aria-labelledby="works-with-label">
+    <li><a href="getting-started.html#fast-path-for-claude-code">Claude Code</a></li>
+    <li><a href="getting-started.html#codex-path">Codex</a></li>
+    <li><a href="getting-started.html#grok-path">Grok</a></li>
+    <li><a href="getting-started.html#copilot-cli-path">GitHub Copilot CLI</a></li>
+    <li><a href="getting-started.html#antigravity-path">Antigravity CLI (<code>agy</code>)</a></li>
+    <li><a href="getting-started.html#muse-code-path">Muse Code</a></li>
+  </ul>
 </div>
 
 <main id="main">
@@ -47,16 +56,36 @@
 <p>rutter keeps a record of what you decided, which notes the session cited, and how your thinking
 changed. Once it is registered in each client and pointed at the same notes folder, each can recall
 the same records. They are stored as plain Markdown in a folder you own.</p>
-<p>Any MCP client can recall. Six clients have a supported capture hook: Claude Code, Codex, Grok,
-GitHub Copilot CLI, Antigravity CLI (<code>agy</code>), and Muse Code. Capture also needs that client&#39;s hook to write a
-line.</p>
-<p class="cta"><a class="button" href="getting-started.html">Get started</a> <a class="button" href="design.html">Read the design</a></p>
+<p>Six clients capture and recall: Claude Code, Codex, Grok, GitHub Copilot CLI, Antigravity CLI
+(<code>agy</code>), and Muse Code. Any other MCP client can recall what they wrote. Capture needs the
+client&#39;s hook to run and the model to leave a line.</p>
+<p class="cta"><a class="button" href="getting-started.html#choose-your-path">Choose your client</a> <a class="button" href="design.html">Read the design</a></p>
 
 <h2>One memory. Multiple agents.</h2>
 <p>Most AI memory belongs to the tool that created it. Switch tools and you start again.</p>
 <p>rutter does not belong to a tool. A decision captured in one agent is recalled in another. The agent
 changes; the memory does not.</p>
 <p>&quot;Shared&quot; means one person&#39;s agents sharing one memory. It does not mean shared between people.</p>
+<h2 id="six-clients">Six clients, one memory</h2>
+<p>Start with the one you use most and add the others later. Point them all at the same notes folder
+and each recalls what the rest recorded. Each row links to a setup path that ends in a check you can run.</p>
+<div class="table-scroll">
+<table>
+<thead>
+<tr><th scope="col">Client</th><th scope="col">What the hook reads</th><th scope="col">Setup</th><th scope="col">Verified with</th></tr>
+</thead>
+<tbody>
+<tr><th scope="row">Claude Code</th><td>The whole session transcript</td><td><a href="getting-started.html#fast-path-for-claude-code">Install the plugin</a></td><td>2.1.296</td></tr>
+<tr><th scope="row">Codex</th><td>The final reply</td><td><a href="getting-started.html#codex-path">npm install and a hook you trust</a></td><td>0.160.0</td></tr>
+<tr><th scope="row">Grok</th><td>The final reply</td><td><a href="getting-started.html#grok-path">npm install and one installer run; no Claude Code needed</a></td><td>1.0.62</td></tr>
+<tr><th scope="row">GitHub Copilot CLI</th><td>The current turn, from Copilot&#39;s transcript</td><td><a href="getting-started.html#copilot-cli-path">npm install, a hook, and an instructions file</a></td><td>1.0.98</td></tr>
+<tr><th scope="row">Antigravity CLI (<code>agy</code>)</th><td>The current turn, from <code>agy</code>&#39;s transcript</td><td><a href="getting-started.html#antigravity-path">npm install, a hook, and a rule file</a></td><td>1.3.2</td></tr>
+<tr><th scope="row">Muse Code</th><td>The final reply</td><td><a href="getting-started.html#muse-code-path">npm install and one installer run</a></td><td>1.4.10</td></tr>
+</tbody>
+</table>
+</div>
+<p>Using something else? Any MCP client can <a href="getting-started.html#recall-only-with-npx">search and recall with one config entry</a>.
+It cannot capture, because capture needs a hook.</p>
 <h2>A record, not a summary</h2>
 <p>A summary on its own is an assertion. rutter stores the summary together with the notes it cited,
 and a hash of each note&#39;s contents taken when the line was captured. That pair is a record you can

@@ -307,3 +307,33 @@ a.button {
   text-decoration: none;
 }
 a.button:hover, a.button:focus-visible { background: var(--bg-panel); text-decoration: underline; }
+
+/* --- landing page: supported clients. Names are text, not logos or color, so nothing relies on color alone. --- */
+.hero .works-with-label {
+  font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  color: var(--magenta);
+  margin: 1.75rem 0 0.5rem;
+}
+.works-with {
+  list-style: none;
+  margin: 0; padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.works-with a {
+  display: inline-block;
+  font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  background: var(--bg-panel);
+  border-radius: 4px;
+  padding: 0.3rem 0.7rem;
+  text-decoration: none;
+}
+.works-with a:hover, .works-with a:focus-visible { border-color: var(--cyan); color: var(--cyan); text-decoration: underline; }
+.table-scroll { overflow-x: auto; }
+.table-scroll table { min-width: 36rem; }
