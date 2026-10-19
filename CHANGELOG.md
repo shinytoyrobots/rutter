@@ -4,6 +4,13 @@ Notable changes to rutter, newest first. Detailed per-ship records — grounds,
 disclosed gaps, and what is being watched — are kept by the maintainer
 outside this repository.
 
+## v0.8.2 — 2026-10-19
+
+- **The release and registry workflows no longer run on Node 20 actions.** `actions/checkout` and
+  `actions/setup-node` move to v7, which declare Node 24, so GitHub's removal of the Node 20 opt-out
+  can't break a release. The registry workflow also smoke-tests the pinned `mcp-publisher` binary on every
+  run and, in a separate job, on Ubuntu 26.04. No change to the package itself.
+
 ## v0.8.1 — 2026-10-19
 
 - **Grok no longer needs Claude Code.** `rutter-memory install-hook --client grok` writes one file,

@@ -319,14 +319,14 @@ Any MCP client can search your notes and recall what Claude Code, Grok, Codex, C
   "mcpServers": {
     "rutter": {
       "command": "npx",
-      "args": ["-y", "rutter-memory@0.8.1"],
+      "args": ["-y", "rutter-memory@0.8.2"],
       "env": { "LIBRARIAN_VAULT_PATH": "/path/to/your/notes" }
     }
   }
 }
 ```
 
-The version in `args` decides which release runs. Pin to the release you want; `0.8.1` is the current release at the time of writing. Without it, `npx` may fetch a newer release when the client starts, so an upgrade can arrive without you choosing it. [Upgrading](#upgrading) covers moving to a new version. The first start downloads the package and builds the index, so it takes a few seconds longer than later starts.
+The version in `args` decides which release runs. Pin to the release you want; `0.8.2` is the current release at the time of writing. Without it, `npx` may fetch a newer release when the client starts, so an upgrade can arrive without you choosing it. [Upgrading](#upgrading) covers moving to a new version. The first start downloads the package and builds the index, so it takes a few seconds longer than later starts.
 
 If the client cannot start the server, it was probably launched without Node on its `PATH`, which happens when it starts from the Dock or another app rather than a shell. Add a `PATH` entry to `env` that includes the folder `dirname "$(which node)"` prints. Check it the same way as any server: the client should list four tools, `librarian-search`, `librarian-get-note`, `librarian-recent`, and `librarian-positions`.
 
