@@ -736,3 +736,75 @@ t("grok: with a competing hook present, an entry rutter already owns is still up
   assert.equal(grokInstall(sb).status, 0);
   assert.equal(fs.statSync(file).mtimeMs, 1_000_000_000);
 });
+
+// --- Grok, adversarial-review hardening ---
+
+t("grok: a shell command that merely looks like a moved install is refused, not overwritten", () => {
+  const sb = sandbox();
+  const file = path.join(sb.home, ".grok-x", "hooks", "rutter.json");
+  const content = grokBody("echo>/user/hooks/librarian-stop.sh --client grok");
+  writeAt(file, content);
+  const res = grokInstall(sb);
+  assert.equal(res.status, 1, res.stderr);
+  assert.equal(fs.readFileSync(file, "utf8"), content);
+});
+
+t("grok: a symlinked or dangling rutter.json is refused, and a symlinked temp name is never written through", () => {
+  const sb = sandbox();
+  const dir = path.join(sb.home, ".grok-x", "hooks");
+  fs.mkdirSync(dir, { recursive: true });
+  const target = path.join(sb.home, "managed.json");
+  fs.symlinkSync(target, path.join(dir, "rutter.json")); // dangling
+  const res = grokInstall(sb);
+  assert.equal(res.status, 1, res.stderr);
+  assert.match(res.stderr, /symlink/);
+  assert.equal(fs.existsSync(target), false, "nothing written through the link");
+
+  const sb2 = sandbox();
+  const dir2 = path.join(sb2.home, ".grok-x", "hooks");
+  fs.mkdirSync(dir2, { recursive: true });
+  const victim = path.join(sb2.home, "victim.txt");
+  fs.writeFileSync(victim, "keep me");
+  fs.symlinkSync(victim, path.join(dir2, "rutter.json.librarian-tmp"));
+  assert.equal(grokInstall(sb2).status, 0);
+  assert.equal(fs.readFileSync(victim, "utf8"), "keep me", "the fixed temp name is not used");
+});
+
+t("grok: an escaped-slash hook command is still recognized as a competing hook", () => {
+  const sb = sandbox();
+  const raw = `{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"\\/pkg\\/hooks\\/librarian-stop.sh --client claude"}]}]}}`;
+  writeAt(path.join(sb.home, ".grok-x", "hooks", "mine.json"), raw);
+  const res = grokInstall(sb);
+  assert.equal(res.status, 0, res.stderr);
+  assert.equal(fs.existsSync(res.hooksFile), false);
+});
+
+t("grok: a non-Stop mention, a description, or unparseable JSON is not a competing hook", () => {
+  const sb = sandbox();
+  const dir = path.join(sb.home, ".grok-x", "hooks");
+  writeAt(path.join(dir, "a.json"), JSON.stringify({ hooks: { SessionStart: [{ hooks: [{ type: "command", command: `${hookPath}` }] }] } }));
+  writeAt(path.join(dir, "b.json"), JSON.stringify({ description: "see /pkg/hooks/librarian-stop.sh" }));
+  writeAt(path.join(dir, "c.json"), `{ broken /hooks/librarian-stop.sh`);
+  const res = grokInstall(sb);
+  assert.equal(res.status, 0, res.stderr);
+  assert.ok(fs.existsSync(res.hooksFile), res.stderr);
+});
+
+t("grok: settings.json hooks do not count while Grok's Claude hook compatibility is off, but the plugin still does", () => {
+  for (const off of ["env", "toml"]) {
+    const sb = sandbox();
+    writeAt(path.join(sb.home, ".claude", "settings.json"), claudeStop(`${hookPath} --client claude`));
+    const vars: Record<string, string> = {};
+    if (off === "env") vars.GROK_CLAUDE_HOOKS_ENABLED = "false";
+    else writeAt(path.join(sb.home, ".grok-x", "config.toml"), `[model]\nname = "x"\n\n[compat.claude]\nhooks = false\n\n[other]\nhooks = true\n`);
+    const res = grokInstall(sb, vars);
+    assert.equal(res.status, 0, res.stderr);
+    assert.ok(fs.existsSync(res.hooksFile), `${off}: settings route is inert, so a native entry is needed`);
+  }
+  const sb = sandbox();
+  const installPath = path.join(sb.home, ".claude", "plugins", "cache", "rutter", "rutter", "0.8.0");
+  writeAt(path.join(installPath, "hooks", "hooks.json"), claudeStop("${CLAUDE_PLUGIN_ROOT}/hooks/librarian-stop.sh"));
+  writeAt(path.join(sb.home, ".claude", "plugins", "installed_plugins.json"), JSON.stringify({ version: 2, plugins: { "rutter@rutter": [{ installPath }] } }));
+  const res = grokInstall(sb, { GROK_CLAUDE_HOOKS_ENABLED: "false" });
+  assert.equal(fs.existsSync(res.hooksFile), false, "the compat switch does not reach plugin hooks");
+});

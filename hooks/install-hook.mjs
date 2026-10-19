@@ -292,6 +292,13 @@ async function installGrok() {
   const command = `${hookCommand} --client grok`;
   const body = `${JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: "command", command }] }] } }, null, 2)}\n`;
 
+  // Exactly what this installer writes: an absolute script path, quoted only if it needs it, then the
+  // literal client flag. parseOurs is looser (it also accepts `echo>/x/hooks/librarian-stop.sh`), which is
+  // fine for finding stale registrations of the other clients but not for deciding to overwrite a user's command.
+  const ownCommand = (command) => {
+    const parsed = parseOurs(command);
+    return parsed?.client === "grok" && path.isAbsolute(parsed.script) && command === `${/[^A-Za-z0-9_@%+=:,./-]/.test(parsed.script) ? `'${parsed.script.replaceAll("'", "'\\''")}'` : parsed.script} --client grok`;
+  };
   const isObj = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
   const isOurs = (cfg) => {
     if (!isObj(cfg) || Object.keys(cfg).join() !== "hooks" || !isObj(cfg.hooks) || Object.keys(cfg.hooks).join() !== "Stop") return false;
@@ -300,7 +307,7 @@ async function installGrok() {
     const list = groups[0].hooks;
     if (!Array.isArray(list) || list.length !== 1 || !isObj(list[0])) return false;
     const [h] = list;
-    return Object.keys(h).sort().join() === "command,type" && h.type === "command" && parseOurs(h.command)?.client === "grok";
+    return Object.keys(h).sort().join() === "command,type" && h.type === "command" && ownCommand(h.command);
   };
   const readJson = (file) => {
     try {
@@ -309,37 +316,50 @@ async function installGrok() {
       return undefined;
     }
   };
-  const mentionsHook = (file) => {
+  // Does this JSON file register rutter's script as a Stop command? Parsed, so escaped slashes decode and
+  // a SessionStart hook or a mention in a description does not count. A file Grok could not parse is not
+  // loaded by Grok either, so it is not a competitor.
+  const runsHook = (file) => {
+    const cfg = readJson(file);
+    const groups = isObj(cfg) && isObj(cfg.hooks) && Array.isArray(cfg.hooks.Stop) ? cfg.hooks.Stop : [];
+    return groups.some((g) => (Array.isArray(g?.hooks) ? g.hooks : []).some((h) => typeof h?.command === "string" && h.command.includes("/hooks/librarian-stop.sh")));
+  };
+  // Grok reads ~/.claude/settings.json hooks only while [compat.claude] hooks is on (env beats config.toml).
+  // Plugin hooks are not governed by it (checked on Grok 1.0.50), so the plugin routes below ignore it.
+  const claudeSettingsOn = () => {
+    const env = process.env.GROK_CLAUDE_HOOKS_ENABLED?.trim().toLowerCase();
+    if (env) return !["false", "0", "no", "off"].includes(env);
     try {
-      return fs.readFileSync(file, "utf8").includes("/hooks/librarian-stop.sh");
+      const toml = fs.readFileSync(path.join(home, "config.toml"), "utf8");
+      const section = toml.match(/^\[compat\.claude\][^\S\n]*$([\s\S]*?)(?=^\[|(?![\s\S]))/m);
+      return !(section && /^\s*hooks\s*=\s*false\b/m.test(section[1]));
     } catch {
-      return false;
+      return true;
     }
   };
 
   // Other routes by which Grok would run rutter's hook.
   const competing = [];
   const claudeDir = path.join(os.homedir(), ".claude");
-  for (const name of ["settings.json", "settings.local.json"]) {
-    const file = path.join(claudeDir, name);
-    const cfg = readJson(file);
-    const groups = isObj(cfg) && isObj(cfg.hooks) && Array.isArray(cfg.hooks.Stop) ? cfg.hooks.Stop : [];
-    const found = groups.some((g) => (Array.isArray(g?.hooks) ? g.hooks : []).some((h) => typeof h?.command === "string" && h.command.includes("/hooks/librarian-stop.sh")));
-    if (found) competing.push(`${file} (a rutter Stop hook)`);
+  if (claudeSettingsOn()) {
+    for (const name of ["settings.json", "settings.local.json"]) {
+      const file = path.join(claudeDir, name);
+      if (runsHook(file)) competing.push(`${file} (a rutter Stop hook)`);
+    }
   }
   // The Claude Code plugin, as installed: its hooks/hooks.json under each recorded install path.
   const installed = readJson(path.join(claudeDir, "plugins", "installed_plugins.json"));
   for (const [id, entries] of Object.entries(isObj(installed) && isObj(installed.plugins) ? installed.plugins : {})) {
     for (const e of Array.isArray(entries) ? entries : []) {
       const file = typeof e?.installPath === "string" ? path.join(e.installPath, "hooks", "hooks.json") : "";
-      if (file && mentionsHook(file)) competing.push(`${file} (the ${id} plugin)`);
+      if (file && runsHook(file)) competing.push(`${file} (the ${id} plugin)`);
     }
   }
   // A plugin folder placed directly under Grok's own plugins directory.
   try {
     for (const d of fs.readdirSync(path.join(home, "plugins"), { withFileTypes: true })) {
       const file = path.join(home, "plugins", d.name, "hooks", "hooks.json");
-      if ((d.isDirectory() || d.isSymbolicLink()) && mentionsHook(file)) competing.push(`${file} (a Grok plugin)`);
+      if ((d.isDirectory() || d.isSymbolicLink()) && runsHook(file)) competing.push(`${file} (a Grok plugin)`);
     }
   } catch {
     // no plugins directory
@@ -348,7 +368,7 @@ async function installGrok() {
   try {
     for (const name of fs.readdirSync(hooksDir)) {
       const file = path.join(hooksDir, name);
-      if (name !== "rutter.json" && name.endsWith(".json") && mentionsHook(file)) competing.push(`${file} (a hook file rutter did not write)`);
+      if (name !== "rutter.json" && name.endsWith(".json") && runsHook(file)) competing.push(`${file} (a hook file rutter did not write)`);
     }
   } catch {
     // no hooks directory
@@ -357,7 +377,16 @@ async function installGrok() {
   // Decide everything before writing anything, so a refusal leaves the file untouched.
   let status;
   let write = true;
-  if (fs.existsSync(hooksFile)) {
+  let entry;
+  try {
+    entry = fs.lstatSync(hooksFile);
+  } catch {
+    // absent
+  }
+  if (entry?.isSymbolicLink() || (entry && !entry.isFile())) {
+    fail(`${hooksFile} is a symlink or not a regular file, so this installer will not replace it -- move it, then re-run (nothing was changed).`);
+  }
+  if (entry) {
     const raw = fs.readFileSync(hooksFile, "utf8");
     let cfg;
     try {
@@ -383,9 +412,15 @@ async function installGrok() {
   }
   if (write) {
     fs.mkdirSync(hooksDir, { recursive: true });
-    const tmp = `${hooksFile}.librarian-tmp`;
-    fs.writeFileSync(tmp, body, "utf8");
-    fs.renameSync(tmp, hooksFile);
+    // A unique, exclusively created temp file: a fixed name could be a symlink that writeFileSync would follow.
+    const tmp = `${hooksFile}.${process.pid}.${Date.now()}.librarian-tmp`;
+    try {
+      fs.writeFileSync(tmp, body, { encoding: "utf8", flag: "wx" });
+      fs.renameSync(tmp, hooksFile);
+    } catch (err) {
+      fs.rmSync(tmp, { force: true });
+      throw err;
+    }
   }
 
   const envVault = process.env.LIBRARIAN_VAULT_PATH?.trim();
@@ -395,14 +430,14 @@ async function installGrok() {
   const stdio = path.join(import.meta.dirname, "..", "dist", "stdio.js");
   console.error(`[install-hook] ${status}.`);
   if (competing.length > 0) {
-    console.error("[install-hook] Grok already loads rutter's hook from:");
+    console.error("[install-hook] Grok appears to already load rutter's hook from:");
     for (const c of competing) console.error(`[install-hook]     ${c}`);
     console.error(
-      fs.existsSync(hooksFile) && !write
+      entry && !write
         ? "[install-hook] rutter's own hooks/rutter.json is also present, so the hook now runs twice per turn; the capture writes one record either way. Remove one registration to stop the double run."
-        : fs.existsSync(hooksFile)
+        : entry
           ? "[install-hook] rutter's own hooks/rutter.json was kept current, but the hook now runs twice per turn; the capture writes one record either way. Remove one registration to stop the double run."
-          : "[install-hook] That is enough for capture; a second, native hook would only run it twice. To go without Claude Code, remove those and re-run this."
+          : "[install-hook] That is enough for capture; a second, native hook would only run it twice. To go without Claude Code, remove those and re-run this. (If you have disabled that plugin inside Grok, nothing runs it: remove it and re-run.)"
     );
   }
   console.error(

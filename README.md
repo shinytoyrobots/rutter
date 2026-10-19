@@ -377,7 +377,7 @@ The installer writes `~/.grok/hooks/rutter.json` (or `$GROK_HOME/hooks/rutter.js
 `grok mcp add` line with your notes folder in it. You run that line yourself; the installer never
 does. Grok reads `LIBRARIAN_VAULT_PATH` from the shell that launches it, so set it there if your
 notes are not in `~/Documents/knowledge-vault`. If Grok already runs rutter's hook from the Claude Code
-plugin, the installer says so and writes nothing.
+plugin, the installer says so and adds no second entry.
 
 The hook reads only Grok's final assistant message, so put the summary line at the end of the final
 reply. Grok clips that message at 32,768 characters, so on a very long turn a trailing line can be

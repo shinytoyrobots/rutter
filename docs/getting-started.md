@@ -113,9 +113,9 @@ rutter-memory install-hook --client grok
 
 This writes one file, `~/.grok/hooks/rutter.json` (or `$GROK_HOME/hooks/rutter.json`), and touches nothing else. It refuses to replace a `rutter.json` it did not write. It does not register the server: it prints a `grok mcp add` line with your notes folder in it, and you run that line yourself. Grok needs no instructions file, because it shows the model the server's instructions on its own.
 
-If Grok already runs rutter's hook from the Claude Code plugin or from `~/.claude/settings.json`, the installer says which and writes nothing, since a second hook would only run the first one twice. Capture works either way.
+If Grok already runs rutter's hook from the Claude Code plugin or from `~/.claude/settings.json`, the installer says which and creates no second entry, since a second hook would only run the first one twice (it still keeps a `rutter.json` it already wrote current). Capture works either way. A `~/.claude/settings.json` hook only counts while Grok's Claude compatibility for hooks is on.
 
-**4. Do one small real task.** Start a new Grok session from that shell and make one decision or one small change. The summary line belongs at the end of Grok's final reply. The hook reads only the final assistant message, and Grok clips that message at 32,768 characters, so on a very long turn a trailing line can be cut off and lost. If the final message holds two lines, only the last is kept. Grok also runs the hook once more when a session ends; that run has no reply to read and captures nothing.
+**4. Do one small real task.** Start a new Grok session from that shell and make one decision or one small change. The summary line belongs at the end of Grok's final reply. The hook reads only the final assistant message, and Grok clips that message at 32,768 characters, so on a very long turn a trailing line can be cut off and lost. If the final message holds two lines, only the last is kept. In testing on Linux, Grok also ran the hook once more when a headless run ended; that run had no reply to read and captured nothing.
 
 **5. Check capture.** A file for today's UTC day should exist, and its new entry should carry `client: grok`:
 
