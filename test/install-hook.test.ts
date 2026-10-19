@@ -571,8 +571,11 @@ t("printed registrations name a lasting node on PATH when it is this same binary
 
 function grokInstall(sb: { home: string; codexHome: string }, vars: Record<string, string> = {}, ...extra: string[]) {
   const grokHome = path.join(sb.home, ".grok-x");
+  // A developer's own GROK_* / LIBRARIAN_* settings (say GROK_CLAUDE_HOOKS_ENABLED=false) must not steer these runs.
+  const base: Record<string, string | undefined> = { ...process.env };
+  for (const k of Object.keys(base)) if (k.startsWith("GROK_") || k.startsWith("LIBRARIAN_")) delete base[k];
   const res = spawnSync(process.execPath, [script, "--client", "grok", ...extra], {
-    env: { ...process.env, HOME: sb.home, CODEX_HOME: sb.codexHome, GROK_HOME: grokHome, LIBRARIAN_VAULT_PATH: "/v/notes", ...vars },
+    env: { ...base, HOME: sb.home, CODEX_HOME: sb.codexHome, GROK_HOME: grokHome, LIBRARIAN_VAULT_PATH: "/v/notes", ...vars },
     encoding: "utf8",
   });
   return { ...res, grokHome, hooksFile: path.join(grokHome, "hooks", "rutter.json") };
