@@ -263,6 +263,8 @@ writes only its own files. Every probe so far also ran on a Mac that has Claude 
 `~/.grok/hooks/` and registering the server), gated on a probe on a machine with no Claude
 Code. Plan, probe checklist, and the double-fire risk: `docs/grok-native-install-plan.md`.
 
+**Follow-up:** when the Claude Code plugin and a native `grok mcp add` registration coexist, Grok may load two rutter servers. Only hook double-firing was probed. Check it and make the installer say so; until then it is a known issue in the [FAQ](./faq.md#known-issues).
+
 **Exit:** a person with Grok and no Claude Code reaches a captured `client: grok` record and
 a working `librarian-recent`, tested on a machine that has never had Claude Code.
 

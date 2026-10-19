@@ -129,8 +129,8 @@ Capture is **ambient**: it happens after each turn with no action from you insid
 is wired through a **Stop hook**, a hook the host runs when the assistant finishes a turn, in
 Claude Code, Grok, Codex, Copilot CLI, Antigravity, and Muse Code.
 
-**Setup is the hook.** Register it with `npm run install-hook`, adding `--client codex`,
-`--client copilot`, `--client antigravity`, or `--client muse` for those hosts. [Getting started](./getting-started.md#choose-your-path) has a
+**Setup is the hook.** Register it with `npm run install-hook`, adding `--client grok`,
+`--client codex`, `--client copilot`, `--client antigravity`, or `--client muse` for those hosts. [Getting started](./getting-started.md#choose-your-path) has a
 setup path for each host, with its commands and checks. Two facts change behavior:
 
 - Codex will not run the hook until you review and trust it with `/hooks`. Installing does not
@@ -143,7 +143,7 @@ failure can never break your session.
 
 ### Host differences
 
-All four hosts fire the same hook after each turn and store the same records, in the same notes
+All six hosts fire the same hook after each turn and store the same records, in the same notes
 folder. That shared folder is how a decision captured in one tool is recalled in another. Each
 record carries a `client` label naming the host that wrote it (see [Which client wrote
 it](#which-client-wrote-it)). The hosts differ in what text the hook reads. On every host the rule

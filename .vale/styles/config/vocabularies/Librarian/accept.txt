@@ -78,3 +78,5 @@ Clavell's
 async
 reindexed
 Cowork
+cmux
+npx

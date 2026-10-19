@@ -125,14 +125,14 @@ Stated here rather than discovered later:
   here addresses records shared between people, ratification, or whose version of a decision wins.
   Those are the hard problems at team scale and none of them are solved here.
 - **Records name the client, not the model.** A session entry or position event carries a `client`
-  label (`claude`, `grok`, `codex`, or `agy`) when the hook can establish it, so you can see which
-  client stopped writing summaries. It is the host, not the model: `agy` runs Gemini and Claude
-  models, and no hook payload says which. A label is left off rather than guessed, so records from
-  before the label existed, hand-registered hooks, and ambiguous turns show none. You cannot filter
-  or search by client yet.
+  label (`claude`, `grok`, `codex`, `agy`, `copilot`, or `muse`) when the hook can establish it, so
+  you can see which client stopped writing summaries. It is the host, not the model: `agy` runs
+  Gemini and Claude models, and no hook payload says which. A label is left off rather than guessed,
+  so records from before the label existed, hand-registered hooks, and ambiguous turns show none.
+  You cannot filter or search by client yet.
 - **Capture depends on each tool's model following the instructions.** The hook only lifts a line the
-  model wrote. Claude Code, Grok, Codex, and Antigravity were each checked with a real session. A model
-  that skips the line leaves nothing to capture.
+  model wrote. Claude Code, Grok, Codex, Copilot CLI, Antigravity, and Muse Code were each checked
+  with a real session. A model that skips the line leaves nothing to capture.
 - **A rebuild can briefly overlap another session.** The server rebuilds its index when it starts
   and finds changes, which drops and recreates the tables for about a second per few thousand notes.
   A search from another open session at that instant can come back empty. It is rare, because an

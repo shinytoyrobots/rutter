@@ -316,7 +316,7 @@ Any MCP client can search your notes and recall what Claude Code, Grok, Codex, C
   "mcpServers": {
     "rutter": {
       "command": "npx",
-      "args": ["-y", "rutter-memory@0.8.0"],
+      "args": ["-y", "rutter-memory@0.8.1"],
       "env": { "LIBRARIAN_VAULT_PATH": "/path/to/your/notes" }
     }
   }
@@ -347,7 +347,7 @@ The server rebuilds its index on the next start if anything it depends on has ch
 
 ```bash
 npm install -g rutter-memory
-rutter-memory install-hook --client codex   # --client antigravity, --client muse, --client grok, or no flag for Claude Code
+rutter-memory install-hook --client codex   # --client antigravity, --client copilot, --client muse, --client grok, or no flag for Claude Code
 ```
 
 A global install lives inside one Node version's folder, so switching versions leaves the hook pointing at a path that may no longer exist. Re-running the installer moves the existing hook to the new path instead of adding a second one, and keeps the notes folder it was using. It prints the old and new paths. If you registered the server by absolute path (the Antigravity line, or the Codex fallback that names `node` and `dist/cli.js`), register it again too.
@@ -630,6 +630,8 @@ rutter has no pause switch. A line is captured whenever the hook runs and the mo
 - **A hook added by `install-hook`** (`rutter-memory install-hook` or `npm run install-hook`): delete its entry from the hook file named in [Before you start](#before-you-start). There is no uninstall command.
 - **Codex:** remove the entry from `~/.codex/hooks.json`. A hook you have not trusted in `/hooks` never runs, so an untrusted hook is already paused.
 - **Antigravity:** remove the hook entry, and delete `~/.gemini/config/rules/rutter-capture.md` so the model stops writing lines.
+- **Copilot CLI:** delete `~/.copilot/hooks/rutter.json`, and delete `~/.copilot/instructions/rutter.instructions.md` so the model stops writing lines.
+- **Muse Code:** delete the hook and `rutter` entries from `~/.config/muse/settings.json`, and the marked block from `~/.config/muse/AGENTS.md`.
 
 Hooks are read at session start, so restart the client after a change. Asking the model not to leave a line in one session usually works, but nothing enforces it.
 
@@ -681,7 +683,7 @@ Each entry starts with what you see, then the usual cause, then the fix.
 4. Do real work first. An empty summary, or one still wrapped in `<angle brackets>`, captures nothing.
 5. If captures still refuse to land, the README documents a `CLAUDE.md` paste-in as a last-resort fallback.
 
-**Captures land in `~/Documents/knowledge-vault` instead of your notes.** The hook did not see `LIBRARIAN_VAULT_PATH`, so it used the default. For Codex and Grok, export it in the shell profile that launches the client, then re-source the profile. Codex hooks do not read `~/.claude/settings.json`.
+**Captures land in `~/Documents/knowledge-vault` instead of your notes.** The hook did not see `LIBRARIAN_VAULT_PATH`, so it used the default. For Codex, Grok, and Copilot CLI, export it in the shell profile that launches the client, then re-source the profile. Codex hooks do not read `~/.claude/settings.json`. Antigravity and Muse Code take the folder from their installer's `--vault` flag instead.
 
 **Codex captures nothing.** The hook may be untrusted: start Codex, run `/hooks`, review the Librarian Stop hook, and trust it ([Codex path](#codex-path), step 4). Also check that the summary line is in Codex's final reply. The hook reads only the final message.
 
