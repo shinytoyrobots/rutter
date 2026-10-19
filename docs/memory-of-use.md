@@ -1,16 +1,20 @@
 # Memory-of-use: the mechanics in full
 
+Memory-of-use is the record of how you used your notes: which decisions your AI sessions wrote down,
+and which notes each one cited. rutter captures it from your sessions as plain Markdown in your own
+notes folder and serves it back to any connected client.
+
 Search alone is something any capable agent can already do. Memory-of-use adds a record that a
 later session can recall. Here is how it gets written: the server's instructions ask your client to
-write one line when a session decides or produces something, and a hook lifts the last such line
-after each turn and stores it. A later session, in the same client or another, can recall it.
+write one line when a session decides or produces something, and a hook (a script the client runs
+after each turn) lifts the last such line and stores it. A later session, in the same client or another, can recall it.
 rutter also annotates search results you have engaged with before, and measures whether you
 actually reach for any of it. The server runs no model at any point.
 
 All of this is local-first. rutter makes no network calls, the server runs no AI model (your client
-is the brain), and it only ever writes inside your vault's `_librarian/` folder and the disposable
+is the brain), and it only ever writes inside your notes folder's `_librarian/` folder and the disposable
 `data/` index. What your client sends to its own model provider is outside rutter's control; see
-[What leaves your machine](./getting-started.md#what-leaves-your-machine). This page says *vault* for your notes folder. The `_librarian/` folder is rutter's own
+[What leaves your machine](./manage-and-privacy.md#what-leaves-your-machine). The `_librarian/` folder is rutter's own
 layer next to your notes. Tool names, environment variables, and that folder keep rutter's earlier
 name, *librarian*.
 
@@ -18,10 +22,10 @@ name, *librarian*.
 
 ## Where rutter keeps what it remembers
 
-Session memory lives in your vault, as plain, human-readable, git-committable markdown:
+Session memory lives in your notes folder, as plain, human-readable, git-committable markdown:
 
 ```text
-<vault>/_librarian/sessions/2026-07-24.md
+<notes folder>/_librarian/sessions/2026-07-24.md
 ```
 
 - **One file per day, one line per outcome.** The contract asks the client for one line per
@@ -34,10 +38,10 @@ Session memory lives in your vault, as plain, human-readable, git-committable ma
   rule, the duplicate rule below.
 - **Typed frontmatter.** Each record carries a small typed header: the day, each session's identity
   and time, the curated summary, and the notes it touched, each by its **versioned identity**. That
-  is the vault-relative path plus a content hash taken when the line was captured. The hash
+  is the path relative to your notes folder plus a content hash taken when the line was captured. The hash
   identifies the file's bytes at that moment, even after the note changes later; rutter keeps no
   copy of the contents.
-- **You can read and edit it.** It is your markdown, in your vault. Open it in Obsidian, edit it,
+- **You can read and edit it.** It is your markdown, in your notes folder. Open it in Obsidian, edit it,
   commit it. A hand edit is outside the append-only rule, which binds only the server, and nothing
   detects it.
 - **It is never auto-deleted.** Records are only ever appended to. rutter has no prune or delete
@@ -167,15 +171,15 @@ last position in the text it reads, and two directives in that text collapse to 
   turn is kept. Copilot writes the turn to that file a moment after the hook starts, so the hook
   waits up to three seconds for Copilot's own record of the hook call, which lands after the turn.
   If it never appears, nothing is captured and the hook says why on stderr.
-- **Copilot CLI needs an instructions file.** Copilot loads an MCP server's instructions only once
+- **Copilot CLI needs an instructions file.** Copilot loads an MCP (Model Context Protocol) server's instructions only once
   one of its tools is called, so most sessions would never see the capture contract. The installer
   writes `~/.copilot/instructions/rutter.instructions.md` (or under `$COPILOT_HOME`), built from the
   server's own contract text, and never edits your own `copilot-instructions.md`. Copilot passes only
-  `PATH` to an MCP server, so the `copilot mcp add` line the installer prints carries the vault.
+  `PATH` to an MCP server, so the `copilot mcp add` line the installer prints carries the notes folder.
 - **Muse Code** (`muse`) sends a Stop event after every turn that carries the final reply as
   `last_assistant_message`, with a `turn_id` and no transcript path, so the hook reads the reply itself and
   an earlier turn's directive is never read again. Muse runs hooks with a cleared environment, so the
-  installer bakes in the vault and an absolute `node`. A hook that hangs holds the turn, so the hook runs
+  installer bakes in the notes folder and an absolute `node`. A hook that hangs holds the turn, so the hook runs
   the capture under a time limit (20 seconds by default) and always exits cleanly.
 - **Muse Code needs a rules file.** The server's instructions alone did not make Muse's model leave
   summaries. The installer adds a marked block to `~/.config/muse/AGENTS.md`, built from the server's own
@@ -189,10 +193,10 @@ last position in the text it reads, and two directives in that text collapse to 
 - **Antigravity needs a rule file.** `agy` does not put MCP server instructions in the prompt. It
   saves them as a file the model may never read. So the installer also writes an always-on rule
   file, `~/.gemini/config/rules/rutter-capture.md`, built from the server's own contract text.
-  Without that rule the model did not leave summaries on its own. The installer decides the vault
-  once. It bakes the vault in as the hook's default and prints the same value in the `agy mcp add`
+  Without that rule the model did not leave summaries on its own. The installer decides the notes folder
+  once. It bakes the folder in as the hook's default and prints the same value in the `agy mcp add`
   line, so writes and reads cannot disagree. An exported `LIBRARIAN_VAULT_PATH` still overrides the
-  hook's default, and each capture logs the vault it wrote to.
+  hook's default, and each capture logs the folder it wrote to.
 
 ### Host integration
 
@@ -204,14 +208,15 @@ what differs.
 - **Installers touch only user-level files.** They edit only their own marked entries (or a file
   rutter owns outright), are idempotent on re-run, refuse rather than overwrite a file that isn't
   recognizably theirs, and never write a project `AGENTS.md` or `CLAUDE.md`.
-- **A host that clears the environment gets the vault baked in.** The installer writes the vault
+- **A host that clears the environment gets the notes folder baked in.** The installer writes the folder
   path and an absolute `node` into the hook command instead of relying on `LIBRARIAN_VAULT_PATH`,
-  and prints the same vault in the MCP registration line so recall and capture cannot disagree.
+  and prints the same folder in the MCP registration line so recall and capture cannot disagree.
 - **MCP registration is optional, never required.** If a host lets a failed server abort the run
   (Muse's default `mode: "required"` does), register rutter as optional. The installer prints the
   registration line and does not run it.
 - **Capture never rejects or rewrites a record.** Provenance, style, and length never block a
-  capture (SR-023, INV-6). The record may be noisier; it is never refused.
+  capture ([`spec/spec.md`](../spec/spec.md) states the invariant). The record may be noisier; it is
+  never refused.
 
 If a new client tempts breaking the fail-open rule, promote it to a constitution prohibition. That
 is a major version bump and needs a human decision.
@@ -229,7 +234,7 @@ that, when the line is stored. Emit a directive like this whenever a session is 
 ```
 
 - `summary` is the one curated line. Required.
-- `refs` is an optional list of vault-relative paths of notes the session touched.
+- `refs` is an optional list of paths, relative to your notes folder, of notes the session touched.
 - Each hook firing keeps only the last directive in the text it reads. So emit each line as its
   outcome lands, and each outcome gets its own firing. Each firing also keeps at most one position
   (see [Positions](#positions-capturing-a-stance)), the last in the text it reads.
@@ -247,8 +252,8 @@ that were obvious at the time and are opaque now. So the summary carries a **sty
 
 > Write the line for **a smart reader in a hurry who was not in this session**: lead with **what
 > was decided or produced**, use **common words** rather than session shorthand, and **expand or
-> avoid** codenames, version tags and abbreviations the session invented (terms your vault itself
-> uses are fine). **Aim for about 40 words and stop by 60** — one line, not a build log.
+> avoid** codenames, version tags and abbreviations the session invented (terms your notes themselves
+> use are fine). **Aim for about 40 words and stop by 60** — one line, not a build log.
 
 The word budget only works because the trigger agrees with it. The contract asks for a line as each
 separable thing lands. A client told to write one line at the end packs the whole session into it,
@@ -265,8 +270,8 @@ way into the record, and only the last one ever shortens it:
 - **The line is normalized so it sits in the record as one line.** Newlines and tabs become spaces.
   Control characters, ANSI escape sequences, bidirectional-override characters, and zero-width
   characters are dropped. Runs of spaces collapse to one, and the ends are trimmed. Ordinary
-  markdown is kept as text. (`toInertLine` in `src/sanitize.ts`.)
-- **A line past 2,000 characters is cut** at 2,000 (`config.maxSummaryChars`). This guards against
+  markdown is kept as text.
+- **A line past 2,000 characters is cut** at 2,000 characters. This guards against
   oversized input and has nothing to do with the style budget; a line within the word budget is
   nowhere near it.
 
@@ -284,7 +289,7 @@ Compare:
 
 ### Where the contract lives
 
-In one place: the server's MCP instructions (`SERVER_INSTRUCTIONS` in `src/server.ts`). The server
+In one place: the server's MCP instructions. The server
 sends them to every client on connect. The README quotes them verbatim, and a test fails if that
 copy drifts. They have to fit in 2,048 characters, because Claude Code silently cuts a server's
 instructions there, and a test holds the line. Guidance that only matters when *reporting* a result
@@ -396,14 +401,15 @@ and a fresher automatic detection.
 
 ## Note identity
 
-A reference records two things about a note at the moment it was captured: its vault-relative path
+A reference records two things about a note at the moment it was captured: its path, relative to your notes folder,
 and a content hash. Rename the note later and the path stops resolving, but the hash is still
 there, so rutter can find the same bytes at a new path even after *where* the note lives has moved.
 
-At every `npm run reindex`, rutter checks each recorded reference whose path no longer resolves.
-*Resolves* means a file exists on disk at that path, inside the vault, of any type. A path that
-resolves is not checked, even when its bytes have changed since capture. The stored hash makes that
-comparison possible; rutter does not report it yet (see [What rutter can and cannot
+At every `npm run reindex`, rutter checks each recorded reference whose path no longer leads to a
+file. A path "resolves" when any file, of any type, exists at that path inside your notes folder.
+Resolving is only about whether a file is there. If the file is there but its contents have changed
+since capture, rutter does not check it. The stored hash would make that comparison possible, but
+rutter does not report it yet (see [What rutter can and cannot
 establish](#what-rutter-can-and-cannot-establish)).
 
 A reference can legitimately point at a non-note file (a `.gitignore`, an exported `.html`, a
@@ -418,7 +424,7 @@ trace at the old location, is checked further:
   model. A hash either matches or it does not.
 - **Zero matches, or more than one.** rutter does not guess. Zero means the note was renamed *and*
   edited, so no current note's hash matches. More than one means duplicate content exists, and
-  picking one would invent an answer the vault does not give. Either way the reference renders
+  picking one would invent an answer your notes do not give. Either way the reference renders
   explicitly as **unresolved**, with every candidate it found. It is never silently dropped and
   never silently bound to a guess.
 
@@ -453,7 +459,7 @@ npm run identity-confirm -- Notes/old-name.md Notes/new-name.md
 
 This is a **local terminal command only**. It is never exposed as an MCP tool, so a connected
 client can never rewrite what a dead reference means on its own. It checks that the target you
-name exists in the vault right now. It checks existence, not a hash match, because the point is to
+name exists in your notes folder right now. It checks existence, not a hash match, because the point is to
 resolve cases where the hash no longer matches. It then appends a `detected: confirmed` entry to
 the same ledger.
 
@@ -470,7 +476,7 @@ binding each time. Each binding is computed directly against what was originally
 chaining through an earlier binding, and the newest *automatic* entry wins at read time. Confirmed
 entries are the exception, as described above. Earlier entries are never rewritten, reordered, or
 removed. The identity tables in the SQLite index are, like the rest of the index, fully
-disposable: delete `data/librarian.db` and reindex, and they rebuild from the vault and the ledger
+disposable: delete `data/librarian.db` and reindex, and they rebuild from your notes and the ledger
 alone.
 
 ---
@@ -498,7 +504,7 @@ about 19 lines a day in the author's own use when this was written.
   stance records that this event replaces that earlier one. Neither is stripped out of the stored
   stance.
 - Position events are appended to a **wholly separate stream**,
-  `<vault>/_librarian/positions/<YYYY-MM>.md`, never to a session record. Emitting one position, or
+  `<notes folder>/_librarian/positions/<YYYY-MM>.md`, never to a session record. Emitting one position, or
   many, changes nothing about how session summaries are captured, stored, or read. The reverse
   holds too.
 - The duplicate rule has the same shape as a session summary's. A position is skipped when one
@@ -524,7 +530,7 @@ time:
   worded like `librarian-get-note`'s own.
 - `query` is free text matched against your recorded stances, all terms required, as
   `librarian-search` does for notes. It returns a list.
-- `note` is a vault-relative note path. It returns the positions whose references include that
+- `note` is a note path, relative to your notes folder. It returns the positions whose references include that
   note, in **any** recorded version of it. It returns a list.
 
 Free-text and note matching scan a topic's **entire history**, not just its current stance. A topic
@@ -547,7 +553,7 @@ history to produce it. Every earlier event is still there under `chain: true`. A
 thing recorded.
 
 **Dormant is computed, never stored.** A live position that nothing has touched for 180 days is
-marked dormant (`config.positionDormantAfterDays`). That number is a starting guess, not a
+marked dormant. That number is a starting guess, not a
 calibrated figure: positions are rare, and no real stream was old enough to calibrate against when
 it was set. Dormancy is worked out on every read from the events' own timestamps. Nothing about
 dormancy is written to disk or to the index, so the rule can change without a migration or a
@@ -611,7 +617,7 @@ section puts the boundary in one place.
 - Antigravity captures nothing from a turn that ended in an error, and needs the rule file, or its
   model may not leave summaries.
 - Muse Code needs the rules block for the same reason, and in an untrusted workspace with its own
-  `AGENTS.md` the rule loaded in only 1 of 4 trial runs.
+  `AGENTS.md` the rule loaded in only 1 of 4 trial runs. These trials were tiny samples, run by one person.
 - Copilot CLI needs its instructions file for the same reason. If Copilot takes longer than three
   seconds to write the turn, that turn is not captured.
 - The style contract is advisory. The server stores a dense or over-budget summary without
@@ -627,11 +633,11 @@ If you need a history of edits, commit the notes folder to git.
 - **Local-first:** no network calls, ever. Repository identity is resolved by reading
   `.git/config`. There is no `git` subprocess, and a remote URL is recorded as text, never fetched.
 - **Notes are never touched:** rutter only writes under `_librarian/` and `data/`. It never
-  creates, modifies, or deletes vault notes.
+  creates, modifies, or deletes your notes.
 - **No hard-delete:** memory-of-use records are only appended. Old records are never re-summarized
   or tidied up to match a newer convention.
 - **Rebuildable:** `data/librarian.db` is a disposable cache. Delete it and `npm run reindex`
-  reconstructs everything from the vault plus `_librarian/`.
+  reconstructs everything from your notes plus `_librarian/`.
 - **Hooks never break a session:** the capture hook always exits cleanly, so a failure inside
   capture cannot interrupt your work.
 - **No AI in the server:** summaries are your client's. The server stores and serves them without

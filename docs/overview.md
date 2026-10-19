@@ -39,7 +39,7 @@ instructions ask, ended its reply with one line:
 <!-- librarian-session {"summary":"Decided to move the newsletter from weekly to fortnightly, one long essay per issue, based on the autumn reader survey (48% want fewer, longer issues; top request was more depth per topic). Main risk: readers forgetting between issues.","refs":["Notes/reader-survey.md","Notes/publishing-cadence.md"]} -->
 ```
 
-The Stop hook stored that line in `_librarian/sessions/2026-10-09.md`, with the sha256 of each
+The Stop hook (a script the client runs when a turn ends) stored that line in `_librarian/sessions/2026-10-09.md`, with the sha256 of each
 cited note as it stood at capture. Nobody typed the line or ran a command to save it.
 
 **A rename, then an edit and a rename.** Next, outside any AI session, the survey note moved to
@@ -110,10 +110,10 @@ It gives an AI session a record of how **you** used a body of knowledge, rather 
 of the knowledge itself. Same store, two readers, two different memories. The
 store is objective and shareable. The memory of using it is neither.
 
-Worth being exact about the scope, because the shape of the code invites a wrong guess: this is not
-about coding sessions. A session might be research, drafting, planning, or just reading around a
-problem. The directory underneath is a knowledge vault, not a codebase — Obsidian is what it was
-built against, though nothing requires it. The inspiration is the Librarian in Neal Stephenson's
+Worth being exact about the scope, because the shape of the code invites a wrong guess. The six
+clients rutter works with are coding harnesses, but its use is not limited to code. A session might
+be research, drafting, planning, or just reading around a problem. The directory underneath is a
+folder of notes, not a codebase — Obsidian is what it was built against, though nothing requires it. The inspiration is the Librarian in Neal Stephenson's
 *Snow Crash*: a companion that remembers across time and thinks alongside you — the one thing a
 stateless assistant cannot be. The name is from the age of sail: a rutter was the logbook of the
 routes actually sailed, as against the map. The map tells you what is known. The rutter is what
@@ -133,7 +133,7 @@ Most memory features live inside one tool. Switch tools and you start again.
 
 rutter does not belong to a tool. It is a folder of markdown files plus an MCP (Model Context
 Protocol) server. Any MCP client can read the memory. Writing needs a hook that runs after each turn
-and a payload rutter knows how to read. Six clients have a supported hook today: Claude Code, Grok,
+and a payload rutter knows how to read. Six clients have a working hook today: Claude Code, Grok,
 Codex, GitHub Copilot CLI, the Antigravity command-line tool (`agy`), and Muse Code.
 
 A session summary captured in any of them is available to all of them straight away. Positions
@@ -290,7 +290,7 @@ resolved or dropped. Each of those exists elsewhere.
 When an exact hash match cannot settle a reference, as with the edited note in the example, rutter
 leaves the call to you. Confirming a binding is a local terminal command,
 `npm run identity-confirm`, never an MCP tool. That is a firm line: a model must not be able to
-decide what a dead reference means. A confirmed binding is sticky afterwards. Suppose the vault later changes so
+decide what a dead reference means. A confirmed binding is sticky afterwards. Suppose your notes later change so
 that automatic matching would point somewhere else. The disagreement is rendered and left for you:
 *confirmed X; the hash now matches Y*.
 
@@ -330,7 +330,7 @@ that is why the project exists. It exists for the part an ephemeral session cann
 memory across time.
 
 **Not multi-user — though the store can be.** Memory-of-use is personal. The store need not be.
-Several readers can point their own rutter at the same knowledge vault, each keeping their own
+Several readers can point their own rutter at the same notes folder, each keeping their own
 record of using it, and the same question gets a different answer for each, because the difference
 was never in the notes. Same store, two readers, two different memories — made literal. What stays
 single-user is the memory itself. Entries carry no user identity, so the overlay only works while
@@ -355,14 +355,15 @@ and an optional backfill of positions from records that predate capture. Both wa
 
 If you use Claude Code, install the plugin and you can be recalling in a few minutes: see the
 [fast path](./getting-started.md#fast-path-for-claude-code). Everyone else:
-[`getting-started.md`](./getting-started.md) has a setup path for Grok, Codex, Copilot CLI, Antigravity, and Muse Code, and a
-step-by-step manual route, each ending in a capture check and a recall check.
+[`getting-started.md`](./getting-started.md) has a setup path for Grok, Codex, Copilot CLI, Antigravity, and Muse Code,
+each ending in a capture check and a recall check. To work from a clone, see [from source](./from-source.md).
 
 ## Further reading
 
 - [`getting-started.md`](./getting-started.md) — a setup path for each client, from install to first recall.
 - [`memory-of-use.md`](./memory-of-use.md) — capture, recall, enrichment, note identity, positions,
   the trust boundary, and the usage gate, in full mechanical detail.
+- [`known-issues.md`](./known-issues.md) — what is confirmed broken or untested.
 - [`roadmap.md`](./roadmap.md) — current sequencing, and what is deliberately not being built.
 - [`../spec/spec.md`](../spec/spec.md) — the executable spec: Given-When-Then scenarios, the
   requirements derived from them, the tests that grade each one, and what every amendment rejected.
