@@ -5,6 +5,7 @@
 conditions); discursive-librarian direction added (Phase 5).
 **Amended:** 2026-10-10 — unprompted recall noted as a future possibility, outside Phase 5.
 **Amended:** 2026-10-18 — Phase 6 added: state the host-integration rules once.
+**Amended:** 2026-10-19 — Phase 7 added: a Grok install path that needs no Claude Code.
 **Status:** proposal, not ratified. `spec/spec.md` remains the executable source of truth;
 nothing here is a requirement until it lands there.
 **Purpose:** high-level sequencing for work after the S1.5 desirability gate. Phases are
@@ -247,6 +248,23 @@ differences", that per-client plans cite. Promote the fail-open rule to a consti
 prohibition (major version, HITL) only if a new client tempts breaking it.
 
 **Exit:** the section exists, and the Copilot and Muse plans cite it instead of restating it.
+
+---
+
+## Phase 7 — Grok without Claude Code (proposal)
+
+Added 2026-10-19. The Grok setup docs say "install the Claude Code plugin", because Grok
+runs the plugin's server and hook through its Claude compatibility layer. Someone with Grok
+and no Claude Code has no documented route. Every other client installs from npm and
+writes only its own files. Every probe so far also ran on a Mac that has Claude Code, so
+"works without it" is unproven for all clients.
+
+**Shape:** a Grok-native installer (`install-hook --client grok`, writing
+`~/.grok/hooks/` and registering the server), gated on a probe on a machine with no Claude
+Code. Plan, probe checklist, and the double-fire risk: `docs/grok-native-install-plan.md`.
+
+**Exit:** a person with Grok and no Claude Code reaches a captured `client: grok` record and
+a working `librarian-recent`, tested on a machine that has never had Claude Code.
 
 ---
 
