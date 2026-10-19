@@ -1,6 +1,6 @@
 {
   "comment": "Content hashes of the repo docs this site was built from \u2014 the site's own ref line. Run `npm run site-drift` on main to compare; drift here means the published site has gone stale against its sources, which is exactly the failure this project exists to make visible.",
-  "builtFrom": "PENDING",
+  "builtFrom": "4a49913",
   "generated": "2026-10-19",
   "sources": {
     "docs/index.md": "sha256:f6db518679262e8d625932e7652b2a637008248d7a85004b45a07582eacab6b2",
