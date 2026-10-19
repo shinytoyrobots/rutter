@@ -7,7 +7,7 @@ Pick the path for your client. Each one is a single sequence, and each ends with
 | You use | Follow | What it takes |
 |---------|--------|---------------|
 | Claude Code | [Fast path for Claude Code](#fast-path-for-claude-code) | A few minutes; nothing to clone |
-| Grok | [Grok path](#grok-path) | One npm install, a hook, and one `grok mcp add`. No Claude Code needed |
+| Grok | [Grok path](#grok-path) | One npm install, a hook, and one `grok mcp add` |
 | Codex | [Codex path](#codex-path) | One npm install, and a hook you trust |
 | GitHub Copilot CLI | [Copilot CLI path](#copilot-cli-path) | One npm install, a hook, and an instructions file |
 | Antigravity CLI (`agy`) | [Antigravity path](#antigravity-path) | One npm install, a hook, and a rule file |
@@ -92,6 +92,8 @@ Your client calls `librarian-recent` and reports the session you just finished, 
 
 ## Grok path
 
+> If you also use Claude Code, you can instead [install its plugin](#fast-path-for-claude-code) and Grok will pick that up; use one route, not both.
+
 This covers xAI's `grok` command-line tool, and it needs no Claude Code. You install rutter from npm instead. Check [Before you start](#before-you-start) first. Verified with Grok 1.0.62 (October 2026) on a Linux machine that has never had Claude Code. macOS and Windows are untested; see [known issues](./known-issues.md#the-grok-install-was-tested-on-linux-only).
 
 **1. Install rutter.** The npm package is named `rutter-memory`, because `rutter` on npm is an unrelated library.
@@ -124,7 +126,7 @@ If Grok already runs rutter's hook from the Claude Code plugin or from `~/.claud
 ls "$LIBRARIAN_VAULT_PATH/_librarian/sessions/"
 ```
 
-**6. Check recall.** Ask Grok *"What was I working on lately?"* It should call `librarian-recent` and report the session you just finished. If you also use Claude Code, you can instead [install its plugin](#fast-path-for-claude-code) and Grok will pick that up; use one route, not both.
+**6. Check recall.** Ask Grok *"What was I working on lately?"* It should call `librarian-recent` and report the session you just finished.
 
 ## Codex path
 
