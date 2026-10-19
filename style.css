@@ -320,12 +320,13 @@ a.button:hover, a.button:focus-visible { background: var(--bg-panel); text-decor
 .works-with {
   list-style: none;
   margin: 0; padding: 0;
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.5rem;
 }
 .works-with a {
-  display: inline-block;
+  display: block;
+  text-align: center;
   font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.85rem;
   color: var(--ink);
@@ -336,5 +337,8 @@ a.button:hover, a.button:focus-visible { background: var(--bg-panel); text-decor
   text-decoration: none;
 }
 .works-with a:hover, .works-with a:focus-visible { border-color: var(--cyan); color: var(--cyan); text-decoration: underline; }
+@media (max-width: 32rem) {
+  .works-with { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 .table-scroll { overflow-x: auto; }
 .table-scroll table { min-width: 36rem; }
