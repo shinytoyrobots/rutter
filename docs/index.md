@@ -31,19 +31,18 @@ Start with the one you use most and add the others later. Point them all at the 
 and each recalls what the rest recorded. Each row links to a setup path that ends in a check you can
 run.
 
-| Client | What the hook reads | Setup | Verified with[^verified] |
-|--------|---------------------|-------|--------------------------|
-| Claude Code | The whole session transcript | [Install the plugin](./getting-started.md#fast-path-for-claude-code) | 2.1.296 |
-| Codex | The final reply | [npm install and a hook you trust](./getting-started.md#codex-path) | 0.160.0 |
-| Grok | The final reply | [npm install and one installer run; no Claude Code needed](./getting-started.md#grok-path) | 1.0.62 |
-| GitHub Copilot CLI | The current turn, from Copilot's transcript | [npm install, a hook, and an instructions file](./getting-started.md#copilot-cli-path) | 1.0.98 |
-| Antigravity CLI (`agy`) | The current turn, from `agy`'s transcript | [npm install, a hook, and a rule file](./getting-started.md#antigravity-path) | 1.3.2 |
-| Muse Code | The final reply | [npm install and one installer run](./getting-started.md#muse-code-path) | 1.4.10 |
+| You use | Follow | What it takes |
+|---------|--------|---------------|
+| Claude Code | [Fast path for Claude Code](./getting-started.md#fast-path-for-claude-code) | A few minutes; nothing to clone |
+| Grok | [Grok path](./getting-started.md#grok-path) | One npm install, a hook, and one `grok mcp add` |
+| Codex | [Codex path](./getting-started.md#codex-path) | One npm install, and a hook you trust |
+| GitHub Copilot CLI | [Copilot CLI path](./getting-started.md#copilot-cli-path) | One npm install, a hook, and an instructions file |
+| Antigravity CLI (`agy`) | [Antigravity path](./getting-started.md#antigravity-path) | One npm install, a hook, and a rule file |
+| Muse Code (`muse`) | [Muse Code path](./getting-started.md#muse-code-path) | One npm install and one installer run |
+| Any other MCP (Model Context Protocol) client | [Recall only, with npx](./getting-started.md#recall-only-with-npx) | One config entry. Search and recall only: with no hook, nothing is captured |
+| Claude Code, from a clone | [From source](./from-source.md) | Eight steps (M1 to M8), starting with a record written by hand. For contributors |
 
-[^verified]: The client version each setup path was last tested on. Grok was verified on Linux only ([known issues](./known-issues.md#the-grok-install-was-tested-on-linux-only)). The
-    npm-only paths (Codex, Copilot CLI, Antigravity, Muse Code) were tested on a machine that also had
-    Claude Code, so a clean machine is untested; see [known issues](./known-issues.md#codex-copilot-cli-antigravity-and-muse-code-without-claude-code). The recorded run
-    in the Proof section below used a later Codex build, 0.162.0.
+Grok was verified on Linux only ([known issues](./known-issues.md#the-grok-install-was-tested-on-linux-only)). The npm-only paths (Codex, Copilot CLI, Antigravity, Muse Code) were tested on a machine that also had Claude Code, so a clean machine is untested; see [known issues](./known-issues.md#codex-copilot-cli-antigravity-and-muse-code-without-claude-code).
 
 Using something else? Any MCP client can [search and recall with one config
 entry](./getting-started.md#recall-only-with-npx). It cannot capture, because capture needs a hook.

@@ -36,14 +36,16 @@ A decision you made in Codex on Tuesday is there when you ask Claude Code on Thu
 Codex wrote a line for it and its hook ran. You copy nothing between clients. This works because the memory is a folder of markdown files you own, not a
 feature inside one tool.
 
-| Client | How it captures | Setup |
-|--------|-----------------|-------|
-| Claude Code | The hook reads the whole session transcript. | [Install the plugin](#install-as-a-claude-plugin) |
-| Grok | The hook reads the final reply. | [npm install, then four steps; no Claude Code needed](#grok) |
-| Codex | The hook reads the final reply only. | [npm install, then four steps](#codex) |
-| GitHub Copilot CLI | The hook reads the current turn from Copilot's transcript. | [npm install, then four steps](#github-copilot-cli) |
-| Antigravity CLI (`agy`) | The hook reads the current turn from `agy`'s transcript. | [npm install, then four steps](#antigravity-cli) |
-| Muse Code (`muse`) | The hook reads the final reply. | [npm install, then one installer run](./docs/getting-started.md#muse-code-path) |
+| You use | Follow | What it takes |
+|---------|--------|---------------|
+| Claude Code | [Fast path for Claude Code](./docs/getting-started.md#fast-path-for-claude-code) | A few minutes; nothing to clone |
+| Grok | [Grok path](./docs/getting-started.md#grok-path) | One npm install, a hook, and one `grok mcp add` |
+| Codex | [Codex path](./docs/getting-started.md#codex-path) | One npm install, and a hook you trust |
+| GitHub Copilot CLI | [Copilot CLI path](./docs/getting-started.md#copilot-cli-path) | One npm install, a hook, and an instructions file |
+| Antigravity CLI (`agy`) | [Antigravity path](./docs/getting-started.md#antigravity-path) | One npm install, a hook, and a rule file |
+| Muse Code (`muse`) | [Muse Code path](./docs/getting-started.md#muse-code-path) | One npm install and one installer run |
+| Any other MCP (Model Context Protocol) client | [Recall only, with npx](./docs/getting-started.md#recall-only-with-npx) | One config entry. Search and recall only: with no hook, nothing is captured |
+| Claude Code, from a clone | [From source](./docs/from-source.md) | Eight steps (M1 to M8), starting with a record written by hand. For contributors |
 
 Every client can read the memory once its MCP server is registered. Writing needs a hook that runs after each turn, and these six
 have one. Any other MCP client can read but not write, running the server through `npx`
