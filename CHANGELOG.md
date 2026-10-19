@@ -4,6 +4,22 @@ Notable changes to rutter, newest first. Detailed per-ship records — grounds,
 disclosed gaps, and what is being watched — are kept by the maintainer
 outside this repository.
 
+## v0.8.0 — 2026-10-19
+
+- **Muse Code is a sixth client.** `rutter-memory install-hook --client muse` adds capture for Meta's
+  terminal agent (`muse`). It adds the Stop hook and an optional `rutter` server entry to
+  `~/.config/muse/settings.json`, and a marked block to `~/.config/muse/AGENTS.md`. The block is
+  required: in testing, Muse's model wrote summary lines only with it in place. Muse runs hooks with a
+  cleared environment, so the notes folder and an absolute `node` are baked into the hook; pass
+  `--vault` to choose the folder. The installer keeps your other settings, hooks and servers, refuses a
+  symlinked or unparseable file, never changes text outside its own block, and records `client: muse`.
+  Verified with Muse Code 1.4.10. In an untrusted workspace that has its own `AGENTS.md`, the rule loaded
+  in only 1 of 4 trial runs. Setup is in [Getting started](./docs/getting-started.md#muse-code-path).
+- **The Stop hook now bounds its capture process, for every client.** `hooks/librarian-stop.sh` runs the
+  capture under a small supervisor that stops it after 20 seconds (`LIBRARIAN_CAPTURE_TIMEOUT_SEC`
+  changes that) and always exits cleanly with nothing on stdout. Muse holds a turn for as long as a
+  hook runs. The cost is one extra Node process per capture.
+
 ## v0.7.0 — 2026-10-16
 
 - **GitHub Copilot CLI is a fifth client.** `rutter-memory install-hook --client copilot` adds
