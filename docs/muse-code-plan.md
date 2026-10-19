@@ -133,10 +133,12 @@ recorded `Stop` payloads through `hooks/librarian-stop.sh` captured exactly the 
 no-directive, user-input-only, tool-output-only and long-reply turns captured nothing. A `muse` binary from
 cmux was not on PATH in the probe shell.
 
-**Verdict:** both gates pass. The wrapper is fail-open once it bounds its child (a raw hung hook is not),
-and a user-level rules file in Muse's own config directory makes the model emit the line without touching any
-project. Live check with the shipped installer and a throwaway vault: four of five ordinary tasks produced a
-captured entry labeled `muse`, and the small-talk turn correctly produced none.
+**Verdict:** the capture gate passes. The instruction gate passes only conditionally: the user-level rules file
+loaded in every run in a repo without a project `AGENTS.md` and in a trusted one, but in just 1 of 4 runs in an
+**untrusted** repo that has its own `AGENTS.md`, so instruction delivery stays unresolved there. The wrapper is
+fail-open once it bounds its child (a raw hung hook is not). Live check with the shipped installer and a
+throwaway vault: four of five ordinary tasks produced a captured entry labeled `muse`, and the small-talk turn
+correctly produced none. Muse support ships as capture plus recall, with that caveat documented.
 
 ## What shipped
 
