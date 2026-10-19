@@ -6,8 +6,8 @@ rutter keeps a record of what you decided, which notes the session cited, and ho
 changed. Once it is registered in each client and pointed at the same notes folder, each can recall
 the same records. They are stored as plain Markdown in a folder you own.
 
-Any MCP client can recall. Five clients have a supported capture hook: Claude Code, Codex, Grok,
-GitHub Copilot CLI, and Antigravity CLI (`agy`). Capture also needs that client's hook to write a
+Any MCP client can recall. Six clients have a supported capture hook: Claude Code, Codex, Grok,
+GitHub Copilot CLI, Antigravity CLI (`agy`), and Muse Code. Capture also needs that client's hook to write a
 line.
 
 **Get started:** the [Claude Code fast path](./getting-started.md#fast-path-for-claude-code) takes a
