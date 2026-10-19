@@ -657,6 +657,7 @@ That does not settle what your AI client sends. Whatever rutter's tools return b
 You now have ambient capture running end-to-end. These are worth reading once the records start accumulating:
 
 - **[Capturing session summaries](./memory-of-use.md#capturing-session-summaries) and [Recalling recent work](./memory-of-use.md#recalling-recent-work)** — capture and recall in depth, including [the style contract](./memory-of-use.md#the-style-contract) that decides whether these summaries are readable in six months.
+- **[FAQ](./faq.md)** — how several clients share one memory, adding a client to a working setup, and known issues.
 - **[Search enrichment](./memory-of-use.md#search-enrichment)** — the quiet prior-engagement note on search results.
 - **[Note identity](./memory-of-use.md#note-identity)** — what happens to a reference when you rename the note it points at.
 - **[What rutter can and cannot establish](./memory-of-use.md#what-rutter-can-and-cannot-establish)** — what a recorded reference proves, and what it does not.
@@ -667,7 +668,7 @@ The server refreshes its index each time it starts, so a new session picks up ch
 
 ## If something goes wrong
 
-Each entry starts with what you see, then the usual cause, then the fix.
+Each entry starts with what you see, then the usual cause, then the fix. Questions about using several clients together are in the [FAQ](./faq.md).
 
 **`0 notes indexed` after a reindex.** The notes path is wrong, and an unreadable directory is not an error. Check the `vault:` line against where your notes actually are, re-export `LIBRARIAN_VAULT_PATH`, and reindex again (Step 2).
 
