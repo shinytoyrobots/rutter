@@ -99,7 +99,7 @@
 <tr>
 <td>Grok</td>
 <td><a href="#grok-path">Grok path</a></td>
-<td>One npm install, a hook, and one <code>grok mcp add</code>. No Claude Code needed</td>
+<td>One npm install, a hook, and one <code>grok mcp add</code></td>
 </tr>
 <tr>
 <td>Codex</td>
@@ -176,6 +176,10 @@
 <li><strong>Optional settings.</strong> <code>LIBRARIAN_DB_PATH</code> moves the index. An npm install keeps it in <code>~/.local/share/rutter/&lt;id&gt;/librarian.db</code> (under <code>$XDG_DATA_HOME</code> if you set that), with a separate index for each notes folder. An index serves only the notes folder that built it: point two folders at one <code>LIBRARIAN_DB_PATH</code> and the second is refused, with a message saying how to fix it. <code>LIBRARIAN_USER_LABEL</code> is a bare noun, <code>Robin</code> rather than <code>Robin&#39;s</code>, used as <code>&lt;label&gt;&#39;s work</code> in the descriptions your client receives.</li>
 </ul>
 <h2 id="grok-path">Grok path</h2>
+<div class="callout">
+  <span class="label">One route</span>
+  <p>If you also use Claude Code, you can instead <a href="#fast-path-for-claude-code">install its plugin</a> and Grok will pick that up; use one route, not both.</p>
+</div>
 <p>This covers xAI&#39;s <code>grok</code> command-line tool, and it needs no Claude Code. You install rutter from npm instead. Check <a href="#before-you-start">Before you start</a> first. Verified with Grok 1.0.62 (October 2026) on a Linux machine that has never had Claude Code. macOS and Windows are untested; see <a href="known-issues.html#the-grok-install-was-tested-on-linux-only">known issues</a>.</p>
 <p><strong>1. Install rutter.</strong> The npm package is named <code>rutter-memory</code>, because <code>rutter</code> on npm is an unrelated library.</p>
 <pre><code class="language-bash">npm install -g rutter-memory
@@ -192,7 +196,7 @@
 <p><strong>5. Check capture.</strong> A file for today&#39;s UTC day should exist, and its new entry should carry <code>client: grok</code>:</p>
 <pre><code class="language-bash">ls "$LIBRARIAN_VAULT_PATH/_librarian/sessions/"
 </code></pre>
-<p><strong>6. Check recall.</strong> Ask Grok <em>&quot;What was I working on lately?&quot;</em> It should call <code>librarian-recent</code> and report the session you just finished. If you also use Claude Code, you can instead <a href="#fast-path-for-claude-code">install its plugin</a> and Grok will pick that up; use one route, not both.</p>
+<p><strong>6. Check recall.</strong> Ask Grok <em>&quot;What was I working on lately?&quot;</em> It should call <code>librarian-recent</code> and report the session you just finished.</p>
 <h2 id="codex-path">Codex path</h2>
 <p>Codex cannot use the plugin: it fills in none of a plugin&#39;s variables and installs no hook. You install rutter from npm instead. Check <a href="#before-you-start">Before you start</a> first. Verified with Codex 0.160.0 (October 2026), on a machine that also had Claude Code. The recorded run on the <a href="index.html#proof">home page</a> used a later build, Codex 0.162.0.</p>
 <p><strong>1. Install rutter.</strong> The npm package is named <code>rutter-memory</code>, because <code>rutter</code> on npm is an unrelated library.</p>
@@ -384,7 +388,7 @@ rutter-memory install-hook --client codex   # --client antigravity, --client cop
 <p>Now in <a href="manage-and-privacy.html#remove-a-record-you-dont-want">Manage and privacy</a>.</p>
 <h3 id="what-leaves-your-machine">What leaves your machine</h3>
 <p>Now in <a href="manage-and-privacy.html#what-leaves-your-machine">Manage and privacy</a>.</p>
-<p class="ref-line"><code>docs/getting-started.md@sha256:85b3f671b46f · built from main@4a49913</code> · <time class="date" datetime="2026-10-19">19 October 2026</time> · <a href="sources.json">source hashes</a></p>
+<p class="ref-line"><code>docs/getting-started.md@sha256:6a85b109b728 · built from main@12341fd</code> · <time class="date" datetime="2026-10-19">19 October 2026</time> · <a href="sources.json">source hashes</a></p>
 <p class="to-dir"><a href="#doc-directory">Docs navigation</a></p>
 </article>
 </div>
@@ -393,7 +397,7 @@ rutter-memory install-hook --client codex   # --client antigravity, --client cop
 
 <footer class="site">
   <div class="footer-inner">
-    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/4a49913">main@4a49913</a> · <a href="sources.json">source hashes</a></p>
+    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/12341fd">main@12341fd</a> · <a href="sources.json">source hashes</a></p>
     <nav class="footer-more" aria-label="More from the author">
       <ul>
         <li><a href="https://robin-cannon.com">robin-cannon.com</a></li>
