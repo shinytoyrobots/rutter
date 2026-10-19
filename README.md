@@ -2,9 +2,12 @@
 
 **A personal memory layer for AI agents.** One memory. Multiple agents. Yours.
 
-It recalls past decisions and the notes your AI session cited. It is an MCP (Model Context Protocol) server over a folder of markdown notes. As a session decides
-something, your client leaves one line about it. A hook stores that line, without rewriting it for style, in a
-dated file inside your notes folder, with the path and a content hash of each note it cited.
+**The model isn't the memory. Your notes are.** rutter recalls past decisions and the notes your AI session cited. The records are plain
+markdown in your own notes folder (in a `_librarian/` folder beside the notes), not inside a model or a vendor's account.
+
+It is an MCP (Model Context Protocol) server over that folder. As a session decides
+something, your client leaves one line about it. A hook (a script the client runs after each turn) stores that line, without rewriting it for style, in a
+dated file inside your notes folder, with the path and a content hash (a fingerprint of the note's contents) of each note it cited.
 
 Weeks later you ask what you concluded, in the same AI tool or another one you have set up, and get
 the line back with its date and its notes. A note renamed without edits is followed by its hash. A
