@@ -108,7 +108,7 @@ project does not fork your history.
 
 ### Which client wrote it
 
-`client` is another optional field: `claude`, `grok`, `codex`, `copilot`, or `agy`. It names the host, never
+`client` is another optional field: `claude`, `grok`, `codex`, `copilot`, `agy`, or `muse`. It names the host, never
 the model, and it is metadata only. It changes nothing about how the summary or stance is stored.
 
 The hook compares two things: the raw Stop event payload the host sends (Antigravity's shape,
@@ -127,15 +127,15 @@ record's frontmatter, not the body.
 
 Capture is **ambient**: it happens after each turn with no action from you inside the session. It
 is wired through a **Stop hook**, a hook the host runs when the assistant finishes a turn, in
-Claude Code, Grok, Codex, Copilot CLI, and Antigravity.
+Claude Code, Grok, Codex, Copilot CLI, Antigravity, and Muse Code.
 
 **Setup is the hook.** Register it with `npm run install-hook`, adding `--client codex`,
-`--client copilot`, or `--client antigravity` for those hosts. [Getting started](./getting-started.md#choose-your-path) has a
+`--client copilot`, `--client antigravity`, or `--client muse` for those hosts. [Getting started](./getting-started.md#choose-your-path) has a
 setup path for each host, with its commands and checks. Two facts change behavior:
 
 - Codex will not run the hook until you review and trust it with `/hooks`. Installing does not
   grant trust, and an untrusted hook never runs.
-- Antigravity and Copilot CLI each need an instructions file as well as the hook (see *Host differences*).
+- Antigravity, Copilot CLI, and Muse Code each need an instructions or rules file as well as the hook (see *Host differences*).
 
 The installer merges into existing hook configuration and never touches your other hooks. It
 refuses to run against an unbuilt repo. The registered script always exits cleanly, so a capture
@@ -172,6 +172,16 @@ last position in the text it reads, and two directives in that text collapse to 
   writes `~/.copilot/instructions/rutter.instructions.md` (or under `$COPILOT_HOME`), built from the
   server's own contract text, and never edits your own `copilot-instructions.md`. Copilot passes only
   `PATH` to an MCP server, so the `copilot mcp add` line the installer prints carries the vault.
+- **Muse Code** (`muse`) sends a Stop event after every turn that carries the final reply as
+  `last_assistant_message`, with a `turn_id` and no transcript path, so the hook reads the reply itself and
+  an earlier turn's directive is never read again. Muse runs hooks with a cleared environment, so the
+  installer bakes in the vault and an absolute `node`. A hook that hangs holds the turn, so the hook runs
+  the capture under a time limit (20 seconds by default) and always exits cleanly.
+- **Muse Code needs a rules file.** The server's instructions alone did not make Muse's model leave
+  summaries. The installer adds a marked block to `~/.config/muse/AGENTS.md`, built from the server's own
+  contract text, and leaves the rest of that file alone. A project `AGENTS.md` in an untrusted workspace
+  may keep the rule from loading. The installer also registers the server as `optional`, because Muse's
+  default `required` aborts the whole run when a server fails to start.
 - **Antigravity** (`agy`) sends a Stop event with no reply text. The hook reads the transcript file
   the event points to and takes the assistant messages from the current turn, which is everything
   after your last message. The last directive in those messages is kept, and an earlier turn's
@@ -281,7 +291,7 @@ instructions there, and a test holds the line. Guidance that only matters when *
 lives in the description of the tool that returns it.
 
 There is nothing to add to your `CLAUDE.md`. The README keeps a paste-in only as a fallback if
-captures refuse to land. Antigravity and Copilot CLI are the exceptions to "on connect": see *Host differences* for their instructions files.
+captures refuse to land. Antigravity, Copilot CLI, and Muse Code are the exceptions to "on connect": see *Host differences* for their instructions files.
 
 ---
 
@@ -600,6 +610,8 @@ section puts the boundary in one place.
 - Grok clips its final message at 32,768 characters, so a long turn can drop a trailing directive.
 - Antigravity captures nothing from a turn that ended in an error, and needs the rule file, or its
   model may not leave summaries.
+- Muse Code needs the rules block for the same reason, and in an untrusted workspace with its own
+  `AGENTS.md` the rule loaded in only 1 of 4 trial runs.
 - Copilot CLI needs its instructions file for the same reason. If Copilot takes longer than three
   seconds to write the turn, that turn is not captured.
 - The style contract is advisory. The server stores a dense or over-budget summary without
