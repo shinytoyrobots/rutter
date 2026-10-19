@@ -36,7 +36,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # The release tags, each with the server.json it shipped.
           fetch-depth: 0
@@ -44,7 +44,7 @@ jobs:
           # The job never pushes, and it runs a downloaded binary, so don't leave the token in .git/config.
           persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
 
@@ -59,8 +59,41 @@ jobs:
           tar xzf mcp-publisher.tar.gz mcp-publisher
           rm mcp-publisher.tar.gz
 
+      # A run that finds every version already listed never starts the binary, so prove it
+      # runs on this image. `--version` exits 0 and names the pinned release.
+      - name: Smoke-test mcp-publisher
+        run: |
+          grep -E '^(PRETTY_NAME|VERSION_ID)=' /etc/os-release
+          ./mcp-publisher --version
+
       - name: Publish approved releases missing from the Registry
         env:
           VERSION: ${{ inputs.version }}
           MCP_PUBLISHER: ./mcp-publisher
         run: node scripts/registry-publish.mjs
+
+  # Runs the pinned binary on Ubuntu 26.04 for certain: `ubuntu-latest` moves there
+  # gradually (2026-10-19 to 2026-11-19), so the publish job may still land on 24.04.
+  # No OIDC and no publishing, just the install and the smoke test.
+  smoke-test:
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+    steps:
+      - name: Install mcp-publisher (pinned and checksum-verified)
+        env:
+          VERSION: v1.8.1
+          SHA256: a06c9096dcb9727c13555b6be26c7effa707b01f06a4c561ba7a3635443cf2cc
+        run: |
+          curl -fsSL -o mcp-publisher.tar.gz \
+            "https://github.com/modelcontextprotocol/registry/releases/download/${VERSION}/mcp-publisher_linux_amd64.tar.gz"
+          echo "${SHA256}  mcp-publisher.tar.gz" | sha256sum -c -
+          tar xzf mcp-publisher.tar.gz mcp-publisher
+          rm mcp-publisher.tar.gz
+
+      # A run that finds every version already listed never starts the binary, so prove it
+      # runs on this image. `--version` exits 0 and names the pinned release.
+      - name: Smoke-test mcp-publisher
+        run: |
+          grep -E '^(PRETTY_NAME|VERSION_ID)=' /etc/os-release
+          ./mcp-publisher --version
