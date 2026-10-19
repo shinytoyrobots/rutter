@@ -6,7 +6,7 @@ The steps are numbered M1 to M8 so they never collide with the numbered steps on
 
 *Output shape verified against code. The sample output on this page is illustrative, not a recorded run: your paths, dates, counts, and version strings will differ.*
 
-Every command on this page runs from the repository directory. You need Node 22 or newer, npm, and git; [Before you start](./getting-started.md#before-you-start) has the details. Other MCP clients are better served by [Recall only, with npx](./getting-started.md#recall-only-with-npx).
+Every command on this page runs from the repository directory. You need Node 22 or newer, npm, and git; [Before you start](./getting-started.md#before-you-start) has the details. Other MCP (Model Context Protocol) clients are better served by [Recall only, with npx](./getting-started.md#recall-only-with-npx).
 
 ## M1 — Clone and install
 

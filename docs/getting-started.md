@@ -258,7 +258,7 @@ Check it with `agy mcp list`: `rutter` should appear as `enabled`. The notes pat
 
 **4. Do one small real task.** Restart `agy`, run `/hooks` to review the hook, then make one decision or one small change. The summary line can be anywhere in the current turn: the hook reads the turn's assistant messages from `agy`'s transcript file. If the turn holds two lines, only the last is kept. A turn that ended in an error captures nothing.
 
-**5. Check capture.** A file for today's UTC day should exist, and its new entry should carry `client: agy`. Each capture also prints the vault it wrote to in `agy`'s log, under `~/.gemini/antigravity-cli/log/`.
+**5. Check capture.** A file for today's UTC day should exist, and its new entry should carry `client: agy`. Each capture also prints the notes folder it wrote to in `agy`'s log, under `~/.gemini/antigravity-cli/log/`.
 
 ```bash
 ls "/path/to/your/notes/_librarian/sessions/"

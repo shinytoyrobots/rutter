@@ -68,7 +68,7 @@ This page lists problems that have been seen or are likely. For how rutter behav
 
 ### A new position is not recalled at once
 
-**What you see:** a position you just captured is not found.
+**What you see:** a position (a stance you formed or changed, recorded as its own entry) you just captured is not found.
 
 **Why:** positions are recalled from the index, which updates when a server starts or you reindex.
 
@@ -122,7 +122,7 @@ The Grok installer, the hook, and the instructions-file writers assume a POSIX s
 
 **What you might see:** the hook never runs, or the installer registers a second entry on every run.
 
-**Why:** the hook is a bash script. Native Windows has no bash unless you use WSL or Git Bash. The installer recognizes its own entries only by forward-slash paths, and its quoting is POSIX-style. Muse Code's installer rejects vault paths that contain a backslash.
+**Why:** the hook is a bash script. Native Windows has no bash unless you use WSL or Git Bash. The installer recognizes its own entries only by forward-slash paths, and its quoting is POSIX-style. Muse Code's installer rejects notes-folder paths that contain a backslash.
 
 **What to do:** use WSL, where the Linux behavior applies. This is also untested.
 

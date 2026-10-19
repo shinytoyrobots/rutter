@@ -147,6 +147,30 @@ rutter makes no network calls and runs no model. What its tools return becomes p
 
 Known issues now have their own page: [Known issues](./known-issues.md). It lists what is confirmed, such as the Grok install being tested on Linux only, and what is not tested yet.
 
+The entries that used to be on this page, each linking to its new home:
+
+- [Confirmed](./known-issues.md#confirmed): now on the Known issues page.
+- [The Grok install was tested on Linux only](./known-issues.md#the-grok-install-was-tested-on-linux-only): now on the Known issues page.
+- [A long Grok turn can lose the summary line](./known-issues.md#a-long-grok-turn-can-lose-the-summary-line): now on the Known issues page.
+- [Capture depends on the model](./known-issues.md#capture-depends-on-the-model): now on the Known issues page.
+- [Two summary lines collapse to one](./known-issues.md#two-summary-lines-collapse-to-one): now on the Known issues page.
+- [Muse Code, Codex, and Copilot CLI have client-specific limits](./known-issues.md#muse-code-codex-and-copilot-cli-have-client-specific-limits): now on the Known issues page.
+- [Some labels are missing](./known-issues.md#some-labels-are-missing): now on the Known issues page.
+- [There is no pause or uninstall command](./known-issues.md#there-is-no-pause-or-uninstall-command): now on the Known issues page.
+- [The default notes folder is the author's](./known-issues.md#the-default-notes-folder-is-the-authors): now on the Known issues page.
+- [A new position is not recalled at once](./known-issues.md#a-new-position-is-not-recalled-at-once): now on the Known issues page.
+- [References show what the session listed](./known-issues.md#references-show-what-the-session-listed): now on the Known issues page.
+- [Some clients are not covered](./known-issues.md#some-clients-are-not-covered): now on the Known issues page.
+- [Not tested](./known-issues.md#not-tested): now on the Known issues page.
+- [Grok may load two rutter servers](./known-issues.md#grok-may-load-two-rutter-servers): now on the Known issues page.
+- [Codex, Copilot CLI, Antigravity, and Muse Code without Claude Code](./known-issues.md#codex-copilot-cli-antigravity-and-muse-code-without-claude-code): now on the Known issues page.
+- [macOS and Windows](./known-issues.md#macos-and-windows): now on the Known issues page.
+- [Launching a client from the desktop on macOS](./known-issues.md#launching-a-client-from-the-desktop-on-macos): now on the Known issues page.
+- [Native Windows](./known-issues.md#native-windows): now on the Known issues page.
+- [Symlinked configuration files](./known-issues.md#symlinked-configuration-files): now on the Known issues page.
+- [Newer client versions](./known-issues.md#newer-client-versions): now on the Known issues page.
+- [Do I need Claude Code to use rutter?](./known-issues.md#codex-copilot-cli-antigravity-and-muse-code-without-claude-code): answered in the known issues entry on running without Claude Code.
+
 ## See also
 
 - [Getting started](./getting-started.md#choose-your-path): one path per client

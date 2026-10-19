@@ -7,7 +7,7 @@ Capture runs without asking, so it helps to know how to see it, stop it, and und
 ## Notice when capture stops
 
 - **Look for the line.** After a session that decided something, today's file in `_librarian/sessions/` should have a new entry, and `rutter-memory recent` (`npm run recent` from a [clone](./from-source.md)), or asking your client, should show it. A session with no new line was not captured.
-- **Read the hook's status line.** After each turn the hook writes one line to stderr, for example `no session directive found; nothing captured.` or `captured 1 entry into 2026-08-05 session record in vault /Users/you/Documents/notes (rutter <version>).` When `LIBRARIAN_VAULT_PATH` was not set for the hook, the line says the default folder was used. Where a client shows hook output varies; `agy` keeps it in its log under `~/.gemini/antigravity-cli/log/`.
+- **Read the hook's status line.** The hook is the script your client runs after each turn. After each turn it writes one line to stderr, for example `no session directive found; nothing captured.` or `captured 1 entry into 2026-08-05 session record in vault /Users/you/Documents/notes (rutter <version>).` When `LIBRARIAN_VAULT_PATH` was not set for the hook, the line says the default folder was used. Where a client shows hook output varies; `agy` keeps it in its log under `~/.gemini/antigravity-cli/log/`.
 - **Check the `client` label.** Each entry names the client that wrote it, when the hook can tell. If one client's entries stop appearing while others continue, that client has stopped capturing.
 
 The usage count from `npm run gate` (from a clone) measures recall, not capture. It is not a capture monitor.
@@ -16,7 +16,7 @@ The usage count from `npm run gate` (from a clone) measures recall, not capture.
 
 rutter has no pause switch. A line is captured whenever the hook runs and the model has left one. To stop capture, stop the hook:
 
-- **Claude Code plugin:** `/plugin disable rutter@rutter` turns off the plugin's server and hook together.
+- **Claude Code plugin:** `/plugin disable rutter@rutter` turns off the plugin's server and hook together. If you installed from the Anthropic Directory, use `rutter@anthropic-plugin-directory` wherever a command names the plugin.
 - **Grok, installed with `install-hook --client grok`:** delete `~/.grok/hooks/rutter.json` (or turn the hook off in Grok's `/hooks` tab).
 - **Grok, through the Claude Code plugin:** Grok loads the hook from your Claude Code plugin install, and it does not honor the plugin being disabled in Claude Code. Setting `GROK_CLAUDE_HOOKS_ENABLED=false` does not reach plugin hooks either. Two things do: turn the hook off in Grok's `/hooks` tab (select it and press Space), or uninstall the plugin from Claude Code with `/plugin uninstall rutter@rutter`, which removes it from Grok as well. The disable and uninstall behavior was checked with `grok inspect` on Grok 1.0.50; the `/hooks` toggle is from Grok's own documentation.
 - **A hook added by `install-hook`** (`rutter-memory install-hook` or `npm run install-hook`): delete its entry from the hook file named in [Before you start](./getting-started.md#before-you-start). There is no uninstall command.
@@ -32,7 +32,7 @@ Hooks are read at session start, so restart the client after a change. Asking th
 The server only appends; it has no delete command. The records are your markdown, so you remove an entry by hand:
 
 - **A session line:** open `_librarian/sessions/<day>.md` and delete the entry from the `sessions:` list in the frontmatter. The frontmatter is the record. The body below it is regenerated from the frontmatter the next time that day's file grows, so delete the matching body line too if you want it gone now. The day's top-level `refs:` list is also rebuilt on the next write. Recall reads these files directly, so the entry disappears from recall at once.
-- **A position:** delete the event from `_librarian/positions/<YYYY-MM>.md`, then run `rutter-memory reindex` (`npm run reindex` from a clone) or restart the server, because positions are recalled from the index.
+- **A position** (a stance you formed or changed): delete the event from `_librarian/positions/<YYYY-MM>.md`, then run `rutter-memory reindex` (`npm run reindex` from a clone) or restart the server, because positions are recalled from the index.
 - **Keep the YAML valid.** If a file stops parsing, recall skips it, and capture refuses to write into it rather than overwrite it.
 - **Mind your history.** If your notes folder is a git repository, the line stays in its history until you rewrite that history.
 
