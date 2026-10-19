@@ -67,6 +67,14 @@ test("matrix: explicit copilot", () => {
   assert.equal(label(copilot, "copilot"), "copilot");
 });
 
+test("matrix: explicit muse (explicit-only: Muse's Stop payload has the same snake_case shape as Claude's and Codex's)", () => {
+  assert.equal(label(none, "muse"), "muse");
+  assert.equal(label(agy, "muse"), undefined);
+  assert.equal(label(grok, "muse"), undefined);
+  assert.equal(label(copilot, "muse"), undefined);
+  assert.equal(label(none, undefined), undefined, "no label without the installer's identity");
+});
+
 test("an unrecognized explicit identity yields no label with every shape (a typo, a future client, a different case)", () => {
   for (const bad of ["gemini", "claud", "Claude", "AGY", " claude", "claude "]) {
     for (const shape of [none, agy, grok, copilot]) {

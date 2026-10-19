@@ -29,7 +29,7 @@ against the map. The map records what is known. The rutter records what you did 
 
 ## One memory across your AI tools
 
-rutter keeps one set of records for Claude Code, Grok, Codex, Copilot CLI, and Antigravity. Each client writes its
+rutter keeps one set of records for Claude Code, Grok, Codex, Copilot CLI, Antigravity, and Muse Code. Each client writes its
 session summaries to the same notes folder. Each client reads them back through the same MCP server.
 
 A decision you made in Codex on Tuesday is there when you ask Claude Code on Thursday, provided
@@ -43,15 +43,16 @@ feature inside one tool.
 | Codex | The hook reads the final reply only. | [npm install, then four steps](#codex) |
 | GitHub Copilot CLI | The hook reads the current turn from Copilot's transcript. | [npm install, then four steps](#github-copilot-cli) |
 | Antigravity CLI (`agy`) | The hook reads the current turn from `agy`'s transcript. | [npm install, then four steps](#antigravity-cli) |
+| Muse Code (`muse`) | The hook reads the final reply. | [npm install, then one installer run](./docs/getting-started.md#muse-code-path) |
 
-Every client can read the memory once its MCP server is registered. Writing needs a hook that runs after each turn, and these five
+Every client can read the memory once its MCP server is registered. Writing needs a hook that runs after each turn, and these six
 have one. Any other MCP client can read but not write, running the server through `npx`
 ([recall only, with npx](./docs/getting-started.md#recall-only-with-npx)). The Antigravity row covers the `agy`
 command-line tool, not the Antigravity IDE.
 
 Point every client at the same notes folder. Each sets it differently. The Claude Code plugin asks
 for it at install. Grok, Codex, and Copilot CLI read `LIBRARIAN_VAULT_PATH` from the shell that launches them.
-Antigravity's installer takes `--vault`. Each record notes which client wrote it, when the hook can
+Antigravity's and Muse Code's installers take `--vault`. Each record notes which client wrote it, when the hook can
 tell (see *Known limitations*).
 
 ## How this differs from memory you already have
@@ -97,7 +98,7 @@ time.
 ## What it does today
 
 - Indexes the notes directory into a local SQLite FTS5 full-text index — a disposable, regenerable cache. Your files stay the source of truth.
-- **Ambient capture.** As a session decides or produces something, your client leaves a line about it, and a Claude Code, Grok, Codex, Copilot CLI, or Antigravity Stop hook appends that line to `<notes>/_librarian/sessions/<date>.md`, referencing touched notes by content hash. The client is asked for one line per separable outcome rather than one per session — a working session usually leaves three or four — grouped back into a single account of that session when you read it. A line the same session already recorded is skipped (the exact rule is in [`docs/memory-of-use.md`](./docs/memory-of-use.md#where-rutter-keeps-what-it-remembers)). Durable, git-committable, written by your client.
+- **Ambient capture.** As a session decides or produces something, your client leaves a line about it, and a Claude Code, Grok, Codex, Copilot CLI, Antigravity, or Muse Code Stop hook appends that line to `<notes>/_librarian/sessions/<date>.md`, referencing touched notes by content hash. The client is asked for one line per separable outcome rather than one per session — a working session usually leaves three or four — grouped back into a single account of that session when you read it. A line the same session already recorded is skipped (the exact rule is in [`docs/memory-of-use.md`](./docs/memory-of-use.md#where-rutter-keeps-what-it-remembers)). Durable, git-committable, written by your client.
 - **A style contract on that line.** Write for a smart reader in a hurry who wasn't in the session: outcome first, common words over session shorthand, no invented codenames or version tags, about 40 words. The contract is guidance carried in the server's MCP instructions. The server does not rewrite a summary for style — over-budget summaries are reported on the capture path and then stored without edits. It does normalize each line to one line (control characters dropped, whitespace collapsed) and cut it past 2,000 characters; see [the style contract](./docs/memory-of-use.md#the-style-contract).
 - **Workspace provenance.** Each entry carries the session's working directory, a project name derived from it, and the git remote URL when there is one, so a day spanning three efforts reads cleanly. Nothing to configure; resolution is pure local file reads — it never runs `git` and never contacts a remote.
 - Four read-only MCP tools:
@@ -152,10 +153,10 @@ Stated here rather than discovered later:
 - **Node ≥ 22** (uses the built-in `node:sqlite` — no native build step; FTS5 included). Verified on Node 26.
 - A directory of markdown notes. Obsidian is what it was built against — wikilinks and frontmatter
   are understood — but nothing requires Obsidian itself.
-- Claude Code, Grok, Codex, Copilot CLI, or Antigravity, for ambient capture. The MCP tools work with any MCP client.
-  The table in *One memory across your AI tools* shows how each of the five captures and links to its setup. Claude Code
-  lifts the directive from the transcript, and so do Copilot CLI and Antigravity (from the current turn). Grok and Codex
-  use the Stop event's final assistant message, so with Codex the directive must be in the final reply.
+- Claude Code, Grok, Codex, Copilot CLI, Antigravity, or Muse Code, for ambient capture. The MCP tools work with any MCP client.
+  The table in *One memory across your AI tools* shows how each of the six captures and links to its setup. Claude Code
+  lifts the directive from the transcript, and so do Copilot CLI and Antigravity (from the current turn). Grok, Codex, and Muse Code
+  use the Stop event's final assistant message, so with Codex and Muse Code the directive must be in the final reply.
 
 ## Setup
 
@@ -339,7 +340,7 @@ instead (`claude plugin install rutter@anthropic-plugin-directory`, or `rutter@r
 the marketplace), pass `--config vault_path=/path/to/notes` or run `/plugin configure` with the same
 plugin name afterwards; without a notes folder the server has nothing to read.
 
-Ambient capture has been checked in Claude Code, Grok, Codex, and Antigravity, and in one Copilot CLI
+Ambient capture has been checked in Claude Code, Grok, Codex, and Antigravity, in Muse Code 1.4.10 through the installer, and in one Copilot CLI
 session, which was captured and then recalled from Claude Code. The directory also
 lists rutter for Cowork; capture there has not been checked.
 
@@ -358,7 +359,7 @@ lists rutter for Cowork; capture there has not been checked.
 - **Maintainers:** `dist/` is committed so the plugin works straight from a clone. Run
   `npm run build` and commit the result whenever `src/` changes.
 
-## Set up Grok, Codex, Copilot CLI, and Antigravity
+## Set up Grok, Codex, Copilot CLI, Antigravity, and Muse Code
 
 Claude Code has the one-command plugin. The other four take a few more steps. Whichever you use,
 point it at the same notes folder as your other clients, or each one keeps its own memory.
@@ -440,6 +441,18 @@ To move to another notes folder, re-run the installer with a new `--vault`, then
 `agy mcp add`. Each capture prints `in vault <path>` on stderr, visible in `agy`'s log under
 `~/.gemini/antigravity-cli/log/`. It says so when the default was used.
 
+
+### Muse Code
+
+Verified with Muse Code 1.4.10 (`muse`, Meta's terminal agent). Install rutter with
+`npm install -g rutter-memory`, then run `rutter-memory install-hook --client muse --vault <your notes folder>`.
+It adds the Stop hook and an optional `rutter` server entry to `~/.config/muse/settings.json`, and a marked
+block to `~/.config/muse/AGENTS.md`, because Muse's model wrote no summary lines from the server's
+instructions alone. Muse runs hooks with a cleared environment, so the notes folder is baked into the hook. The
+installer refuses a symlinked or unparseable file and never changes text outside its own block. Start a new
+Muse session afterward. Details, and what was and wasn't verified, are in the
+[Muse Code path](./docs/getting-started.md#muse-code-path).
+
 ## Wire it into Claude Code
 
 New to the project? [`docs/getting-started.md`](./docs/getting-started.md) has a setup path for
@@ -492,7 +505,7 @@ src/
   app.ts             application seam (domain + instrumentation), used by server + tests
   reindex.ts / search-cli.ts / recent-cli.ts / gate-cli.ts / capture-cli.ts / identity-confirm-cli.ts   CLIs
 hooks/
-  librarian-stop.sh  Claude Code / Grok / Codex / Copilot CLI / Antigravity Stop hook -> capture-cli
+  librarian-stop.sh  Claude Code / Grok / Codex / Copilot CLI / Antigravity / Muse Code Stop hook -> capture-cli
   hooks.json         registers that hook when installed as a Claude plugin
 .claude-plugin/      plugin manifest (name, version, how it starts the server, notes-folder option, listing links) and marketplace
 dist/                committed build, so the plugin runs straight from a clone

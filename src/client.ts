@@ -11,7 +11,7 @@
  * here, where the label is PRODUCED.
  */
 
-export const CLIENTS = ["claude", "grok", "codex", "agy", "copilot"] as const;
+export const CLIENTS = ["claude", "grok", "codex", "agy", "copilot", "muse"] as const;
 export type Client = (typeof CLIENTS)[number];
 
 export function isClient(value: unknown): value is Client {
@@ -55,6 +55,7 @@ export function parseExplicitIdentity(raw: string | undefined): ExplicitIdentity
  *   codex            | codex   | none | none | none
  *   agy              | agy     | agy  | none | none
  *   copilot          | copilot | none | none | copilot
+ *   muse             | muse    | none | none | none
  *
  * claude x copilot is a conflict, not the Grok exception: no probe has shown Copilot
  * running the Claude plugin's hook, so it gets no label until one does.
@@ -62,8 +63,8 @@ export function parseExplicitIdentity(raw: string | undefined): ExplicitIdentity
  * Contradictory shape (more than one of agy, grok, copilot), a direct payload, and an
  * unrecognized explicit identity all yield no label.
  *
- * `last_assistant_message` is deliberately not an input: Claude and Codex both
- * send it, so it separates nothing. Codex is explicit-only for the same reason.
+ * `last_assistant_message` is deliberately not an input: Claude, Codex and Muse all
+ * send it, so it separates nothing. Codex and Muse are explicit-only for the same reason.
  */
 export function classifyClient(shape: PayloadShape, explicit: ExplicitIdentity): Client | undefined {
   if (shape.direct) return undefined;

@@ -1,6 +1,6 @@
 # Getting started: from zero to your first recall
 
-By the end of this lesson your notes will answer *"what was I working on lately?"* The answer comes from records your AI sessions (in Claude Code, Grok, Codex, Copilot CLI, or Antigravity) leave behind on their own, unasked, whether the session was research, drafting, planning, or reading over your notes. Every tool you set up writes to the same records, so each one can recall what the others decided.
+By the end of this lesson your notes will answer *"what was I working on lately?"* The answer comes from records your AI sessions (in Claude Code, Grok, Codex, Copilot CLI, Antigravity, or Muse Code) leave behind on their own, unasked, whether the session was research, drafting, planning, or reading over your notes. Every tool you set up writes to the same records, so each one can recall what the others decided.
 
 This lesson is for people who keep their notes as markdown files and are comfortable configuring an AI client: editing a settings file, registering an MCP server, running a few `npm` commands. The tools (`librarian-*`), the environment variables (`LIBRARIAN_*`), and the `_librarian/` folder kept the project's earlier name, *librarian*; they are all parts of rutter.
 
@@ -15,6 +15,7 @@ Pick the path for your client. Each one is a single sequence, and each ends with
 | Codex | [Codex path](#codex-path) | One npm install, and a hook you trust |
 | GitHub Copilot CLI | [Copilot CLI path](#copilot-cli-path) | One npm install, a hook, and an instructions file |
 | Antigravity CLI (`agy`) | [Antigravity path](#antigravity-path) | One npm install, a hook, and a rule file |
+| Muse Code (`muse`) | [Muse Code path](#muse-code-path) | One npm install and one installer run |
 | Any other MCP client | [Recall only, with npx](#recall-only-with-npx) | One config entry. Search and recall only: with no hook, nothing is captured |
 | Claude Code, from a clone | [The manual route](#the-manual-route-step-by-step) | Eight steps, starting with a record written by hand. For contributors |
 
@@ -82,7 +83,7 @@ Your client calls `librarian-recent` and reports the session you just finished, 
 
 - **Node 22 or newer.** Check with `node -v`. npm warns at install time on an older Node — heed it, because the built-in `node:sqlite` this depends on will simply be missing. Verified on Node 26.
 - **npm**, plus git if you take the manual route from a clone.
-- **Claude Code, Grok, Codex, Copilot CLI, or Antigravity.** The four MCP tools work with any MCP client; the Stop hook that powers ambient capture runs in all five of these. Where each finds the hook: Claude Code runs the plugin's hook or one registered in `~/.claude/settings.json`, and Grok runs those same Claude Code hooks; Codex reads `~/.codex/hooks.json` (or `$CODEX_HOME/hooks.json`); Copilot CLI reads every file in `~/.copilot/hooks/` (or `$COPILOT_HOME/hooks/`); Antigravity reads `~/.gemini/config/hooks.json`. Where each finds your notes folder is a separate question, answered in [Make the path stick](#make-the-path-stick): Grok, Codex, and Copilot CLI take it from the shell that launched them, not from `~/.claude/settings.json`.
+- **Claude Code, Grok, Codex, Copilot CLI, Antigravity, or Muse Code.** The four MCP tools work with any MCP client; the Stop hook that powers ambient capture runs in all six of these. Where each finds the hook: Claude Code runs the plugin's hook or one registered in `~/.claude/settings.json`, and Grok runs those same Claude Code hooks; Codex reads `~/.codex/hooks.json` (or `$CODEX_HOME/hooks.json`); Copilot CLI reads every file in `~/.copilot/hooks/` (or `$COPILOT_HOME/hooks/`); Antigravity reads `~/.gemini/config/hooks.json`; Muse Code reads the `hooks` block of `~/.config/muse/settings.json`. Where each finds your notes folder is a separate question, answered in [Make the path stick](#make-the-path-stick): Grok, Codex, and Copilot CLI take it from the shell that launched them, not from `~/.claude/settings.json`; Muse Code runs hooks with a cleared environment, so its installer bakes the folder into the hook.
 - **A directory of markdown notes.** Obsidian is what rutter was built against — it understands wikilinks and frontmatter — but nothing requires Obsidian itself.
 - **No compiler toolchain.** There are zero native dependencies. The index is Node's built-in SQLite, so there is nothing to build and no database to install.
 
@@ -250,9 +251,51 @@ ls "/path/to/your/notes/_librarian/sessions/"
 
 **6. Check recall.** Ask `agy` *"What was I working on lately?"* It should call `librarian-recent` and report the session you just finished.
 
+## Muse Code path
+
+This covers Meta's terminal agent, Muse Code (the `muse` command). Check [Before you start](#before-you-start) first. Verified with Muse Code 1.4.10 (October 2026), which Meta shipped as a beta in August 2026.
+
+**1. Install rutter.** Install it globally, not through `npx`: the hook needs a path that stays put.
+
+```bash
+npm install -g rutter-memory
+```
+
+**2. Run the installer.** Muse runs hooks with a cleared environment, so the notes folder cannot come from your shell. The installer bakes it in:
+
+```bash
+rutter-memory install-hook --client muse --vault "$HOME/path/to/your/notes"
+```
+
+Without `--vault` it uses `LIBRARIAN_VAULT_PATH` from this shell, then `~/Documents/knowledge-vault`. Re-running keeps the vault the hook already uses unless you pass a new one.
+
+It changes two files under `~/.config/muse`, and nothing in any project:
+
+- `settings.json`: adds rutter's `Stop` hook and a `rutter` server entry with `mode: "optional"`. Muse's default, `required`, aborts the whole run when a server fails to start. Your other settings, hooks and servers are kept. A hook of your own that runs rutter's script is left as it is, and so is no other command; an existing `rutter` server entry is replaced only if it is `node` running rutter-memory's own `dist/stdio.js`; any other is refused. If the file isn't valid JSON, or is a symlink, the installer stops and changes nothing, because a broken `settings.json` can stop Muse from starting.
+- `AGENTS.md`: adds a block between rutter's own marker lines, asking the model to end a reply that settles something with the session line. Your text in that file is never changed; re-running replaces only the block. If the marker words appear anywhere else in the file (in prose, or inside a code fence), the installer refuses rather than guess. Muse's server instructions alone did not make the model write the line, but this user-level file did.
+
+Both files are staged before either is replaced, and a copy of each original is kept until both are in place. If a file changed while the installer ran, it stops and asks you to re-run; a very small window between that check and the swap remains.
+
+**3. Start a new Muse session and do one small real task.** Hooks and rules load when a session starts. The session line is an HTML comment in the final reply. If the reply holds two lines, only the last is kept.
+
+**4. Check capture.** A file for today's UTC day should exist, and its new entry should carry `client: muse`:
+
+```bash
+ls "$HOME/path/to/your/notes/_librarian/sessions/"
+```
+
+**5. Check recall.** Ask Muse *"What was I working on lately?"* It should call `librarian-recent` and report the session you just finished.
+
+Things to know:
+
+- **The `muse` name can collide.** cmux ships its own `muse` binary. If `which -a muse` lists more than one, run Meta's by full path, `~/.local/bin/muse`.
+- **A stuck hook holds up your turn.** Muse waits for a Stop hook as long as it runs. rutter's hook stops its capture process after 20 seconds, and force-kills it 2 seconds later if it ignores the first signal. Muse clears the hook's environment, so a shell export cannot change the limit; to change it, add `LIBRARIAN_CAPTURE_TIMEOUT_SEC=<seconds>` (a positive number up to 600) in front of the command in `settings.json`.
+- **Capture depends on the model writing the line.** In a trial with this rule in place, Muse wrote it on four of five ordinary tasks and left it out of small talk. A project with its own `AGENTS.md` may compete with the user-level rule.
+- **To remove it,** delete the hook and `rutter` entries from `settings.json` and the marked block from `AGENTS.md`.
+
 ## Recall only, with npx
 
-Any MCP client can search your notes and recall what Claude Code, Grok, Codex, Copilot CLI, and Antigravity recorded, with no install step. Add this to the client's MCP configuration:
+Any MCP client can search your notes and recall what Claude Code, Grok, Codex, Copilot CLI, Antigravity, and Muse Code recorded, with no install step. Add this to the client's MCP configuration:
 
 ```json
 {
@@ -270,7 +313,7 @@ The version in `args` decides which release runs. Without it, `npx` may fetch a 
 
 If the client cannot start the server, it was probably launched without Node on its `PATH`, which happens when it starts from the Dock or another app rather than a shell. Add a `PATH` entry to `env` that includes the folder `dirname "$(which node)"` prints. Check it the same way as any server: the client should list four tools, `librarian-search`, `librarian-get-note`, `librarian-recent`, and `librarian-positions`.
 
-This route captures nothing. Capture needs a hook, and a hook registered from the `npx` cache would stop working without warning when the cache is cleared. For capture, use the [Codex](#codex-path), [Copilot CLI](#copilot-cli-path), or [Antigravity](#antigravity-path) path, which install globally.
+This route captures nothing. Capture needs a hook, and a hook registered from the `npx` cache would stop working without warning when the cache is cleared. For capture, use the [Codex](#codex-path), [Copilot CLI](#copilot-cli-path), [Antigravity](#antigravity-path), or [Muse Code](#muse-code-path) path, which install globally.
 
 ## Upgrading
 
@@ -290,7 +333,7 @@ The server rebuilds its index on the next start if anything it depends on has ch
 
 ```bash
 npm install -g rutter-memory
-rutter-memory install-hook --client codex   # --client antigravity, or no flag for Claude Code
+rutter-memory install-hook --client codex   # --client antigravity, --client muse, or no flag for Claude Code
 ```
 
 A global install lives inside one Node version's folder, so switching versions leaves the hook pointing at a path that may no longer exist. Re-running the installer moves the existing hook to the new path instead of adding a second one, and keeps the notes folder it was using. It prints the old and new paths. If you registered the server by absolute path (the Antigravity line, or the Codex fallback that names `node` and `dist/cli.js`), register it again too.
@@ -347,7 +390,7 @@ The top-level `env` object sets environment variables for Claude Code sessions. 
 
 A shell-profile `export` also works, but only when `claude` launches from a shell that re-sourced the edited profile.
 
-Grok, Codex, Copilot CLI, and Antigravity get the path differently: see the [Grok](#grok-path), [Codex](#codex-path), [Copilot CLI](#copilot-cli-path), and [Antigravity](#antigravity-path) paths.
+Grok, Codex, Copilot CLI, Antigravity, and Muse Code get the path differently: see the [Grok](#grok-path), [Codex](#codex-path), [Copilot CLI](#copilot-cli-path), [Antigravity](#antigravity-path), and [Muse Code](#muse-code-path) paths.
 
 Two other variables are optional. `LIBRARIAN_DB_PATH` moves the index. In a clone it defaults to `data/librarian.db` inside the repository, resolved from the module's own location rather than your working directory. An npm install keeps it out of the package folder, in `~/.local/share/rutter/<id>/librarian.db` (under `$XDG_DATA_HOME` if you set that), with a separate index for each notes folder. An index serves only the notes folder that built it: point two folders at one `LIBRARIAN_DB_PATH` and the second is refused, with a message saying how to fix it. `LIBRARIAN_USER_LABEL` is a bare noun — `Robin`, not `Robin's` — used as `<label>'s work` in the descriptions your client receives.
 
@@ -499,7 +542,7 @@ If nothing appeared, check that Step 6 printed its success line and that the `en
 
 ## Step 8 — Recall again, and read the record
 
-This time, ask your client rather than the CLI. In Claude Code, Grok, Codex, Copilot CLI, or Antigravity:
+This time, ask your client rather than the CLI. In Claude Code, Grok, Codex, Copilot CLI, Antigravity, or Muse Code:
 
 > What was I working on lately?
 
