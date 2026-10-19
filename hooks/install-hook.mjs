@@ -293,10 +293,18 @@ async function installMuse() {
   const mentionsScript = (c) => typeof c === "string" && c.includes("/hooks/librarian-stop.sh");
   // Exactly the command this installer writes, and nothing else, counts as ours. A user's own command
   // that merely runs the script (`... && my-audit`) is custom and is never rewritten or removed.
-  const OURS = /^LIBRARIAN_NODE=('(?:[^']|'\\'')*'|[^\s'"]+) LIBRARIAN_VAULT_PATH="\$\{LIBRARIAN_VAULT_PATH:-([^}"]*)\}" ('(?:[^']|'\\'')*'|[^\s']+) --client muse$/;
+  // Bare tokens are limited to the generator's own safe alphabet, and the parsed pieces must regenerate the
+  // command byte for byte, so shell syntax the generator never emits (`;`, `&&`, `|`) cannot be mistaken for it.
+  const TOKEN = String.raw`('(?:[^']|'\\'')*'|[A-Za-z0-9_@%+=:,./-]+)`;
+  const OURS = new RegExp(String.raw`^LIBRARIAN_NODE=${TOKEN} LIBRARIAN_VAULT_PATH="\$\{LIBRARIAN_VAULT_PATH:-([^}"$\`\\\n]*)\}" ${TOKEN} --client muse$`);
   const parseOursCmd = (c) => {
     const m = typeof c === "string" ? c.match(OURS) : null;
-    return m && unquote(m[3]).endsWith("/hooks/librarian-stop.sh") ? { vault: path.resolve(expandHome(m[2].trim())), script: unquote(m[3]) } : null;
+    if (!m) return null;
+    const [, nodeTok, vaultDefault, scriptTok] = m;
+    const script = unquote(scriptTok);
+    if (!script.endsWith("/hooks/librarian-stop.sh")) return null;
+    const regenerated = `LIBRARIAN_NODE=${sq(unquote(nodeTok))} LIBRARIAN_VAULT_PATH="\${LIBRARIAN_VAULT_PATH:-${vaultDefault}}" ${sq(script)} --client muse`;
+    return regenerated === c ? { vault: path.resolve(expandHome(vaultDefault.trim())), script } : null;
   };
 
   // A symlinked file would be silently replaced by a regular one on rename, cutting it off from wherever it
@@ -372,10 +380,18 @@ async function installMuse() {
   // The server entry is ours only if it runs THIS package's stdio.js, identified by the package it
   // belongs to, not by a filename another product could share.
   const stdio = path.join(import.meta.dirname, "..", "dist", "stdio.js");
+  // Judged by the entrypoint it runs, resolved through any symlinks; a registration whose install has since
+  // vanished (a Node switch moved a global install) is still ours if it names rutter-memory's own layout.
   const isRutterStdio = (a) => {
-    if (typeof a !== "string" || !/[\\/]dist[\\/]stdio\.js$/.test(a)) return false;
+    if (typeof a !== "string" || !path.isAbsolute(a) || !/[\\/]dist[\\/]stdio\.js$/.test(a)) return false;
+    let real;
     try {
-      return JSON.parse(fs.readFileSync(path.join(path.dirname(a), "..", "package.json"), "utf8")).name === "rutter-memory";
+      real = fs.realpathSync(a);
+    } catch {
+      return /[\\/]rutter-memory[\\/]dist[\\/]stdio\.js$/.test(a);
+    }
+    try {
+      return JSON.parse(fs.readFileSync(path.join(path.dirname(real), "..", "package.json"), "utf8")).name === "rutter-memory";
     } catch {
       return false;
     }
@@ -383,8 +399,15 @@ async function installMuse() {
   const existingMcp = cfg[mcpKey]?.rutter;
   if (existingMcp !== undefined) {
     const ok =
-      existingMcp !== null && typeof existingMcp === "object" && !Array.isArray(existingMcp) && Array.isArray(existingMcp.args) && existingMcp.args.length === 1 && isRutterStdio(existingMcp.args[0]);
-    if (!ok) fail(`${cfgPath} already has a "${mcpKey}.rutter" entry that is not this server (it does not run rutter-memory's dist/stdio.js) -- rename or remove it, then re-run (nothing was changed).`);
+      existingMcp !== null &&
+      typeof existingMcp === "object" &&
+      !Array.isArray(existingMcp) &&
+      typeof existingMcp.command === "string" &&
+      /^node(\.exe)?$/.test(path.basename(existingMcp.command)) &&
+      Array.isArray(existingMcp.args) &&
+      existingMcp.args.length === 1 &&
+      isRutterStdio(existingMcp.args[0]);
+    if (!ok) fail(`${cfgPath} already has a "${mcpKey}.rutter" entry that is not this server (it must be node running rutter-memory's own dist/stdio.js) -- rename or remove it, then re-run (nothing was changed).`);
   }
   const mcpEntry = {
     ...(existingMcp ?? {}),
@@ -408,16 +431,26 @@ async function installMuse() {
     // Markers count only on a line of their own and outside a code fence; the same words anywhere else
     // (prose, an example, a fenced sample) make the file ambiguous, so it is refused, not edited.
     const lines = rulesRaw.split("\n");
+    // A fence opens with 3+ backticks or tildes (up to 3 spaces of indent) and closes only with the same
+    // character, at least as many, and nothing after them but whitespace.
     let fence = null;
     let markerInFence = false;
     const begins = [];
     const ends = [];
     lines.forEach((line, i) => {
-      const fm = line.match(/^\s*(`{3,}|~{3,})/);
-      if (fm) {
-        if (fence === null) fence = fm[1][0];
-        else if (fm[1][0] === fence) fence = null;
-        return;
+      const bareLine = line.replace(/\r$/, "");
+      if (fence !== null) {
+        const close = bareLine.match(/^ {0,3}(`{3,}|~{3,})[ \t]*$/);
+        if (close && close[1][0] === fence.ch && close[1].length >= fence.len) {
+          fence = null;
+          return;
+        }
+      } else {
+        const open = bareLine.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
+        if (open && !(open[1][0] === "`" && open[2].includes("`"))) {
+          fence = { ch: open[1][0], len: open[1].length };
+          return;
+        }
       }
       const bare = line.replace(/\r$/, "").trim();
       if (bare !== BEGIN && bare !== END) return;
@@ -425,6 +458,9 @@ async function installMuse() {
       else (bare === BEGIN ? begins : ends).push(i);
     });
     const stems = (rulesRaw.match(/(BEGIN|END) rutter-capture-rule/g) ?? []).length;
+    if (stems === 0 && fence !== null) {
+      fail(`${rulesPath} ends inside an unclosed code fence, so a block added at the end would land inside it -- close the fence, then re-run (nothing was changed).`);
+    }
     if (stems === 0) {
       // Append only: every existing byte stays as it is.
       rulesBody = rulesRaw === "" ? `${block}\n` : `${rulesRaw}${rulesRaw.endsWith("\n") ? "\n" : "\n\n"}${block}\n`;
@@ -474,19 +510,26 @@ async function installMuse() {
   // re-read just before its rename: a settings.json Muse saved in the meantime is never overwritten
   // with a stale copy. A narrow window remains between that check and the rename.
   const staged = [];
-  const stage = (dest, body, original) => {
-    const mode = fs.existsSync(dest) ? fs.statSync(dest).mode & 0o777 : dest === cfgPath ? 0o600 : 0o644;
-    const tmp = `${dest}.librarian-tmp-${process.pid}-${Math.random().toString(36).slice(2, 10)}`;
-    fs.mkdirSync(path.dirname(dest), { recursive: true });
-    const fd = fs.openSync(tmp, "wx", mode);
-    staged.push({ dest, tmp, original, body });
+  const uniq = (dest, kind) => `${dest}.librarian-${kind}-${process.pid}-${Math.random().toString(36).slice(2, 10)}`;
+  const writeNew = (file, body, mode) => {
+    const fd = fs.openSync(file, "wx", mode);
     try {
+      fs.fchmodSync(fd, mode); // the umask would otherwise narrow an existing file's permissions
       fs.writeFileSync(fd, body, "utf8");
     } finally {
       fs.closeSync(fd);
     }
   };
-  const cleanup = () => staged.forEach(({ tmp }) => fs.rmSync(tmp, { force: true }));
+  const stage = (dest, body, original) => {
+    const mode = fs.existsSync(dest) ? fs.statSync(dest).mode & 0o777 : dest === cfgPath ? 0o600 : 0o644;
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    const entry = { dest, tmp: uniq(dest, "tmp"), undo: original === undefined ? undefined : uniq(dest, "undo"), original, body };
+    staged.push(entry);
+    writeNew(entry.tmp, body, mode);
+    // The way back is prepared now, as a file that can be renamed into place atomically.
+    if (entry.undo) writeNew(entry.undo, original, mode);
+  };
+  const cleanup = () => staged.forEach(({ tmp, undo }) => (fs.rmSync(tmp, { force: true }), undo && fs.rmSync(undo, { force: true })));
   try {
     if (cfgChanged) stage(cfgPath, cfgNext, cfgRaw);
     if (rulesChanged) stage(rulesPath, rulesBody, rulesRaw);
@@ -494,33 +537,45 @@ async function installMuse() {
     cleanup();
     fail(`could not stage the new files (${err.code ?? err.message}); nothing was changed.`);
   }
-  for (const { dest, original } of staged) {
-    if (readIf(dest) !== original) {
-      cleanup();
-      fail(`${dest} changed while the installer was running (Muse or another editor saved it) -- re-run; nothing was changed.`);
-    }
-  }
   const done = [];
+  const rollback = () => {
+    const stuck = [];
+    for (const s of done.reverse()) {
+      try {
+        if (readIf(s.dest) !== s.body) continue; // someone else has written since; leave their file alone
+        if (s.undo) fs.renameSync(s.undo, s.dest);
+        else fs.rmSync(s.dest, { force: true });
+      } catch {
+        stuck.push(s);
+      }
+    }
+    return stuck;
+  };
   try {
     for (const s of staged) {
+      // Checked file by file, immediately before each rename: the original must be unchanged and still a regular file.
+      if (readIf(s.dest) !== s.original || (fs.existsSync(s.dest) && !fs.lstatSync(s.dest).isFile())) {
+        const e = new Error(`${s.dest} changed while the installer was running (Muse or another editor saved it)`);
+        e.code = "ECHANGED";
+        throw e;
+      }
       fs.renameSync(s.tmp, s.dest);
       done.push(s);
     }
   } catch (err) {
-    // Put back whatever already moved, but only if it is still what we wrote.
-    for (const s of done.reverse()) {
-      try {
-        if (readIf(s.dest) === s.body) {
-          if (s.original === undefined) fs.rmSync(s.dest, { force: true });
-          else fs.writeFileSync(s.dest, s.original, "utf8");
-        }
-      } catch {
-        /* best effort */
-      }
+    const stuck = rollback();
+    const pending = staged.filter((s) => !done.includes(s));
+    pending.forEach(({ tmp }) => fs.rmSync(tmp, { force: true }));
+    staged.filter((s) => !stuck.includes(s)).forEach(({ undo }) => undo && fs.rmSync(undo, { force: true }));
+    if (stuck.length > 0) {
+      fail(
+        `could not finish (${err.code ?? err.message}) and could NOT roll back ${stuck.map((s) => s.dest).join(", ")}. ` +
+          `Your original is saved at ${stuck.map((s) => s.undo ?? "(it did not exist)").join(", ")}; copy it back over the file.`
+      );
     }
-    cleanup();
-    fail(`could not write ${err.path ?? "the files"} (${err.code ?? err.message}); the earlier changes were rolled back.`);
+    fail(err.code === "ECHANGED" ? `${err.message} -- re-run; nothing was changed.` : `could not write ${err.path ?? "the files"} (${err.code ?? err.message}); any earlier change was rolled back.`);
   }
+  staged.forEach(({ undo }) => undo && fs.rmSync(undo, { force: true }));
 
   console.error(`[install-hook] ${hookStatus}. Server entry: ${mcpKey}.rutter (mode optional). Capture rule: ${rulesStatus}.`);
   console.error(`[install-hook] VAULT for capture AND reads: ${vault}  (from ${vaultSource})`);

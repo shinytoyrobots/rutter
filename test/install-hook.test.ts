@@ -302,7 +302,9 @@ test("installer refuses when dist/capture-cli.js is missing (skipped when the re
 test("the plugin hook passes the claude identity and the shared script forwards its arguments", () => {
   const hooks = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, "..", "hooks", "hooks.json"), "utf8"));
   assert.match(hooks.hooks.Stop[0].hooks[0].command, /librarian-stop\.sh --client claude$/);
-  assert.match(fs.readFileSync(hookPath, "utf8"), /capture-cli\.js" "\$@"/);
+  assert.match(fs.readFileSync(hookPath, "utf8"), /supervise-capture\.mjs" "\$@"/, "the shell script forwards its arguments to the supervisor");
+  const supervisor = fs.readFileSync(path.join(import.meta.dirname, "..", "hooks", "supervise-capture.mjs"), "utf8");
+  assert.match(supervisor, /capture, \.\.\.process\.argv\.slice\(2\)/, "the supervisor forwards them to the capture CLI");
 });
 
 // ---------------------------------------------------------------------------

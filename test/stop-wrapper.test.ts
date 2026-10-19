@@ -14,6 +14,7 @@ import { fileURLToPath } from "node:url";
  */
 
 const wrapper = fileURLToPath(new URL("../hooks/librarian-stop.sh", import.meta.url));
+const supervisor = fileURLToPath(new URL("../hooks/supervise-capture.mjs", import.meta.url));
 let n = 0;
 
 function rig(captureJs: string): string {
@@ -21,6 +22,7 @@ function rig(captureJs: string): string {
   fs.mkdirSync(path.join(root, "hooks"), { recursive: true });
   fs.mkdirSync(path.join(root, "dist"), { recursive: true });
   fs.copyFileSync(wrapper, path.join(root, "hooks", "librarian-stop.sh"));
+  fs.copyFileSync(supervisor, path.join(root, "hooks", "supervise-capture.mjs"));
   fs.writeFileSync(path.join(root, "dist", "capture-cli.js"), captureJs, "utf8");
   return root;
 }
@@ -74,12 +76,30 @@ test("wrapper: a fast child returns promptly and does not wait out the watchdog"
   assert.ok(res.ms < 5000, `returned in ${res.ms} ms`);
 });
 
-test("wrapper: a nonsense timeout falls back to the default instead of failing", () => {
-  const root = rig(`process.exit(0);`);
-  for (const bad of ["abc", "0", "-3", ""]) {
+test("wrapper: unusable or zero timeout values mean the default, never an instant kill or an error", () => {
+  // A child that lives 1.5 s: a wrongly honored "0" or "00" would kill it early (no marker), and "08" must
+  // not trip octal arithmetic (it is simply 8 seconds).
+  for (const bad of ["abc", "0", "00", "-3", "", "1e2", "601", "0x10", "08"]) {
+    const marker = path.join(vaultRoot, `wrapper-late-${n}-${bad.replace(/\W/g, "_")}.txt`);
+    const root = rig(`setTimeout(() => process.getBuiltinModule("node:fs").writeFileSync(${JSON.stringify(marker)}, "done"), 1500);`);
     const res = run(root, "{}", { LIBRARIAN_CAPTURE_TIMEOUT_SEC: bad });
     assert.equal(res.status, 0, `timeout "${bad}"`);
+    assert.ok(fs.existsSync(marker), `timeout "${bad}": the child ran to completion instead of being cut short or failing`);
   }
+});
+
+test("wrapper: a fractional timeout is honored", () => {
+  const root = rig(`setInterval(() => {}, 1000);`);
+  const res = run(root, "{}", { LIBRARIAN_CAPTURE_TIMEOUT_SEC: "0.5" });
+  assert.equal(res.status, 0);
+  assert.ok(res.ms < 4000, `stopped near 0.5 s + grace, not the 20 s default (${res.ms} ms)`);
+});
+
+test("wrapper: it does not depend on ps", () => {
+  const root = rig(`setInterval(() => {}, 1000);`);
+  const res = run(root, "{}", { LIBRARIAN_CAPTURE_TIMEOUT_SEC: "1", PATH: "/nonexistent" , LIBRARIAN_NODE: process.execPath });
+  assert.equal(res.status, 0);
+  assert.ok(res.ms < 6000, `still bounded with no usable PATH (${res.ms} ms)`);
 });
 
 test("wrapper: LIBRARIAN_NODE selects the node binary (Muse clears PATH)", () => {

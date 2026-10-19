@@ -141,15 +141,20 @@ captured entry labeled `muse`, and the small-talk turn correctly produced none.
 ## What shipped
 
 - `muse` joins `CLIENTS` as an explicit-only label (the payload shape is the same as Claude's and Codex's).
-- `hooks/librarian-stop.sh` bounds its capture child by polling it (`LIBRARIAN_CAPTURE_TIMEOUT_SEC`, default
-  20 s, then TERM, then KILL after 2 s), discards the child's stdout, accepts `LIBRARIAN_NODE`, and appends
-  the system directories to a bare `PATH`.
+- `hooks/librarian-stop.sh` now runs the capture under `hooks/supervise-capture.mjs`, a small Node supervisor
+  that owns the child and a wall-clock limit (`LIBRARIAN_CAPTURE_TIMEOUT_SEC`, default 20 s, positive number
+  up to 600; TERM, then KILL after 2 s), discards the child's stdout, and always exits 0. An earlier shell
+  watchdog, then a `ps` poll, were both replaced after review found races and a dependency on `ps`. The
+  wrapper also accepts `LIBRARIAN_NODE` and appends the system directories to a bare `PATH`. This changes the
+  hook for every client: each capture now starts one extra Node process.
 - `install-hook --client muse` merges into `~/.config/muse/settings.json` (hook, plus the `rutter` server
   with `mode: optional`, under whichever of `mcp_servers` / `mcpServers` the file already uses) and adds a
   marked block to `~/.config/muse/AGENTS.md`. It bakes in the vault and an absolute node, is idempotent, and
   refuses unparseable files, symlinks, a `rutter` server that is not this package's, and marker words outside
-  one well-formed block, all before writing. It only recognizes the exact command it writes as its own; both
-  files are staged with unique exclusive temp files and re-checked before the rename. Adversarial review
+  one well-formed block (CommonMark-style fences, an unclosed fence included), all before writing. It treats
+  only the exact command it generates as its own and a server only if it is `node` running rutter-memory's
+  `dist/stdio.js`; both files are staged with unique exclusive temp files plus an undo copy, re-checked just
+  before each rename, and rolled back by atomic rename. Adversarial review
   (Codex, PR #113) drove this hardening.
 - Getting-started has a Muse Code path, including the `muse` name collision.
 
@@ -162,6 +167,7 @@ captured entry labeled `muse`, and the small-talk turn correctly produced none.
 - Behavior on Muse versions other than 1.4.10.
 - A narrow window between the installer's last re-check and its rename, if Muse saves `settings.json` in it.
 - Huge `Stop` payloads through the wrapper.
+- The installer's rollback path is reviewed but has no integration test that forces a rename failure.
 
 ## Decision after the probe
 
