@@ -4,7 +4,7 @@ Notable changes to rutter, newest first. Detailed per-ship records — grounds,
 disclosed gaps, and what is being watched — are kept by the maintainer
 outside this repository.
 
-## v0.9.0 — 2026-10-19
+## v0.8.1 — 2026-10-19
 
 - **Grok no longer needs Claude Code.** `rutter-memory install-hook --client grok` writes one file,
   `~/.grok/hooks/rutter.json` (or `$GROK_HOME/hooks/rutter.json`), and prints the `grok mcp add` line
