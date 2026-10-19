@@ -808,3 +808,38 @@ t("grok: settings.json hooks do not count while Grok's Claude hook compatibility
   const res = grokInstall(sb, { GROK_CLAUDE_HOOKS_ENABLED: "false" });
   assert.equal(fs.existsSync(res.hooksFile), false, "the compat switch does not reach plugin hooks");
 });
+
+t("grok: Claude hook compatibility is read from real TOML (comments, quoted keys, other tables, dotted and inline forms)", () => {
+  const off = [
+    `[compat.claude] # off\nhooks = false\n`,
+    `[compat.claude]\n"hooks" = false\n`,
+    `compat.claude.hooks = false\n`,
+    `[compat]\nclaude = { hooks = false }\n`,
+    `  [ compat . claude ]\n  hooks = false # no\n`,
+  ];
+  const on = [`[compat.claude]\nhooks = true\n\n  [other]\n  hooks = false\n`, `[compat.claude]\nagents = false\n`, `[other]\nhooks = false\n`];
+  for (const [toml, expectNative] of [...off.map((x) => [x, true] as const), ...on.map((x) => [x, false] as const)]) {
+    const sb = sandbox();
+    writeAt(path.join(sb.home, ".claude", "settings.json"), claudeStop(`${hookPath} --client claude`));
+    writeAt(path.join(sb.home, ".grok-x", "config.toml"), toml);
+    const res = grokInstall(sb);
+    assert.equal(res.status, 0, res.stderr);
+    assert.equal(fs.existsSync(res.hooksFile), expectNative, toml);
+  }
+});
+
+t("grok: a Stop command that only names the script is not a competing hook; real invocations are", () => {
+  for (const [command, competing] of [
+    ["echo /pkg/hooks/librarian-stop.sh", false],
+    ["/pkg/hooks/librarian-stop.sh --client claude", true],
+    ["'/with space/hooks/librarian-stop.sh' --client claude", true],
+    ['"${CLAUDE_PLUGIN_ROOT}"/hooks/librarian-stop.sh --client claude', true],
+    ["LIBRARIAN_NODE=/n /pkg/hooks/librarian-stop.sh", true],
+  ] as const) {
+    const sb = sandbox();
+    writeAt(path.join(sb.home, ".grok-x", "hooks", "mine.json"), claudeStop(command));
+    const res = grokInstall(sb);
+    assert.equal(res.status, 0, res.stderr);
+    assert.equal(fs.existsSync(res.hooksFile), !competing, command);
+  }
+});

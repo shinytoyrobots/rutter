@@ -316,26 +316,48 @@ async function installGrok() {
       return undefined;
     }
   };
+  // The command RUNS the script (after any VAR=value prefixes), not merely names it: `echo /x/hooks/librarian-stop.sh` does not.
+  const invokesHook = (command) =>
+    typeof command === "string" &&
+    (/^(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*(?:'[^']*'|"[^"]*"|[^\s'"])*\/hooks\/librarian-stop\.sh(?=["']?(?:\s|$))/.test(command) ||
+      /^(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*(?:'[^']*\/hooks\/librarian-stop\.sh'|"[^"]*\/hooks\/librarian-stop\.sh")(?:\s|$)/.test(command));
   // Does this JSON file register rutter's script as a Stop command? Parsed, so escaped slashes decode and
   // a SessionStart hook or a mention in a description does not count. A file Grok could not parse is not
   // loaded by Grok either, so it is not a competitor.
   const runsHook = (file) => {
     const cfg = readJson(file);
     const groups = isObj(cfg) && isObj(cfg.hooks) && Array.isArray(cfg.hooks.Stop) ? cfg.hooks.Stop : [];
-    return groups.some((g) => (Array.isArray(g?.hooks) ? g.hooks : []).some((h) => typeof h?.command === "string" && h.command.includes("/hooks/librarian-stop.sh")));
+    return groups.some((g) => (Array.isArray(g?.hooks) ? g.hooks : []).some((h) => invokesHook(h?.command)));
   };
   // Grok reads ~/.claude/settings.json hooks only while [compat.claude] hooks is on (env beats config.toml).
   // Plugin hooks are not governed by it (checked on Grok 1.0.50), so the plugin routes below ignore it.
   const claudeSettingsOn = () => {
     const env = process.env.GROK_CLAUDE_HOOKS_ENABLED?.trim().toLowerCase();
     if (env) return !["false", "0", "no", "off"].includes(env);
+    let toml;
     try {
-      const toml = fs.readFileSync(path.join(home, "config.toml"), "utf8");
-      const section = toml.match(/^\[compat\.claude\][^\S\n]*$([\s\S]*?)(?=^\[|(?![\s\S]))/m);
-      return !(section && /^\s*hooks\s*=\s*false\b/m.test(section[1]));
+      toml = fs.readFileSync(path.join(home, "config.toml"), "utf8");
     } catch {
       return true;
     }
+    // Line by line, tracking the current table: `[compat.claude]` with a trailing comment or odd spacing,
+    // a quoted key, a dotted key at the top, or an inline `claude = { hooks = false }` under [compat].
+    const unq = (v) => v.trim().replace(/^(["'])(.*)\1$/, "$2");
+    let table = "";
+    for (const raw of toml.split(/\r?\n/)) {
+      const line = raw.replace(/\s+#.*$/, "").trim();
+      const header = line.match(/^\[([^\[\]]+)\]$/);
+      if (header) {
+        table = header[1].split(".").map(unq).join(".");
+        continue;
+      }
+      const kv = line.match(/^((?:"[^"]*"|'[^']*'|[A-Za-z0-9_-]+)(?:\s*\.\s*(?:"[^"]*"|'[^']*'|[A-Za-z0-9_-]+))*)\s*=\s*(.*)$/);
+      if (!kv) continue;
+      const full = [table, ...kv[1].split(".").map(unq)].filter(Boolean).join(".");
+      if (full === "compat.claude.hooks" && /^false\b/.test(kv[2])) return false;
+      if (full === "compat.claude" && /\bhooks\s*=\s*false\b/.test(kv[2])) return false;
+    }
+    return true;
   };
 
   // Other routes by which Grok would run rutter's hook.
@@ -418,7 +440,7 @@ async function installGrok() {
       fs.writeFileSync(tmp, body, { encoding: "utf8", flag: "wx" });
       fs.renameSync(tmp, hooksFile);
     } catch (err) {
-      fs.rmSync(tmp, { force: true });
+      if (err?.code !== "EEXIST") fs.rmSync(tmp, { force: true }); // never delete an entry this run did not create
       throw err;
     }
   }
