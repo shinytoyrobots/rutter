@@ -1,6 +1,6 @@
 # Frequently asked questions
 
-These answers are for someone who has not read the rest of the docs. They cover how rutter behaves with more than one AI client, how to add a client to a working setup, and where to look when a record does not appear. [Known issues](#known-issues) is at the end.
+These answers are for someone who has not read the rest of the docs. They cover how rutter behaves with more than one AI client, how to add a client to a working setup, and where to look when a record does not appear. [Known issues](./known-issues.md) has its own page.
 
 rutter's tools (`librarian-*`), environment variables (`LIBRARIAN_*`), and the `_librarian/` folder keep the project's earlier name, *librarian*. They are all parts of rutter.
 
@@ -8,7 +8,7 @@ rutter's tools (`librarian-*`), environment variables (`LIBRARIAN_*`), and the `
 
 ### Do my clients share one memory?
 
-Yes, if they all point at the same notes folder. Each client's capture hook writes to `_librarian/sessions/<date>.md` inside that folder. Each client reads those files back through its own rutter server. A decision captured in Grok is recalled in Codex.
+Yes, if they all point at the same notes folder. Each client's capture hook (a script the client runs after each turn) writes to `_librarian/sessions/<date>.md` inside that folder. Each client reads those files back through its own rutter server. A decision captured in Grok is recalled in Codex.
 
 If two clients point at different folders, each has its own memory. Nothing merges them.
 
@@ -20,7 +20,7 @@ Shared, in the notes folder under `_librarian/`:
 
 - `sessions/<UTC date>.md`: one line per captured session
 - `positions/<YYYY-MM>.md`: stances you have formed or changed
-- `stateful-use.jsonl`: which notes your sessions touched
+- `stateful-use.jsonl`: a log of when recall and enriched search were used (timestamps only)
 
 Per client:
 
@@ -33,7 +33,7 @@ Per client:
 | Antigravity CLI (`agy`) | `~/.gemini/config/hooks.json` | `~/.gemini/config/rules/rutter-capture.md` |
 | Muse Code | the `hooks` block of `~/.config/muse/settings.json` | a marked block in `~/.config/muse/AGENTS.md` |
 
-Each client also has its own MCP registration. `$CODEX_HOME`, `$COPILOT_HOME`, and `$GROK_HOME` move those clients' locations.
+Each client also has its own MCP (Model Context Protocol) registration. `$CODEX_HOME`, `$COPILOT_HOME`, and `$GROK_HOME` move those clients' locations.
 
 ### Is there one rutter server or several?
 
@@ -58,7 +58,7 @@ Grok already runs the plugin's capture hook through its Claude Code compatibilit
    rutter-memory install-hook --client grok
    ```
 
-   If the installer finds the plugin's hook, it writes nothing and names the route it found. It still prints a `grok mcp add` line. The plugin may already supply a server, so skip that line unless you want a native registration. See the [two servers issue](#grok-may-load-two-rutter-servers).
+   If the installer finds the plugin's hook, it writes nothing and names the route it found. It still prints a `grok mcp add` line. The plugin may already supply a server, so skip that line unless you want a native registration. See the [two servers issue](./known-issues.md#grok-may-load-two-rutter-servers).
 
 Check what Grok loaded with `grok inspect`, or open `/hooks` inside Grok.
 
@@ -72,7 +72,7 @@ Follow the [Grok path](./getting-started.md#grok-path). In short:
 4. Run the `grok mcp add` line the installer prints. The installer never runs it for you.
 5. Start a new Grok session, do some real work, and check `_librarian/sessions/`.
 
-This route was verified on Linux with Grok 1.0.62 only. See [Known issues](#known-issues) for macOS and Windows.
+This route was verified on Linux with Grok 1.0.62 only. See [Known issues](./known-issues.md) for macOS and Windows.
 
 ### I have Codex, Copilot CLI, Antigravity, or Muse Code. Does adding Grok disturb it?
 
@@ -137,158 +137,43 @@ The record files are rewritten whole through a temporary file and a rename, so t
 
 ### How do I stop capture for one client?
 
-rutter has no pause switch or uninstall command. You delete the client's hook. The list for every client is in [Pause capture](./getting-started.md#pause-capture).
+rutter has no pause switch or uninstall command. You delete the client's hook. The list for every client is in [Pause capture](./manage-and-privacy.md#pause-capture).
 
 ### What leaves my machine?
 
-rutter makes no network calls and runs no model. What its tools return becomes part of your client's context and goes to that client's model provider. With several clients, a record captured in one is sent to whichever provider serves the client you ask in. See [What leaves your machine](./getting-started.md#what-leaves-your-machine).
+rutter makes no network calls and runs no model. What its tools return becomes part of your client's context and goes to that client's model provider. With several clients, a record captured in one is sent to whichever provider serves the client you ask in. See [What leaves your machine](./manage-and-privacy.md#what-leaves-your-machine).
 
 ## Known issues
 
-Issues are listed as what you see, why, and what to do. Each is either **confirmed**, meaning the docs, tests, or a recorded run show it, or **not tested**. Not tested means it follows from reading the code and nobody has run it. rutter is a personal tool with no support commitment.
-
-### Confirmed
-
-#### The Grok install was tested on Linux only
-
-**What you see:** nothing yet. This is a coverage gap.
-
-**Why:** the Grok route without Claude Code was verified in a Linux environment. The macOS recheck is still open. Windows was never tried.
-
-**What to do:** on macOS, follow the Grok path and report what differs. See also the [not tested](#not-tested) issues.
-
-#### A long Grok turn can lose the summary line
-
-**What you see:** no record from a Grok session whose final reply was very long.
-
-**Why:** Grok truncates the final message it gives the hook at 32,768 characters, and the summary line is at the end.
-
-**What to do:** keep the final reply well under that length, so the summary line stays in the part Grok passes on.
-
-#### Capture depends on the model
-
-**What you see:** a session with real work and no record.
-
-**Why:** the hook only lifts a line the model wrote. Models skipped it in tests. Muse Code wrote it on four of five ordinary tasks. In the Copilot CLI trial it wrote the line only with a Copilot-specific lead line. `agy` models wrote none without the always-on rule file.
-
-**What to do:** keep each client's instructions file in place. Do not delete it as clutter.
-
-#### Two summary lines collapse to one
-
-**What you see:** only the last of two lines in a final reply is stored.
-
-**Why:** the hook keeps the last directive it finds in what it reads.
-
-**What to do:** write one line per turn.
-
-#### Muse Code, Codex, and Copilot CLI have client-specific limits
-
-- **Muse Code:** a project `AGENTS.md` in an untrusted workspace may suppress the user-level rule. The `muse` command name can also collide with a cmux binary.
-- **Codex:** the hook never runs until you trust it in `/hooks`. It needs Node on `PATH`, which a Dock launch may not provide.
-- **Copilot CLI:** the server receives only `PATH`, so the notes folder must be in the `copilot mcp add` line.
-
-#### Some labels are missing
-
-**What you see:** a record with no `client` label.
-
-**Why:** hand-registered hooks from before the label existed, and turns the hook cannot attribute, get none. There is no filter by client yet.
-
-**What to do:** none needed. A label is left off rather than guessed.
-
-#### There is no pause or uninstall command
-
-**What you see:** you cannot turn capture off with a command.
-
-**Why:** the installers only add files.
-
-**What to do:** delete the hook file, as described in [Pause capture](./getting-started.md#pause-capture).
-
-#### The default notes folder is the author's
-
-**What you see:** zero notes found, and no error.
-
-**Why:** an unreadable or wrong folder produces a successful empty index. The default is `~/Documents/knowledge-vault`.
-
-**What to do:** set `LIBRARIAN_VAULT_PATH`, then check that `/mcp` or `rutter-memory recent` shows your notes.
-
-#### A new position is not recalled at once
-
-**What you see:** a position you just captured is not found.
-
-**Why:** positions are recalled from the index, which updates when a server starts or you reindex.
-
-**What to do:** restart the client, or reindex.
-
-#### References show what the session listed
-
-**What you see:** a reference that matches a note whose text has since changed.
-
-**Why:** a reference records which notes the session cited, not which it read. A note edited in place at the same path is not flagged.
-
-**What to do:** compare the stored hash with the note when it matters.
-
-#### Some clients are not covered
-
-Capture is not checked in Cowork. The Antigravity IDE is not covered, only the `agy` command-line tool.
-
-### Not tested
-
-These come from reading the code and the docs, not from running them.
-
-#### Grok may load two rutter servers
-
-**What you see:** the Claude Code plugin and a native `grok mcp add rutter` registration are both present.
-
-**Why:** the plugin may supply a server, and the installer prints the registration line even when it finds the plugin. Only hook double-firing was probed. Whether Grok then shows two servers is not confirmed.
-
-**What to do:** register one route. If you use the plugin, skip the printed `grok mcp add` line. Fixing this is on the [roadmap](./roadmap.md#phase-7--grok-without-claude-code-proposal).
-
-#### Codex, Copilot CLI, Antigravity, and Muse Code without Claude Code
-
-**What you see:** nothing known. These installs use npm and do not need the Claude Code plugin.
-
-**Why:** they were tested only on a machine that also had Claude Code, so a problem on a clean machine is possible.
-
-**What to do:** if one fails on a machine without Claude Code, please [open an issue](https://github.com/shinytoyrobots/rutter/issues).
-
-#### macOS and Windows
-
-The Grok installer, the hook, and the instructions-file writers assume a POSIX shell and home-directory layout. Most of the next entries follow from that.
-
-#### Launching a client from the desktop on macOS
-
-**What you might see:** captures in the default folder, or a hook that cannot find `node`.
-
-**Why:** desktop launches do not carry your shell exports. The docs report this for Codex and the `npx` route. The same likely applies to Grok.
-
-**What to do:** launch from a terminal, or follow the [Grok path](./getting-started.md#grok-path) checks.
-
-#### Native Windows
-
-**What you might see:** the hook never runs, or the installer registers a second entry on every run.
-
-**Why:** the hook is a bash script. Native Windows has no bash unless you use WSL or Git Bash. The installer recognizes its own entries only by forward-slash paths, and its quoting is POSIX-style. Muse Code's installer rejects vault paths that contain a backslash.
-
-**What to do:** use WSL, where the Linux behavior applies. This is also untested.
-
-#### Symlinked configuration files
-
-**What you might see:** the installer refuses to continue.
-
-**Why:** it will not replace a symlinked `rutter.json` or Muse Code settings file. Dotfile managers can create such links.
-
-**What to do:** replace the link with a real file, then re-run.
-
-#### Newer client versions
-
-**What you might see:** a hook that stops firing after a client update.
-
-**Why:** the Grok route was verified on Grok 1.0.62. Hook formats and compatibility behavior can change.
-
-**What to do:** re-run the installer after updating, and check for a new record.
+Known issues now have their own page: [Known issues](./known-issues.md). It lists what is confirmed, such as the Grok install being tested on Linux only, and what is not tested yet.
+
+The entries that used to be on this page, each linking to its new home:
+
+- [Confirmed](./known-issues.md#confirmed): now on the Known issues page.
+- [The Grok install was tested on Linux only](./known-issues.md#the-grok-install-was-tested-on-linux-only): now on the Known issues page.
+- [A long Grok turn can lose the summary line](./known-issues.md#a-long-grok-turn-can-lose-the-summary-line): now on the Known issues page.
+- [Capture depends on the model](./known-issues.md#capture-depends-on-the-model): now on the Known issues page.
+- [Two summary lines collapse to one](./known-issues.md#two-summary-lines-collapse-to-one): now on the Known issues page.
+- [Muse Code, Codex, and Copilot CLI have client-specific limits](./known-issues.md#muse-code-codex-and-copilot-cli-have-client-specific-limits): now on the Known issues page.
+- [Some labels are missing](./known-issues.md#some-labels-are-missing): now on the Known issues page.
+- [There is no pause or uninstall command](./known-issues.md#there-is-no-pause-or-uninstall-command): now on the Known issues page.
+- [The default notes folder is the author's](./known-issues.md#the-default-notes-folder-is-the-authors): now on the Known issues page.
+- [A new position is not recalled at once](./known-issues.md#a-new-position-is-not-recalled-at-once): now on the Known issues page.
+- [References show what the session listed](./known-issues.md#references-show-what-the-session-listed): now on the Known issues page.
+- [Some clients are not covered](./known-issues.md#some-clients-are-not-covered): now on the Known issues page.
+- [Not tested](./known-issues.md#not-tested): now on the Known issues page.
+- [Grok may load two rutter servers](./known-issues.md#grok-may-load-two-rutter-servers): now on the Known issues page.
+- [Codex, Copilot CLI, Antigravity, and Muse Code without Claude Code](./known-issues.md#codex-copilot-cli-antigravity-and-muse-code-without-claude-code): now on the Known issues page.
+- [macOS and Windows](./known-issues.md#macos-and-windows): now on the Known issues page.
+- [Launching a client from the desktop on macOS](./known-issues.md#launching-a-client-from-the-desktop-on-macos): now on the Known issues page.
+- [Native Windows](./known-issues.md#native-windows): now on the Known issues page.
+- [Symlinked configuration files](./known-issues.md#symlinked-configuration-files): now on the Known issues page.
+- [Newer client versions](./known-issues.md#newer-client-versions): now on the Known issues page.
+- [Do I need Claude Code to use rutter?](./known-issues.md#codex-copilot-cli-antigravity-and-muse-code-without-claude-code): answered in the known issues entry on running without Claude Code.
 
 ## See also
 
 - [Getting started](./getting-started.md#choose-your-path): one path per client
-- [Memory of use](./memory-of-use.md): how capture and records work
-- [Overview](./overview.md): why rutter is built this way
+- [How it works](./memory-of-use.md): how capture and records work (memory-of-use)
+- [Why is it built this way?](./overview.md): the design, and what each choice costs
+- [Known issues](./known-issues.md)

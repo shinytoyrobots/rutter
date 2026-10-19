@@ -1,6 +1,6 @@
 # Cold-reader fixes for the docs site
 
-Status: plan only, nothing implemented. Source: a cold-reader review of the published gh-pages site on 2026-10-19 (home, design, getting-started, FAQ, memory-of-use, llms.txt).
+Status: Markdown implemented in the cold-reader-fixes PR to main; HTML port to gh-pages follows. Source: a cold-reader review of the published gh-pages site on 2026-10-19 (home, design, getting-started, FAQ, memory-of-use, llms.txt).
 
 Page sources: home = `docs/index.md`, design = `docs/overview.md`, plus `docs/getting-started.md`, `docs/faq.md`, `docs/memory-of-use.md`. The published site is hand-authored HTML on the `gh-pages` branch. Editing the Markdown does not change it, and `scripts/site-drift.mjs` only compares Markdown hashes against `sources.json` on gh-pages; it never looks at the HTML. So every change needs a paired HTML port. See "Publishing" at the end.
 
