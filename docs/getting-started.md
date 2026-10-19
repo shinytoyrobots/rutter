@@ -15,6 +15,7 @@ Pick the path for your client. Each one is a single sequence, and each ends with
 | Codex | [Codex path](#codex-path) | One npm install, and a hook you trust |
 | GitHub Copilot CLI | [Copilot CLI path](#copilot-cli-path) | One npm install, a hook, and an instructions file |
 | Antigravity CLI (`agy`) | [Antigravity path](#antigravity-path) | One npm install, a hook, and a rule file |
+| Muse Code (`muse`) | [Muse Code path](#muse-code-path) | One npm install and one installer run |
 | Any other MCP client | [Recall only, with npx](#recall-only-with-npx) | One config entry. Search and recall only: with no hook, nothing is captured |
 | Claude Code, from a clone | [The manual route](#the-manual-route-step-by-step) | Eight steps, starting with a record written by hand. For contributors |
 
@@ -249,6 +250,46 @@ ls "/path/to/your/notes/_librarian/sessions/"
 ```
 
 **6. Check recall.** Ask `agy` *"What was I working on lately?"* It should call `librarian-recent` and report the session you just finished.
+
+## Muse Code path
+
+This covers Meta's terminal agent, Muse Code (the `muse` command). Check [Before you start](#before-you-start) first. Verified with Muse Code 1.4.10 (October 2026), which Meta shipped as a beta in August 2026.
+
+**1. Install rutter.** Install it globally, not through `npx`: the hook needs a path that stays put.
+
+```bash
+npm install -g rutter-memory
+```
+
+**2. Run the installer.** Muse runs hooks with a cleared environment, so the notes folder cannot come from your shell. The installer bakes it in:
+
+```bash
+rutter-memory install-hook --client muse --vault "$HOME/path/to/your/notes"
+```
+
+Without `--vault` it uses `LIBRARIAN_VAULT_PATH` from this shell, then `~/Documents/knowledge-vault`. Re-running keeps the vault the hook already uses unless you pass a new one.
+
+It changes two files under `~/.config/muse`, and nothing in any project:
+
+- `settings.json`: adds rutter's `Stop` hook and a `rutter` server entry with `mode: "optional"`. Muse's default, `required`, aborts the whole run when a server fails to start. Your other settings, hooks and servers are left as they are. If the file isn't valid JSON, the installer stops and changes nothing, because a broken `settings.json` can stop Muse from starting.
+- `AGENTS.md`: adds a marked block asking the model to end a reply that settles something with the session line. Your own text in that file is never touched. Muse's server instructions alone did not make the model write the line, but this user-level file did.
+
+**3. Start a new Muse session and do one small real task.** Hooks and rules load when a session starts. The session line is an HTML comment in the final reply. If the reply holds two lines, only the last is kept.
+
+**4. Check capture.** A file for today's UTC day should exist, and its new entry should carry `client: muse`:
+
+```bash
+ls "$HOME/path/to/your/notes/_librarian/sessions/"
+```
+
+**5. Check recall.** Ask Muse *"What was I working on lately?"* It should call `librarian-recent` and report the session you just finished.
+
+Things to know:
+
+- **The `muse` name can collide.** cmux ships its own `muse` binary. If `which -a muse` lists more than one, run Meta's by full path, `~/.local/bin/muse`.
+- **A stuck hook holds up your turn.** Muse waits for a Stop hook as long as it runs. rutter's hook kills its capture process after 20 seconds (`LIBRARIAN_CAPTURE_TIMEOUT_SEC` changes that).
+- **Capture depends on the model writing the line.** In a trial with this rule in place, Muse wrote it on four of five ordinary tasks and left it out of small talk. A project with its own `AGENTS.md` may compete with the user-level rule.
+- **To remove it,** delete the hook and `rutter` entries from `settings.json` and the marked block from `AGENTS.md`.
 
 ## Recall only, with npx
 

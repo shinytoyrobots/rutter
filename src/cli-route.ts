@@ -15,7 +15,7 @@ export const USAGE = `usage: rutter-memory [command]
   serve          run the MCP server on stdio (the default)
   reindex        rebuild the search index [--force]
   recent         print recent session summaries [count] [--days N] [--project NAME] [--brief]
-  install-hook   register the capture hook [--client claude|codex|antigravity] [--vault PATH]
+  install-hook   register the capture hook [--client claude|codex|antigravity|copilot|muse] [--vault PATH]
   help           show this message`;
 
 export function route(argv: string[]): Route {

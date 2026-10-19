@@ -10,7 +10,7 @@
  * hand-edited value never makes a day unreadable. The canonical set is enforced
  * here, where the label is PRODUCED.
  */
-export const CLIENTS = ["claude", "grok", "codex", "agy", "copilot"];
+export const CLIENTS = ["claude", "grok", "codex", "agy", "copilot", "muse"];
 export function isClient(value) {
     return typeof value === "string" && CLIENTS.includes(value);
 }
@@ -31,6 +31,7 @@ export function parseExplicitIdentity(raw) {
  *   codex            | codex   | none | none | none
  *   agy              | agy     | agy  | none | none
  *   copilot          | copilot | none | none | copilot
+ *   muse             | muse    | none | none | none
  *
  * claude x copilot is a conflict, not the Grok exception: no probe has shown Copilot
  * running the Claude plugin's hook, so it gets no label until one does.
@@ -38,8 +39,8 @@ export function parseExplicitIdentity(raw) {
  * Contradictory shape (more than one of agy, grok, copilot), a direct payload, and an
  * unrecognized explicit identity all yield no label.
  *
- * `last_assistant_message` is deliberately not an input: Claude and Codex both
- * send it, so it separates nothing. Codex is explicit-only for the same reason.
+ * `last_assistant_message` is deliberately not an input: Claude, Codex and Muse all
+ * send it, so it separates nothing. Codex and Muse are explicit-only for the same reason.
  */
 export function classifyClient(shape, explicit) {
     if (shape.direct)

@@ -1,14 +1,14 @@
 ---
 type: plan
-status: blocked-on-probe
+status: implemented
 created: 2026-10-15
 domain: ops
 ---
 
 # Meta Muse Code support for rutter
 
-**Status:** a probe, not a build. The facts that decide whether capture is possible aren't in
-Meta's docs. Run the probe below, then turn this file into a build plan or close it as recall-only.
+**Status:** probed 2026-10-18 and built. Capture and recall both work; see the probe results and
+"What shipped" below. The probe section is kept as the evidence for the design.
 
 **Sequencing:** Copilot CLI support is already implemented (`copilot` is in `CLIENTS` in
 `src/client.ts`, with installer and capture code). Whether Muse ships in the same release or a later
@@ -111,6 +111,51 @@ whose path the probe has to find.
    user rules file from the step 4 backups (not by hand-removing entries), verify the checksums
    match the originals, and confirm Muse still starts.
 8. Record the answers to the six questions above in a probe table in this file.
+
+## Probe results (2026-10-18, Muse Code 1.4.10-R6427.1)
+
+Run with `muse exec` (headless, one turn per session) and a pty-driven TUI session (three turns). Not yet
+run: installer idempotence, a Muse-native user rules file, `PostLLMCall` payload analysis, the
+`hook-dump` wrapper under the TUI for tool-using turns.
+
+| # | Question | Answer |
+|---|---|---|
+| 1 | When does `Stop` fire? | After **each turn**. One TUI session, three prompts: three `Stop` records, same `session_id`, distinct `turn_id`. `SessionEnd` fires at the end of `exec` runs but did **not** fire when the TUI's pty closed, so it is not reliable. |
+| 2 | `Stop` stdin | JSON: `hook_event_name`, `stop_hook_active`, **`last_assistant_message`**, `session_id`, **`turn_id`**, `cwd`, `transcript_path` (always `null`), `model`, `permission_mode`. Same shape as Codex's payload. |
+| 3 | Hook schema | The Claude-style shape is accepted: `hooks.<Event>: [{ "hooks": [{ "type": "command", "command": "..." }] }]`. The docs do not specify it. Muse rewrote `mcp_servers` as `mcpServers` in `settings.json`; both keys were accepted. Merge and idempotence **not tested**. |
+| 4 | Failure semantics | Exit 1 and exit 2: fail-open (turn completes, no warning, no continuation, `stop_hook_active` stays false). A **hung** hook blocks Muse for its full duration (307 s for a 300 s sleep): the wrapper needs a bounded child timeout. |
+| 5 | Session log | `~/.local/share/muse/sessions/YYYY/MM/DD/<session-id>/session.jsonl`, a record stream (`record_type`, `payload_type`, `sequence`, some wrapped in `children`). `muse export` is the supported reader. Not needed for capture. |
+| 6 | Instruction delivery | Server `instructions` alone did **not** produce a directive on an ordinary task. A canary rule in **`~/.config/muse/AGENTS.md`** was loaded as a user-level rule (3 of 3 runs in a repo without a project `AGENTS.md` or in a trusted one, but only 1 of 4 in an **untrusted** repo that has its own `AGENTS.md`). Muse also imports the user's global `~/.claude/CLAUDE.md`, which helps only Claude Code users. |
+
+Also: the hook environment is cleared to `HOME, LANG, LOGNAME, MUSE_SESSION_ID, MUSE_THREAD_ID, PATH, PWD,
+SHELL, TERM, TMPDIR, USER` and a few shell variables, so `LIBRARIAN_VAULT_PATH` is not passed. Replaying the
+recorded `Stop` payloads through `hooks/librarian-stop.sh` captured exactly the turn that carried a directive;
+no-directive, user-input-only, tool-output-only and long-reply turns captured nothing. A `muse` binary from
+cmux was not on PATH in the probe shell.
+
+**Verdict:** both gates pass. The wrapper is fail-open once it bounds its child (a raw hung hook is not),
+and a user-level rules file in Muse's own config directory makes the model emit the line without touching any
+project. Live check with the shipped installer and a throwaway vault: four of five ordinary tasks produced a
+captured entry labeled `muse`, and the small-talk turn correctly produced none.
+
+## What shipped
+
+- `muse` joins `CLIENTS` as an explicit-only label (the payload shape is the same as Claude's and Codex's).
+- `hooks/librarian-stop.sh` bounds its capture child (`LIBRARIAN_CAPTURE_TIMEOUT_SEC`, default 20 s, TERM
+  then KILL), accepts `LIBRARIAN_NODE`, and appends the system directories to a bare `PATH`.
+- `install-hook --client muse` merges into `~/.config/muse/settings.json` (hook, plus the `rutter` server
+  with `mode: optional`, under whichever of `mcp_servers` / `mcpServers` the file already uses) and adds a
+  marked block to `~/.config/muse/AGENTS.md`. It bakes in the vault and an absolute node, is idempotent, and
+  refuses unparseable or foreign entries before writing anything.
+- Getting-started has a Muse Code path, including the `muse` name collision.
+
+## Still unverified
+
+- A project `AGENTS.md` in an **untrusted** workspace may suppress the user-level rule (1 of 4 runs loaded it).
+- `SessionEnd` did not fire when a TUI pty closed, so nothing depends on it.
+- Muse's own rewrite of `settings.json` renames `mcp_servers` to `mcpServers`; the installer accepts both.
+- Whether Muse honors a `timeout` field on a hook entry: untested, so the installer does not write one.
+- Behavior on Muse versions other than 1.4.10.
 
 ## Decision after the probe
 

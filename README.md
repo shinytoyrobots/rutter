@@ -29,7 +29,7 @@ against the map. The map records what is known. The rutter records what you did 
 
 ## One memory across your AI tools
 
-rutter keeps one set of records for Claude Code, Grok, Codex, Copilot CLI, and Antigravity. Each client writes its
+rutter keeps one set of records for Claude Code, Grok, Codex, Copilot CLI, Antigravity, and Muse Code. Each client writes its
 session summaries to the same notes folder. Each client reads them back through the same MCP server.
 
 A decision you made in Codex on Tuesday is there when you ask Claude Code on Thursday, provided
@@ -43,15 +43,16 @@ feature inside one tool.
 | Codex | The hook reads the final reply only. | [npm install, then four steps](#codex) |
 | GitHub Copilot CLI | The hook reads the current turn from Copilot's transcript. | [npm install, then four steps](#github-copilot-cli) |
 | Antigravity CLI (`agy`) | The hook reads the current turn from `agy`'s transcript. | [npm install, then four steps](#antigravity-cli) |
+| Muse Code (`muse`) | The hook reads the final reply. | [npm install, then one installer run](./docs/getting-started.md#muse-code-path) |
 
-Every client can read the memory once its MCP server is registered. Writing needs a hook that runs after each turn, and these five
+Every client can read the memory once its MCP server is registered. Writing needs a hook that runs after each turn, and these six
 have one. Any other MCP client can read but not write, running the server through `npx`
 ([recall only, with npx](./docs/getting-started.md#recall-only-with-npx)). The Antigravity row covers the `agy`
 command-line tool, not the Antigravity IDE.
 
 Point every client at the same notes folder. Each sets it differently. The Claude Code plugin asks
 for it at install. Grok, Codex, and Copilot CLI read `LIBRARIAN_VAULT_PATH` from the shell that launches them.
-Antigravity's installer takes `--vault`. Each record notes which client wrote it, when the hook can
+Antigravity's and Muse Code's installers take `--vault`. Each record notes which client wrote it, when the hook can
 tell (see *Known limitations*).
 
 ## How this differs from memory you already have
