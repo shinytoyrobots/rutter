@@ -3,7 +3,7 @@
 > A personal memory layer for AI agents. One memory, multiple agents, yours. rutter
 > keeps dated records in your own markdown notes folder, each with a content hash
 > of the notes it cites. An MCP server for Claude Code, Grok, Codex, Copilot CLI,
-> and Antigravity CLI (agy); a personal reference implementation.
+> Antigravity CLI (agy), and Muse Code; a personal reference implementation.
 
 ## Docs
 

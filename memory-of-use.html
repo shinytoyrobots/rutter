@@ -146,7 +146,7 @@ reference paths, never the workspace. A Stop firing whose directory changed (a r
 subdirectory, or none at all) is still an unchanged line and still a byte-identical no-op. Moving a
 project does not fork your history.</p>
 <h3 id="which-client-wrote-it">Which client wrote it</h3>
-<p><code>client</code> is another optional field: <code>claude</code>, <code>grok</code>, <code>codex</code>, <code>copilot</code>, or <code>agy</code>. It names the host, never
+<p><code>client</code> is another optional field: <code>claude</code>, <code>grok</code>, <code>codex</code>, <code>copilot</code>, <code>agy</code>, or <code>muse</code>. It names the host, never
 the model, and it is metadata only. It changes nothing about how the summary or stance is stored.</p>
 <p>The hook compares two things: the raw Stop event payload the host sends (Antigravity&#39;s shape,
 Copilot CLI&#39;s shape, Grok&#39;s camelCase <code>lastAssistantMessage</code>) and the identity the installer passes as <code>--client</code>. It
@@ -160,14 +160,14 @@ record&#39;s frontmatter, not the body.</p>
 <h2 id="capturing-session-summaries">Capturing session summaries</h2>
 <p>Capture is <strong>ambient</strong>: it happens after each turn with no action from you inside the session. It
 is wired through a <strong>Stop hook</strong>, a hook the host runs when the assistant finishes a turn, in
-Claude Code, Grok, Codex, Copilot CLI, and Antigravity.</p>
+Claude Code, Grok, Codex, Copilot CLI, Antigravity, and Muse Code.</p>
 <p><strong>Setup is the hook.</strong> Register it with <code>npm run install-hook</code>, adding <code>--client codex</code>,
-<code>--client copilot</code>, or <code>--client antigravity</code> for those hosts. <a href="getting-started.html#choose-your-path">Getting started</a> has a
+<code>--client copilot</code>, <code>--client antigravity</code>, or <code>--client muse</code> for those hosts. <a href="getting-started.html#choose-your-path">Getting started</a> has a
 setup path for each host, with its commands and checks. Two facts change behavior:</p>
 <ul>
 <li>Codex will not run the hook until you review and trust it with <code>/hooks</code>. Installing does not
 grant trust, and an untrusted hook never runs.</li>
-<li>Antigravity and Copilot CLI each need an instructions file as well as the hook (see <em>Host differences</em>).</li>
+<li>Antigravity, Copilot CLI, and Muse Code each need an instructions or rules file as well as the hook (see <em>Host differences</em>).</li>
 </ul>
 <p>The installer merges into existing hook configuration and never touches your other hooks. It
 refuses to run against an unbuilt repo. The registered script always exits cleanly, so a capture
@@ -202,6 +202,16 @@ one of its tools is called, so most sessions would never see the capture contrac
 writes <code>~/.copilot/instructions/rutter.instructions.md</code> (or under <code>$COPILOT_HOME</code>), built from the
 server&#39;s own contract text, and never edits your own <code>copilot-instructions.md</code>. Copilot passes only
 <code>PATH</code> to an MCP server, so the <code>copilot mcp add</code> line the installer prints carries the vault.</li>
+<li><strong>Muse Code</strong> (<code>muse</code>) sends a Stop event after every turn that carries the final reply as
+<code>last_assistant_message</code>, with a <code>turn_id</code> and no transcript path, so the hook reads the reply itself and
+an earlier turn&#39;s directive is never read again. Muse runs hooks with a cleared environment, so the
+installer bakes in the vault and an absolute <code>node</code>. A hook that hangs holds the turn, so the hook runs
+the capture under a time limit (20 seconds by default) and always exits cleanly.</li>
+<li><strong>Muse Code needs a rules file.</strong> The server&#39;s instructions alone did not make Muse&#39;s model leave
+summaries. The installer adds a marked block to <code>~/.config/muse/AGENTS.md</code>, built from the server&#39;s own
+contract text, and leaves the rest of that file alone. A project <code>AGENTS.md</code> in an untrusted workspace
+may keep the rule from loading. The installer also registers the server as <code>optional</code>, because Muse&#39;s
+default <code>required</code> aborts the whole run when a server fails to start.</li>
 <li><strong>Antigravity</strong> (<code>agy</code>) sends a Stop event with no reply text. The hook reads the transcript file
 the event points to and takes the assistant messages from the current turn, which is everything
 after your last message. The last directive in those messages is kept, and an earlier turn&#39;s
@@ -214,6 +224,26 @@ once. It bakes the vault in as the hook&#39;s default and prints the same value 
 line, so writes and reads cannot disagree. An exported <code>LIBRARIAN_VAULT_PATH</code> still overrides the
 hook&#39;s default, and each capture logs the vault it wrote to.</li>
 </ul>
+<h3 id="host-integration">Host integration</h3>
+<p>These rules hold for every host, present and future. A per-client plan cites them and records only
+what differs.</p>
+<ul>
+<li><strong>A capture hook fails open.</strong> It never blocks, aborts, or delays the user&#39;s turn. The registered
+script exits 0 even when capture fails, and says why on stderr.</li>
+<li><strong>Installers touch only user-level files.</strong> They edit only their own marked entries (or a file
+rutter owns outright), are idempotent on re-run, refuse rather than overwrite a file that isn&#39;t
+recognizably theirs, and never write a project <code>AGENTS.md</code> or <code>CLAUDE.md</code>.</li>
+<li><strong>A host that clears the environment gets the vault baked in.</strong> The installer writes the vault
+path and an absolute <code>node</code> into the hook command instead of relying on <code>LIBRARIAN_VAULT_PATH</code>,
+and prints the same vault in the MCP registration line so recall and capture cannot disagree.</li>
+<li><strong>MCP registration is optional, never required.</strong> If a host lets a failed server abort the run
+(Muse&#39;s default <code>mode: &quot;required&quot;</code> does), register rutter as optional. The installer prints the
+registration line and does not run it.</li>
+<li><strong>Capture never rejects or rewrites a record.</strong> Provenance, style, and length never block a
+capture (SR-023, INV-6). The record may be noisier; it is never refused.</li>
+</ul>
+<p>If a new client tempts breaking the fail-open rule, promote it to a constitution prohibition. That
+is a major version bump and needs a human decision.</p>
 <h3 id="the-directive">The directive</h3>
 <p><strong>How the summary is produced (no AI in the server).</strong> The server never summarizes anything, which
 would be inference. Instead your client writes the one-line summary <em>during</em> the session as a
@@ -278,7 +308,7 @@ copy drifts. They have to fit in 2,048 characters, because Claude Code silently 
 instructions there, and a test holds the line. Guidance that only matters when <em>reporting</em> a result
 lives in the description of the tool that returns it.</p>
 <p>There is nothing to add to your <code>CLAUDE.md</code>. The README keeps a paste-in only as a fallback if
-captures refuse to land. Antigravity and Copilot CLI are the exceptions to &quot;on connect&quot;: see <em>Host differences</em> for their instructions files.</p>
+captures refuse to land. Antigravity, Copilot CLI, and Muse Code are the exceptions to &quot;on connect&quot;: see <em>Host differences</em> for their instructions files.</p>
 <hr>
 <h2 id="recalling-recent-work">Recalling recent work</h2>
 <p>Ask <em>&quot;what was I working on lately?&quot;</em> and your client calls the <strong><code>librarian-recent</code></strong> tool. It
@@ -547,6 +577,8 @@ reads.</li>
 <li>Grok clips its final message at 32,768 characters, so a long turn can drop a trailing directive.</li>
 <li>Antigravity captures nothing from a turn that ended in an error, and needs the rule file, or its
 model may not leave summaries.</li>
+<li>Muse Code needs the rules block for the same reason, and in an untrusted workspace with its own
+<code>AGENTS.md</code> the rule loaded in only 1 of 4 trial runs.</li>
 <li>Copilot CLI needs its instructions file for the same reason. If Copilot takes longer than three
 seconds to write the turn, that turn is not captured.</li>
 <li>The style contract is advisory. The server stores a dense or over-budget summary without
@@ -614,7 +646,7 @@ stateful behavior does not get reached for.</p>
 
 <footer class="site">
   <div class="footer-inner">
-    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/4225fe8">main@4225fe8</a> · <a href="sources.json">source hashes</a>.</p>
+    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/47517de">main@47517de</a> · <a href="sources.json">source hashes</a>.</p>
     <nav class="footer-more" aria-label="More from the author">
       <ul>
         <li><a href="https://robin-cannon.com">robin-cannon.com</a></li>
