@@ -294,3 +294,16 @@ footer.site {
   .scanlines, .dead-channel { display: none; }
   body { background: #fff; color: #111; }
 }
+
+/* --- landing-page buttons: underline and border, not color alone --- */
+.cta { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 1.5rem 0; }
+a.button {
+  font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9rem;
+  color: var(--neon);
+  border: 1px solid var(--neon);
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  text-decoration: none;
+}
+a.button:hover, a.button:focus-visible { background: var(--bg-panel); text-decoration: underline; }

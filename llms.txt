@@ -1,13 +1,14 @@
 # rutter
 
-> Recall past decisions and the notes your AI session cited. rutter keeps dated
-> records in your own markdown notes folder, each with a content hash of the
-> notes it cites. An MCP server for Claude Code, Grok, Codex, Copilot CLI, and
-> Antigravity; a personal reference implementation.
+> A personal memory layer for AI agents. One memory, multiple agents, yours. rutter
+> keeps dated records in your own markdown notes folder, each with a content hash
+> of the notes it cites. An MCP server for Claude Code, Grok, Codex, Copilot CLI,
+> and Antigravity CLI (agy); a personal reference implementation.
 
 ## Docs
 
-- [Overview](https://ruttermemory.com/): what rutter is and the idea behind it
+- [Home](https://ruttermemory.com/): what rutter is, in one page
+- [Design](https://ruttermemory.com/design.html): why it is built this way, and what each choice costs
 - [Getting started](https://ruttermemory.com/getting-started.html): a setup path for each client (the Claude Code plugin, or npm as rutter-memory), from install to first recall
 - [Memory of use](https://ruttermemory.com/memory-of-use.html): capture, recall, enrichment, note identity, positions
 
