@@ -300,13 +300,13 @@
   "mcpServers": {
     "rutter": {
       "command": "npx",
-      "args": ["-y", "rutter-memory@0.8.1"],
+      "args": ["-y", "rutter-memory@0.8.2"],
       "env": { "LIBRARIAN_VAULT_PATH": "/path/to/your/notes" }
     }
   }
 }
 </code></pre>
-<p>The version in <code>args</code> decides which release runs. Pin to the release you want; <code>0.8.1</code> is the current release at the time of writing. Without it, <code>npx</code> may fetch a newer release when the client starts, so an upgrade can arrive without you choosing it. <a href="#upgrading">Upgrading</a> covers moving to a new version. The first start downloads the package and builds the index, so it takes a few seconds longer than later starts.</p>
+<p>The version in <code>args</code> decides which release runs. Pin to the release you want; <code>0.8.2</code> is the current release at the time of writing. Without it, <code>npx</code> may fetch a newer release when the client starts, so an upgrade can arrive without you choosing it. <a href="#upgrading">Upgrading</a> covers moving to a new version. The first start downloads the package and builds the index, so it takes a few seconds longer than later starts.</p>
 <p>If the client cannot start the server, it was probably launched without Node on its <code>PATH</code>, which happens when it starts from the Dock or another app rather than a shell. Add a <code>PATH</code> entry to <code>env</code> that includes the folder <code>dirname &quot;$(which node)&quot;</code> prints. Check it the same way as any server: the client should list four tools, <code>librarian-search</code>, <code>librarian-get-note</code>, <code>librarian-recent</code>, and <code>librarian-positions</code>.</p>
 <p>This route captures nothing. Capture needs a hook, and a hook registered from the <code>npx</code> cache would stop working without warning when the cache is cleared. For capture, use the <a href="#codex-path">Codex</a>, <a href="#copilot-cli-path">Copilot CLI</a>, <a href="#antigravity-path">Antigravity</a>, or <a href="#muse-code-path">Muse Code</a> path, which install globally.</p>
 <h2 id="upgrading">Upgrading</h2>
@@ -388,7 +388,7 @@ rutter-memory install-hook --client codex   # --client antigravity, --client cop
 <p>Now in <a href="manage-and-privacy.html#remove-a-record-you-dont-want">Manage and privacy</a>.</p>
 <h3 id="what-leaves-your-machine">What leaves your machine</h3>
 <p>Now in <a href="manage-and-privacy.html#what-leaves-your-machine">Manage and privacy</a>.</p>
-<p class="ref-line"><code>docs/getting-started.md@sha256:6a85b109b728 · built from main@12341fd</code> · <time class="date" datetime="2026-10-19">19 October 2026</time> · <a href="sources.json">source hashes</a></p>
+<p class="ref-line"><code>docs/getting-started.md@sha256:204f8302da8f · built from main@7ca75c6</code> · <time class="date" datetime="2026-10-19">19 October 2026</time> · <a href="sources.json">source hashes</a></p>
 <p class="to-dir"><a href="#doc-directory">Docs navigation</a></p>
 </article>
 </div>
@@ -397,7 +397,7 @@ rutter-memory install-hook --client codex   # --client antigravity, --client cop
 
 <footer class="site">
   <div class="footer-inner">
-    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/12341fd">main@12341fd</a> · <a href="sources.json">source hashes</a></p>
+    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source on GitHub</a>. Built from <a href="https://github.com/shinytoyrobots/rutter/commit/7ca75c6">main@7ca75c6</a> · <a href="sources.json">source hashes</a></p>
     <nav class="footer-more" aria-label="More from the author">
       <ul>
         <li><a href="https://robin-cannon.com">robin-cannon.com</a></li>
