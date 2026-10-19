@@ -87,5 +87,6 @@ It suits someone who keeps Markdown notes and is comfortable configuring an AI c
 
 - [Getting started](./getting-started.md): a setup path for each client, from install to first recall.
 - [The design](./overview.md): the argument for how rutter is built, and what each choice costs.
+- [FAQ](./faq.md): how several clients share one memory, adding a client, and known issues.
 - [Memory of use](./memory-of-use.md): capture, recall, and note identity in full detail.
 - [Source on GitHub](https://github.com/shinytoyrobots/rutter).
