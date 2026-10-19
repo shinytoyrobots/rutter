@@ -5,7 +5,7 @@ import path from "node:path";
 import { SERVER_NAME, normalize, differences, reconcile } from "../scripts/registry-publish.mjs";
 
 /**
- * scripts/registry-publish.mjs, run by .github/workflows/registry.yml (docs/mcp-registry-plan.md,
+ * scripts/registry-publish.mjs, run by .github/workflows/registry.yml (docs/archived/mcp-registry-plan.md,
  * item 2). Every outside effect (npm, git, the Registry, mcp-publisher) is a stand-in here.
  */
 

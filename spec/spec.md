@@ -33,7 +33,7 @@ pending-amendment: true    # code is ahead of this spec (rutter v0.3.0); see PEN
 #      rebuild cannot leave a stale "up to date" stamp.
 #   3. The server's reported version is read from package.json (single source), kept in
 #      step with the plugin manifest and CHANGELOG by test/version.test.ts. Non-functional.
-# v15.0.0 (major — client label, docs/client-label-plan.md): adds SCN-012 (a captured record
+# v15.0.0 (major — client label, docs/archived/client-label-plan.md): adds SCN-012 (a captured record
 # names the host client that wrote it, when established) and SCN-013 (a capture never destroys
 # a record it cannot read), SR-066..SR-072. Amends SR-018 and SR-049 (the label joins the
 # fields excluded from idempotence identity) and deliberately extends the position-event

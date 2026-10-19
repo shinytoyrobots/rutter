@@ -1,6 +1,6 @@
 // registry-publish: list every approved rutter release in the official MCP Registry.
 //
-// Run by .github/workflows/registry.yml, never from a laptop. See docs/mcp-registry-plan.md,
+// Run by .github/workflows/registry.yml, never from a laptop. See docs/archived/mcp-registry-plan.md,
 // item 2. The npm release workflow only stages a version; it reaches npm once the maintainer
 // approves it, and the Registry refuses a version npm doesn't serve yet. So this runs on its
 // own, after approval, and reconciles: every release tag that carries server.json and is

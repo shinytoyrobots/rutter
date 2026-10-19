@@ -1,7 +1,7 @@
 # Read-value signal — design
 
 **Written:** 2026-08-12
-**Status: RETIRED, not built (2026-08-12).** See `docs/read-value-verdict-2026-08.md` —
+**Status: RETIRED, not built (2026-08-12).** See `docs/archived/read-value-verdict-2026-08.md` —
 Robin settled the read-value question qualitatively (captures demonstrably reduce
 rework and drive new directions) rather than by instrument; no model in the server
 means this kind of judgment belongs on the human side, not a proxy metric. Kept below
@@ -97,7 +97,7 @@ known blind spot worth stating up front: **it systematically misses the case whe
 recall informs new work rather than a return to old work.** This session is a live
 example — "where are we with this project?" triggered `librarian-recent`, and what
 followed was writing brand-new files (`docs/gate-verdict-2026-08.md`,
-`docs/read-value-signal-plan.md`), not re-touching anything the recall itself
+`docs/archived/read-value-signal-plan.md`), not re-touching anything the recall itself
 returned. Tier 1 would score that as a miss despite it being about as clear a case of
 "the recall mattered" as exists. So: tier 1 is a genuine lower bound on reuse, not a
 complete measure, and should never be read as "recalls not re-touched = recalls that

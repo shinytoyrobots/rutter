@@ -9,7 +9,7 @@ a recall change what happens next, or has the record gone write-only?
 
 ## What was tried, and why it was set aside
 
-`docs/read-value-signal-plan.md` scoped a mechanical signal — a graded, ambient
+`docs/archived/read-value-signal-plan.md` scoped a mechanical signal — a graded, ambient
 correlation between recall events and later captures (session continuation, then ref
 overlap, then a mined self-report). Robin's read on it: this isn't something to
 instrument, and isn't something to review as a mechanism. From the individual
@@ -34,7 +34,7 @@ surfaced. The record has not gone write-only.
 
 ## Disposition
 
-- `docs/read-value-signal-plan.md` — retired, not built. Kept as a record of the
+- `docs/archived/read-value-signal-plan.md` — retired, not built. Kept as a record of the
   design exploration (its blind-spot finding is worth keeping even though the
   mechanism isn't), status header updated to say so.
 - `docs/roadmap.md` — Phase 1's read-value bullet and the kill-conditions section
@@ -49,5 +49,5 @@ surfaced. The record has not gone write-only.
 
 If the tool's shape changes such that no one person's felt judgment is available to
 ask — multi-user, or a client acting with less human-in-the-loop than today —
-`docs/read-value-signal-plan.md`'s tiered design is where to pick this back up. Under
+`docs/archived/read-value-signal-plan.md`'s tiered design is where to pick this back up. Under
 the current single-user, ask-Robin architecture, it isn't needed.

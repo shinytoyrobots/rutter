@@ -18,7 +18,7 @@ import { readOwner, recordOwner, markClaiming, ownership, withRebuildLock } from
 import { createServer } from "../src/server.js";
 
 /**
- * Running from an npm install rather than a clone (docs/npm-plan.md): where the index
+ * Running from an npm install rather than a clone (docs/archived/npm-plan.md): where the index
  * lives, which vault an index belongs to, and the `rutter-memory` command's routing.
  * Server-level tests spawn the BUILT dispatcher, so each server reads its own vault.
  */

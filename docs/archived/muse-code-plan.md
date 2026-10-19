@@ -189,7 +189,7 @@ separate evidence and do fail it if they block the turn. Second, some instructio
 reliably make the model emit directives without editing project files. If either fails, fall back to
 recall only.
 
-Whatever the path, the installer follows the [host-integration rules](./memory-of-use.md#host-integration).
+Whatever the path, the installer follows the [host-integration rules](../memory-of-use.md#host-integration).
 Here that means baking in the vault path and an absolute `node` (the environment is cleared), touching
 only `settings.json` and the user rules file, and registering the server as `optional`.
 

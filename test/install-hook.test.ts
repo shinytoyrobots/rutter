@@ -308,7 +308,7 @@ test("the plugin hook passes the claude identity and the shared script forwards 
 });
 
 // ---------------------------------------------------------------------------
-// npm installs (docs/npm-plan.md items 3a and 3b)
+// npm installs (docs/archived/npm-plan.md items 3a and 3b)
 // ---------------------------------------------------------------------------
 
 t("antigravity: the printed server config sets LIBRARIAN_DB_PATH only when one was set", () => {
