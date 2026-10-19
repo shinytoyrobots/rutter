@@ -7,7 +7,7 @@ Page sources: home = `docs/index.md`, design = `docs/overview.md`, plus `docs/ge
 ## Decisions (settled 2026-10-19)
 
 1. **Audience framing: resolved.** The six clients are coding harnesses, but people use them for non-coding work too (research, drafting, planning). Home should say "AI agent harnesses" or similar, and say once that they are often used for non-coding tasks. Replace "AI coding clients" on home, in the home eyebrow, and in `llms.txt`. The design page's "this is not about coding sessions" stays, reworded to match: the tools are coding harnesses; rutter's use is not limited to code.
-3. **Site motto: decided, deferred.** The general subtitle will be "The model isn't the memory. Your notes are." Applying it is a follow-up task, not part of this plan. See "Deferred: motto".
+3. **Site motto: revised 2026-10-19.** "The model isn't the memory. Your notes are." is no longer the general subtitle. It becomes the opening line of the *Why not built-in memory?* block on home, in `docs/rutter-website-implementation-plan.md` (Priority 1). The hero keeps "One memory. Multiple agents. Yours."; the masthead carries "Who owns memory owns truth." (`docs/field-log-design-plan.md`). See "Deferred: motto".
 2. **Getting-started: split.** Move the manual route and the pause/remove/privacy material onto their own pages. The top nav is already crowded, so the split ships together with a nav review (Phase 3b).
 
 ## Phase 1: contradictions and overclaims (do first)
@@ -27,17 +27,17 @@ Item 3, the three kinds of version claim:
 
 ## Deferred: motto (follow-up task, not part of this plan's work)
 
-Do not add the new tagline during this work. It is a subsequent task, to be picked up after the phases below ship. Leave "One memory. Multiple agents. Yours." and the existing hero copy untouched for now. The notes below are kept so the follow-up starts with context.
+Do not add the motto during this work. It is a subsequent task, now owned by `docs/rutter-website-implementation-plan.md` (Priority 1). Leave "One memory. Multiple agents. Yours." and the existing hero copy untouched. Revised 2026-10-19: the motto is not a subtitle. It opens the *Why not built-in memory?* block, so the bullets below that replace the hero subtitle, `README.md:3`, or rename the "One memory. Multiple agents." section heading no longer apply. The bullets on `llms.txt`, meta descriptions, the cold-reader check and the archived plan still apply.
 
 Motto: "The model isn't the memory. Your notes are."
 
 Occurrences of the old tagline today: `docs/index.md:3` (hero subtitle), `docs/index.md:16` (section heading "One memory. Multiple agents."), and `README.md:3`. The inner-page headers, `<title>`/meta descriptions and `llms.txt` carry the "personal memory layer" line, not the old tagline, so check them separately.
 
-- Replace the hero subtitle on home and the opening line of `README.md` with the new motto. Keep "A personal memory layer for AI agents" as the H1 or descriptor, since it says what the thing is and the motto says why.
-- Keep the home section "One memory. Multiple agents." as a section heading. It describes the cross-client benefit, which the motto does not. Open question for Robin: keep it, or rename it so two taglines don't compete on one screen.
+- ~~Replace the hero subtitle on home and the opening line of `README.md` with the new motto.~~ Superseded: the hero subtitle and `README.md:3` keep the tagline.
+- ~~Keep or rename the "One memory. Multiple agents." section heading.~~ Resolved: keep it. The motto is not a tagline, so nothing competes with it.
 - Add the motto to `llms.txt` (summary line), the home meta description, and the social/share description if one exists.
 - Check the cold-reader rules against it. "The model" is plain, but the motto implies the notes carry the memory, while rutter's records live in a `_librarian/` folder beside the notes. The body copy right under the motto should say in one sentence what that means (the records are plain Markdown in your own notes folder) so the claim does not read as an overstatement.
-- Make `docs/homepage-positioning-plan.md` consistent or mark it superseded, since it still quotes the old tagline.
+- Make `docs/archived/homepage-positioning-plan.md` consistent or mark it superseded, since it still quotes the old tagline.
 
 ## Phase 2: undefined terms
 

@@ -1,4 +1,4 @@
-# Lists approved rutter releases in the official MCP Registry. See docs/mcp-registry-plan.md,
+# Lists approved rutter releases in the official MCP Registry. See docs/archived/mcp-registry-plan.md,
 # item 2, and scripts/registry-publish.mjs, which does the work.
 #
 # This can't run inside release.yml: that workflow only stages a version on npm, and the

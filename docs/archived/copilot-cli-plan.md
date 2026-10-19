@@ -158,7 +158,7 @@ No per-user setting for the server-instructions allowlist turned up in `copilot 
 
 - `--client copilot` writes `$COPILOT_HOME/hooks/rutter.json` (default `~/.copilot/hooks/`).
   It never parses or merges the user's other hook files.
-- The installer follows the [host-integration rules](./memory-of-use.md#host-integration)
+- The installer follows the [host-integration rules](../memory-of-use.md#host-integration)
   (user-level files only, own entries only, idempotent, no project `AGENTS.md`/`CLAUDE.md`); the
   bullets below record only what is specific to Copilot.
 - **A filename doesn't prove ownership.** If `rutter.json` already exists, replace it only when it is

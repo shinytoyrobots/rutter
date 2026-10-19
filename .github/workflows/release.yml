@@ -1,5 +1,5 @@
 # Stages rutter-memory on npm when a v* tag is pushed. Releases go through here, never
-# from a laptop. See docs/npm-plan.md, item 5.
+# from a laptop. See docs/archived/npm-plan.md, item 5.
 #
 # Authentication: npm trusted publishing (GitHub OIDC). There is no token: npm accepts
 # this one workflow in this one repository, and nothing else.

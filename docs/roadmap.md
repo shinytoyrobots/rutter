@@ -6,6 +6,10 @@ conditions); discursive-librarian direction added (Phase 5).
 **Amended:** 2026-10-10 — unprompted recall noted as a future possibility, outside Phase 5.
 **Amended:** 2026-10-18 — Phase 6 added: state the host-integration rules once.
 **Amended:** 2026-10-19 — Phase 7 added: a Grok install path that needs no Claude Code.
+**Amended:** 2026-10-19 — brought up to date: Phases 0–2, 6 and 7 are done, Phase 3's
+Phases A–B shipped, and the work that shipped outside the phases (npm, the MCP Registry, the
+client label, Copilot CLI, Muse Code, the Actions Node 24 move) is recorded under "Since the
+phases were written".
 **Status:** proposal, not ratified. `spec/spec.md` remains the executable source of truth;
 nothing here is a requirement until it lands there.
 **Purpose:** high-level sequencing for work after the S1.5 desirability gate. Phases are
@@ -13,27 +17,40 @@ ordered by dependency, not by calendar. Each carries an explicit exit condition.
 
 ---
 
-## Where this stands (2026-08-03)
+## Where this stands (2026-10-19)
 
-Spec v3.5.0. Ambient capture shipped and verified behaviorally — session records landed
-unbroken 07-26 → 08-04 after the hand-installed global rule was deleted on 07-27, which
-is the verification wish-log finding #5 asked for. Recall-dedup is closed on both leak
-paths (v3.3.0 fix (a) for hash churn; v3.5.0 incremental capture + read-time grouping).
+v0.8.2. The desirability gate and the read-value question both came back PASS (Phases 0
+and 1). The repo is public and MIT (Phase 2). Position capture and position recall
+shipped (Phase 3, Phases A–B). Spec is at v15.0.0. Six clients have a supported hook.
 
-Desirability gate (SCN-004) verdict due ~2026-08-09.
+Open: decision-graph Phases C–D and the backfill decision (Phase 3), the Phase 5 and
+unprompted-recall directions (no build scheduled), and the site work under "Since the
+phases were written".
 
-**Two live problems, both measurement/discipline rather than architecture:**
+The two live problems named on 2026-08-03 are closed: the gate's blind spot to call
+intent (Phase 0) and summary-length drift (Phase 1, spec v3.6.0 with a drift test).
 
-1. **The gate can no longer see what it measures.** 10 of 11 logged calls are
-   `librarian-recent`, and since SR-020 the server instructions tell every connected
-   client to prefer these tools. The log cannot distinguish an unprompted human reach
-   from a model call made because it was instructed to. The gate is defined as
-   unprompted human use, so it will return a passing number either way.
-2. **Summary verbosity is regressing.** Step counts are stable (7–40/day, no trend) but
-   average summary length has tripled: ~37–61 words/step in week 1 → 141 (08-02),
-   142 (08-03), 192 (08-04). SR-021's style contract asks for one plain-English line.
-   Nothing enforces it, so it drifts — the same "behaviorally, not architecturally,
-   guaranteed" failure class as finding #5, recurring on a different requirement.
+---
+
+## Since the phases were written
+
+Work that shipped without its own phase. Plans for it are in `docs/archived/`.
+
+- **npm and the MCP Registry.** `rutter-memory` is on npm and `server.json` lists it in the
+  official Registry, first in v0.6.2. Releases are staged for manual approval, then
+  published from CI. (`archived/npm-plan.md`, `archived/mcp-registry-plan.md`)
+- **Client label** (spec v15.0.0, SCN-012). Captured records carry the host client that
+  wrote them. (`archived/client-label-plan.md`)
+- **GitHub Copilot CLI** (v0.7.0) and **Meta Muse Code** (v0.8.0), bringing the supported
+  clients to six. (`archived/copilot-cli-plan.md`, `archived/muse-code-plan.md`)
+- **Actions off Node 20** (v0.8.2). `actions/checkout` and `actions/setup-node` are at v7,
+  and `registry.yml` smoke-tests the pinned `mcp-publisher`, including on Ubuntu 26.04.
+  (`archived/actions-node24-plan.md`)
+- **Docs site.** The 2026-10-09 revision plans and the homepage positioning plan are
+  archived. The cold-reader fixes were ported to gh-pages (PR #130), followed by a
+  field-log redesign (#132) and the Grok callout (#134). Still open: the site motto
+  (`cold-reader-fixes-plan.md`), and whether the field-log redesign closes
+  `field-log-design-plan.md` (proposed).
 
 ---
 
@@ -94,10 +111,10 @@ control that decouples recall cost from stored size.
 - Consider making `detail` default to abbreviated, with the existing non-silent
   abbreviation notice.
 - ~~Add a **read-value** signal.~~ **Settled qualitatively, 2026-08-12 — no
-  instrument built.** See `docs/read-value-verdict-2026-08.md`: Robin's direct account
+  instrument built.** See `docs/archived/read-value-verdict-2026-08.md`: Robin's direct account
   is that captures reduce rework and often drive new directions, which the
   architecture (no model in the server) puts on the human side to judge, not a proxy
-  metric. `docs/read-value-signal-plan.md` scoped a mechanical alternative and is
+  metric. `docs/archived/read-value-signal-plan.md` scoped a mechanical alternative and is
   retired, kept only for its tier-1 blind-spot finding.
 
 **Exit:** average summary length back inside the contract, and a test that fails if it
@@ -220,7 +237,7 @@ touching the quiet half.
 is real and acted on. A personality on a write-only record is a costume.
 
 **Entry condition met (2026-08-12):** both halves are now verdicted PASS —
-`docs/gate-verdict-2026-08.md` (Phase 0) and `docs/read-value-verdict-2026-08.md`
+`docs/gate-verdict-2026-08.md` (Phase 0) and `docs/archived/read-value-verdict-2026-08.md`
 (read-value, decided qualitatively). This clears the gate; Phase 5 is still a
 direction, not scheduled, until someone decides to build it.
 
@@ -229,11 +246,12 @@ direction, not scheduled, until someone decides to build it.
 ## Phase 6 — State the host-integration rules once (done 2026-10-18)
 
 **Done:** the "Host integration" section is in `docs/memory-of-use.md`, and the Copilot and Muse
-plans cite it. The gh-pages port and `sources.json` rehash for `memory-of-use` are still owed.
+plans cite it. The gh-pages port and `sources.json` rehash for `memory-of-use` followed with
+the cold-reader port.
 
 Added 2026-10-18. `spec/constitution.md` and the spec invariants (INV-1..6) cover the
 server, but nothing states the rules for plugging rutter into a host client. They live
-plan by plan (`copilot-cli-plan.md`, `muse-code-plan.md`, `grok-stop-adapter.md`) or only
+plan by plan (`archived/copilot-cli-plan.md`, `archived/muse-code-plan.md`, `grok-stop-adapter.md`) or only
 in code, so each new client re-derives them:
 
 - A capture hook fails open: it never blocks or aborts the user's turn.
@@ -251,7 +269,11 @@ prohibition (major version, HITL) only if a new client tempts breaking it.
 
 ---
 
-## Phase 7 — Grok without Claude Code (proposal)
+## Phase 7 — Grok without Claude Code (done 2026-10-19, v0.8.1)
+
+**Done:** `install-hook --client grok` shipped in v0.8.1 and was verified with Grok 1.0.62 on a
+Linux machine that never had Claude Code, from install to a captured `client: grok` record and
+a working recall. The plan is `archived/grok-native-install-plan.md`.
 
 Added 2026-10-19. The Grok setup docs say "install the Claude Code plugin", because Grok
 runs the plugin's server and hook through its Claude compatibility layer. Someone with Grok
@@ -261,7 +283,7 @@ writes only its own files. Every probe so far also ran on a Mac that has Claude 
 
 **Shape:** a Grok-native installer (`install-hook --client grok`, writing
 `~/.grok/hooks/` and registering the server), gated on a probe on a machine with no Claude
-Code. Plan, probe checklist, and the double-fire risk: `docs/grok-native-install-plan.md`.
+Code. Plan, probe checklist, and the double-fire risk: `docs/archived/grok-native-install-plan.md`.
 
 **Follow-up:** when the Claude Code plugin and a native `grok mcp add` registration coexist, Grok may load two rutter servers. Only hook double-firing was probed. Check it and make the installer say so; until then it is a known issue in the [FAQ](./faq.md#known-issues).
 
@@ -323,4 +345,4 @@ model-initiated calls excludes the librarian doing its job.)*
   initiated it; one that changes what happens next is the tool working, whoever placed
   the call.
   **Evaluated 2026-08-12: does not hold.** PASS, decided qualitatively — see
-  `docs/read-value-verdict-2026-08.md`.
+  `docs/archived/read-value-verdict-2026-08.md`.

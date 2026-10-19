@@ -42,7 +42,7 @@ import { parsePositionDirective, findEmptyStancePositionDirective } from "./posi
  *      `transcriptPath`, `stopReason`, `timestamp`, and NO assistant text. Read
  *      like (5), from `events.jsonl`, after waiting for Copilot to finish writing
  *      the turn (`normalizeCopilot`). Also chosen by `--client copilot` whatever
- *      the payload casing. See docs/copilot-cli-plan.md.
+ *      the payload casing. See docs/archived/copilot-cli-plan.md.
  * Anything else, or an absent directive of a given kind, is a clean no-op for
  * THAT kind (SR-004 for a session summary, the SR-057 analogue for a position).
  *
@@ -551,7 +551,7 @@ function readAntigravityTurnText(transcriptPath: string): string | null {
 }
 
 // ---------------------------------------------------------------------------
-// GitHub Copilot CLI agentStop adapter (docs/copilot-cli-plan.md, probe 2026-10-15).
+// GitHub Copilot CLI agentStop adapter (docs/archived/copilot-cli-plan.md, probe 2026-10-15).
 // ---------------------------------------------------------------------------
 
 /**

@@ -1,5 +1,5 @@
 /**
- * Which host client wrote a captured record (docs/client-label-plan.md).
+ * Which host client wrote a captured record (docs/archived/client-label-plan.md).
  *
  * A HOST client, never a model: `agy` runs Gemini and Claude models, and Claude
  * Code can run others, and no hook payload carries the model. The label is

@@ -684,7 +684,7 @@ test("dissent-2026-08-13-0004 condition 4: Phase B adds no field to PositionEven
   // The read path is a consumer of the SCN-010 schema, never an extender of it:
   // a field entering PositionEventSchema after the first real event exists is
   // this dissent's own reactivation condition, and SR-059/SR-063 forbid a stored
-  // dormancy field besides. The client-label change (docs/client-label-plan.md)
+  // dormancy field besides. The client-label change (docs/archived/client-label-plan.md)
   // is the one deliberate amendment: `client` is a tolerant optional string, the
   // schema id is unchanged, and the plan's two-release rollout (readers tolerate
   // the field before any writer emits it) is how this dissent's mixed-version

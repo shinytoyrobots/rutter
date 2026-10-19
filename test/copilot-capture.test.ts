@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 import matter from "gray-matter";
 
 /**
- * GitHub Copilot CLI `agentStop` adapter (docs/copilot-cli-plan.md). The payload
+ * GitHub Copilot CLI `agentStop` adapter (docs/archived/copilot-cli-plan.md). The payload
  * carries NO assistant text, only `transcriptPath` to an `events.jsonl` that
  * accumulates across turns. Records seen in the 2026-10-15 probe: `user.message`
  * (echoes the prompt), `assistant.message` (reply text; tool rounds too),
