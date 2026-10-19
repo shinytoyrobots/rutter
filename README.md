@@ -39,7 +39,7 @@ feature inside one tool.
 | Client | How it captures | Setup |
 |--------|-----------------|-------|
 | Claude Code | The hook reads the whole session transcript. | [Install the plugin](#install-as-a-claude-plugin) |
-| Grok | The hook reads the final reply. | [Uses the Claude Code plugin](#grok) |
+| Grok | The hook reads the final reply. | [npm install, then four steps; no Claude Code needed](#grok) |
 | Codex | The hook reads the final reply only. | [npm install, then four steps](#codex) |
 | GitHub Copilot CLI | The hook reads the current turn from Copilot's transcript. | [npm install, then four steps](#github-copilot-cli) |
 | Antigravity CLI (`agy`) | The hook reads the current turn from `agy`'s transcript. | [npm install, then four steps](#antigravity-cli) |
@@ -366,10 +366,18 @@ point it at the same notes folder as your other clients, or each one keeps its o
 
 ### Grok
 
-Grok picks the plugin up from your Claude Code install, server and hook included. It does not fill
-in the plugin's notes-folder option, so rutter uses the default folder (`~/Documents/knowledge-vault`).
-To share a different folder, set `LIBRARIAN_VAULT_PATH` in the environment you launch Grok from.
-A line on stderr says when the default was used for that reason.
+Grok needs no Claude Code. Install rutter from npm, then run the installer:
+
+```bash
+npm install -g rutter-memory
+rutter-memory install-hook --client grok
+```
+
+The installer writes `~/.grok/hooks/rutter.json` (or `$GROK_HOME/hooks/rutter.json`) and prints a
+`grok mcp add` line with your notes folder in it. You run that line yourself; the installer never
+does. Grok reads `LIBRARIAN_VAULT_PATH` from the shell that launches it, so set it there if your
+notes are not in `~/Documents/knowledge-vault`. If Grok already runs rutter's hook from the Claude Code
+plugin, the installer says so and writes nothing.
 
 The hook reads only Grok's final assistant message, so put the summary line at the end of the final
 reply. Grok clips that message at 32,768 characters, so on a very long turn a trailing line can be

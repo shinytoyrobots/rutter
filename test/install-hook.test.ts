@@ -566,3 +566,173 @@ t("printed registrations name a lasting node on PATH when it is this same binary
   assert.ok(agy.stderr.includes(`rutter ${link} `), agy.stderr);
   assert.ok(agy.stderr.includes(`"command": ${JSON.stringify(path.join(linked, "node"))}`), agy.stderr);
 });
+
+// --- Grok: rutter owns $GROK_HOME/hooks/rutter.json; no Claude Code needed ---
+
+function grokInstall(sb: { home: string; codexHome: string }, vars: Record<string, string> = {}, ...extra: string[]) {
+  const grokHome = path.join(sb.home, ".grok-x");
+  const res = spawnSync(process.execPath, [script, "--client", "grok", ...extra], {
+    env: { ...process.env, HOME: sb.home, CODEX_HOME: sb.codexHome, GROK_HOME: grokHome, LIBRARIAN_VAULT_PATH: "/v/notes", ...vars },
+    encoding: "utf8",
+  });
+  return { ...res, grokHome, hooksFile: path.join(grokHome, "hooks", "rutter.json") };
+}
+const grokBody = (cmd: string): string => `${JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: "command", command: cmd }] }] } }, null, 2)}\n`;
+const writeAt = (file: string, text: string): void => {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, text, "utf8");
+};
+
+t("grok: writes rutter.json under GROK_HOME with no ~/.claude, and prints a registration carrying the vault", () => {
+  const sb = sandbox();
+  const res = grokInstall(sb);
+  assert.equal(res.status, 0, res.stderr);
+  assert.deepEqual(JSON.parse(fs.readFileSync(res.hooksFile, "utf8")), {
+    hooks: { Stop: [{ hooks: [{ type: "command", command: `${hookPath} --client grok` }] }] },
+  });
+  assert.equal(fs.existsSync(path.join(sb.home, ".claude")), false, "no Claude config created");
+  assert.equal(fs.existsSync(path.join(res.grokHome, "config.toml")), false, "config.toml untouched");
+  const line = res.stderr.split("\n").find((l) => l.includes("grok mcp add"))!;
+  assert.ok(line.includes("LIBRARIAN_VAULT_PATH=/v/notes"), line);
+  assert.ok(line.includes("dist/stdio.js"), line);
+  assert.match(res.stderr, /does not run it/, "never runs the registration itself");
+});
+
+t("grok: re-running with current content writes nothing", () => {
+  const sb = sandbox();
+  const first = grokInstall(sb);
+  assert.equal(first.status, 0, first.stderr);
+  const before = fs.statSync(first.hooksFile);
+  const bytes = fs.readFileSync(first.hooksFile, "utf8");
+  fs.utimesSync(first.hooksFile, 1_000_000, 1_000_000);
+  const again = grokInstall(sb);
+  assert.equal(again.status, 0, again.stderr);
+  assert.match(again.stderr, /unchanged/);
+  assert.equal(fs.readFileSync(first.hooksFile, "utf8"), bytes);
+  assert.equal(fs.statSync(first.hooksFile).mtimeMs, 1_000_000_000, "mtime untouched, so no write happened");
+  assert.ok(before.size > 0);
+});
+
+t("grok: a moved install path is rewritten in place, with one entry", () => {
+  const sb = sandbox();
+  const file = path.join(sb.home, ".grok-x", "hooks", "rutter.json");
+  writeAt(file, grokBody("/old/prefix/lib/node_modules/rutter-memory/hooks/librarian-stop.sh --client grok"));
+  const res = grokInstall(sb);
+  assert.equal(res.status, 0, res.stderr);
+  assert.match(res.stderr, /moved from \/old\/prefix/);
+  const cfg = JSON.parse(fs.readFileSync(file, "utf8"));
+  assert.equal(cfg.hooks.Stop.length, 1);
+  assert.equal(cfg.hooks.Stop[0].hooks.length, 1);
+  assert.equal(cfg.hooks.Stop[0].hooks[0].command, `${hookPath} --client grok`);
+});
+
+t("grok: refuses a rutter.json it did not write, and one that is not JSON, changing nothing", () => {
+  for (const content of [
+    "{ not json",
+    JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: "command", command: "echo mine" }] }] } }),
+    JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: "command", command: `${hookPath} --client grok` }, { type: "command", command: "echo extra" }] }] } }),
+    JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: "command", command: `${hookPath} --client grok` }] }], SessionStart: [] } }),
+  ]) {
+    const sb = sandbox();
+    const file = path.join(sb.home, ".grok-x", "hooks", "rutter.json");
+    writeAt(file, content);
+    const res = grokInstall(sb);
+    assert.equal(res.status, 1, content);
+    assert.match(res.stderr, /nothing was changed/);
+    assert.equal(fs.readFileSync(file, "utf8"), content);
+  }
+});
+
+t("grok: leaves other files in the hooks folder alone", () => {
+  const sb = sandbox();
+  const other = path.join(sb.home, ".grok-x", "hooks", "mine.json");
+  writeAt(other, JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: "command", command: "echo mine" }] }] } }));
+  const before = fs.readFileSync(other, "utf8");
+  const res = grokInstall(sb);
+  assert.equal(res.status, 0, res.stderr);
+  assert.equal(fs.readFileSync(other, "utf8"), before);
+  assert.ok(fs.existsSync(res.hooksFile));
+});
+
+t("grok: rejects --vault, which only Antigravity and Muse take", () => {
+  const sb = sandbox();
+  const res = grokInstall(sb, {}, "--vault", "/x");
+  assert.equal(res.status, 1);
+  assert.match(res.stderr, /--vault is only for/);
+});
+
+// The competing routes, one at a time: each means Grok already runs rutter's hook.
+const claudeStop = (cmd: string): string => JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: "command", command: cmd }] }] } });
+
+for (const name of ["settings.json", "settings.local.json"]) {
+  t(`grok: skips creating an entry when ~/.claude/${name} already runs the hook`, () => {
+    const sb = sandbox();
+    writeAt(path.join(sb.home, ".claude", name), claudeStop(`${hookPath} --client claude`));
+    const res = grokInstall(sb);
+    assert.equal(res.status, 0, res.stderr);
+    assert.equal(fs.existsSync(res.hooksFile), false, "no native entry created");
+    assert.ok(res.stderr.includes(path.join(sb.home, ".claude", name)), "names the competing file");
+    assert.match(res.stderr, /grok mcp add/, "still prints the registration");
+  });
+}
+
+t("grok: skips creating an entry when the Claude Code plugin is installed", () => {
+  const sb = sandbox();
+  const installPath = path.join(sb.home, ".claude", "plugins", "cache", "rutter", "rutter", "0.8.0");
+  writeAt(path.join(installPath, "hooks", "hooks.json"), claudeStop('"${CLAUDE_PLUGIN_ROOT}"/hooks/librarian-stop.sh --client claude'));
+  writeAt(path.join(sb.home, ".claude", "plugins", "installed_plugins.json"), JSON.stringify({ version: 2, plugins: { "rutter@rutter": [{ scope: "user", installPath }] } }));
+  const res = grokInstall(sb);
+  assert.equal(res.status, 0, res.stderr);
+  assert.equal(fs.existsSync(res.hooksFile), false);
+  assert.ok(res.stderr.includes(path.join(installPath, "hooks", "hooks.json")), res.stderr);
+});
+
+t("grok: a marketplace clone or an unrelated plugin is not a competing hook", () => {
+  const sb = sandbox();
+  // The marketplace clone holds the hook file, but nothing was installed from it.
+  writeAt(path.join(sb.home, ".claude", "plugins", "marketplaces", "rutter", "hooks", "hooks.json"), claudeStop("${CLAUDE_PLUGIN_ROOT}/hooks/librarian-stop.sh"));
+  const other = path.join(sb.home, ".claude", "plugins", "cache", "x", "other", "1.0.0");
+  writeAt(path.join(other, "hooks", "hooks.json"), claudeStop("echo other"));
+  writeAt(path.join(sb.home, ".claude", "plugins", "installed_plugins.json"), JSON.stringify({ version: 2, plugins: { "other@x": [{ installPath: other }] } }));
+  writeAt(path.join(sb.home, ".claude", "settings.json"), claudeStop("echo unrelated"));
+  const res = grokInstall(sb);
+  assert.equal(res.status, 0, res.stderr);
+  assert.ok(fs.existsSync(res.hooksFile), res.stderr);
+});
+
+t("grok: skips creating an entry when a plugin folder under GROK_HOME runs the hook", () => {
+  const sb = sandbox();
+  const file = path.join(sb.home, ".grok-x", "plugins", "rutter", "hooks", "hooks.json");
+  writeAt(file, claudeStop("${CLAUDE_PLUGIN_ROOT}/hooks/librarian-stop.sh --client grok"));
+  const res = grokInstall(sb);
+  assert.equal(res.status, 0, res.stderr);
+  assert.equal(fs.existsSync(res.hooksFile), false);
+  assert.ok(res.stderr.includes(file), res.stderr);
+});
+
+t("grok: skips creating an entry when another file in ~/.grok/hooks runs the hook", () => {
+  const sb = sandbox();
+  const file = path.join(sb.home, ".grok-x", "hooks", "mine.json");
+  writeAt(file, claudeStop(`${hookPath} --client grok`));
+  const res = grokInstall(sb);
+  assert.equal(res.status, 0, res.stderr);
+  assert.equal(fs.existsSync(res.hooksFile), false);
+  assert.ok(res.stderr.includes(file), res.stderr);
+});
+
+t("grok: with a competing hook present, an entry rutter already owns is still updated, never added to", () => {
+  const sb = sandbox();
+  writeAt(path.join(sb.home, ".claude", "settings.json"), claudeStop(`${hookPath} --client claude`));
+  const file = path.join(sb.home, ".grok-x", "hooks", "rutter.json");
+  writeAt(file, grokBody("/old/prefix/hooks/librarian-stop.sh --client grok"));
+  const res = grokInstall(sb);
+  assert.equal(res.status, 0, res.stderr);
+  assert.match(res.stderr, /twice per turn/, "warns that both now exist");
+  const cfg = JSON.parse(fs.readFileSync(file, "utf8"));
+  assert.equal(cfg.hooks.Stop[0].hooks.length, 1);
+  assert.equal(cfg.hooks.Stop[0].hooks[0].command, `${hookPath} --client grok`);
+  // Unchanged content with a competitor present writes nothing.
+  fs.utimesSync(file, 1_000_000, 1_000_000);
+  assert.equal(grokInstall(sb).status, 0);
+  assert.equal(fs.statSync(file).mtimeMs, 1_000_000_000);
+});

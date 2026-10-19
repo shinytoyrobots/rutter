@@ -4,6 +4,20 @@ Notable changes to rutter, newest first. Detailed per-ship records — grounds,
 disclosed gaps, and what is being watched — are kept by the maintainer
 outside this repository.
 
+## v0.9.0 — 2026-10-19
+
+- **Grok no longer needs Claude Code.** `rutter-memory install-hook --client grok` writes one file,
+  `~/.grok/hooks/rutter.json` (or `$GROK_HOME/hooks/rutter.json`), and prints the `grok mcp add` line
+  for the server, which you run yourself. It refuses to replace a `rutter.json` it did not write, keeps
+  its own entry current when the install path moves, and writes nothing when the file is already
+  current. Grok also loads rutter's hook from the Claude Code plugin and from `~/.claude/settings.json`;
+  when the installer finds either, or another hook file that runs it, it says which and creates no
+  second entry, since a duplicate would only run the hook twice (the capture still writes one record).
+  Grok needs no instructions file: it shows the model the server's instructions on its own. The
+  Claude Code route for Grok is unchanged. Probed on Grok 1.0.62 in a clean Linux environment; the
+  Grok path in [Getting started](./docs/getting-started.md#grok-path) no longer requires Claude Code,
+  and the old note that Grok has no `grok mcp add` is gone because the command exists.
+
 ## v0.8.0 — 2026-10-19
 
 - **Muse Code is a sixth client.** `rutter-memory install-hook --client muse` adds capture for Meta's
