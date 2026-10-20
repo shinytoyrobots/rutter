@@ -36,6 +36,14 @@ This page lists problems that have been seen or are likely. For how rutter behav
 
 **What to do:** write one line per turn.
 
+### Codex needs the rules block; Copilot CLI and Muse Code may need routing text
+
+**What you see:** on Codex 0.163.0 without the block `install-hook` adds to `~/.codex/AGENTS.md`, the model writes no summary line. Recall worked without the block in two runs and failed in one earlier session, so it is less dependable than capture, not broken.
+
+**Why:** Codex hides a server's instructions from the model until it loads one of the server's tools, so the model never learns that rutter exists or how to write the line. The Copilot CLI and Muse Code rules files carry only the capture part of the instructions, not the lines that route "what was I working on?" to rutter's tools. Whether those two clients recall unprompted without them has not been checked.
+
+**What to do:** on Codex, run `rutter-memory install-hook --client codex` again after upgrading to get the block. On Copilot CLI or Muse Code, if recall fails, ask for rutter by name.
+
 ### Muse Code, Codex, and Copilot CLI have client-specific limits
 
 - **Muse Code:** a project `AGENTS.md` in an untrusted workspace may suppress the user-level rule. The `muse` command name can also collide with a cmux binary.
@@ -97,14 +105,6 @@ These come from reading the code and the docs, not from running them.
 **Why:** the plugin may supply a server, and the installer prints the registration line even when it finds the plugin. Only hook double-firing was probed. Whether Grok then shows two servers is not confirmed.
 
 **What to do:** register one route. If you use the plugin, skip the printed `grok mcp add` line. Fixing this is on the [roadmap](./roadmap.md#phase-7--grok-without-claude-code-proposal).
-
-### Codex needs the rules block; Copilot CLI and Muse Code may need routing text
-
-**What you see:** on Codex 0.163.0 without the block `install-hook` adds to `~/.codex/AGENTS.md`, the model writes no summary line. Recall worked without the block in two runs and failed in one earlier session, so it is less dependable than capture, not broken.
-
-**Why:** Codex hides a server's instructions from the model until it loads one of the server's tools, so the model never learns that rutter exists or how to write the line. The Copilot CLI and Muse Code rules files carry only the capture part of the instructions, not the lines that route "what was I working on?" to rutter's tools. Whether those two clients recall unprompted without them has not been checked.
-
-**What to do:** on Codex, run `rutter-memory install-hook --client codex` again after upgrading to get the block. On Copilot CLI or Muse Code, if recall fails, ask for rutter by name.
 
 ### Codex, Copilot CLI, Antigravity, and Muse Code without Claude Code
 

@@ -434,7 +434,7 @@ function readAntigravityTurnText(transcriptPath) {
         .join("\n");
 }
 // ---------------------------------------------------------------------------
-// GitHub Copilot CLI agentStop adapter (docs/copilot-cli-plan.md, probe 2026-10-15).
+// GitHub Copilot CLI agentStop adapter (docs/archived/copilot-cli-plan.md, probe 2026-10-15).
 // ---------------------------------------------------------------------------
 /**
  * The camelCase `agentStop` shape: `sessionId` + `transcriptPath` + `stopReason`, with
