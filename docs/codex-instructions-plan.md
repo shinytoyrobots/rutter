@@ -1,8 +1,8 @@
 ---
 type: plan
-status: proposed
+status: built (v0.8.4, awaiting release)
 created: 2026-10-19
-updated: 2026-10-19
+updated: 2026-10-20
 domain: capture
 ---
 
@@ -50,45 +50,57 @@ these tools return". The routing lines ("Recency questions -- call librarian-rec
 and so on) are left out. Session B shows Codex needs those too. Capture alone would
 leave recall broken.
 
-## Step 1: Probe before building (no code changes)
+## Step 1: Probe before building (partly done 2026-10-19, Codex 0.163.0)
 
-Prove the fix by hand on Codex 0.163.0 before changing the installer.
+Done, via `codex exec` from `~` with a hand-made `~/.codex/AGENTS.md` (full `SERVER_INSTRUCTIONS`
+plus the Codex lead, 2,481 bytes, since removed):
 
-1. **Back up first.** `~/.codex/AGENTS.md` doesn't exist on this machine today. Record
-   that, so the probe can delete the file afterward rather than restore one.
-2. Write `~/.codex/AGENTS.md` by hand, with:
-   - a lead like the Muse one, plus one sentence on recall: rutter holds the user's
-     memory across projects and AI tools, so recency, prior-work and "what do I think"
-     questions go to rutter's tools first, even when the user doesn't mention rutter;
-   - the full `SERVER_INSTRUCTIONS` text (routing plus capture), with the user label
-     filled in.
-3. Run four fresh Codex sessions from a new shell. Start each from a folder **other
-   than** the rutter repo (for example `~`), so git history can't stand in for memory:
+| # | Result |
+|---|---|
+| P1 settle a preference | Pass. The model wrote the session and position lines; the hook recorded them. |
+| P2 "what have I been working on?" | Pass. `librarian_recent` called, answer from records. |
+| P3 "what do my notes say about X?" | Pass. `librarian_search` and `librarian_get_note` called. |
+| P4 small coding task | Pass. Directive in the final reply; the hook recorded it. |
+| Baseline, no `AGENTS.md` | **Capture fails**: the model confirmed a settled preference and wrote no line (342 tokens, no rutter text). **Recall passed** in `codex exec`: the model searched its tool list and found `librarian_recent` on its own. Session B (interactive) failed, so recall without the file is unreliable, not broken everywhere. |
 
-   | # | What to do | Pass if |
-   |---|---|---|
-   | P1 | Small talk, then settle a preference | A `client: codex` record lands in today's session file |
-   | P2 | "What have I been working on recently?" | The model loads and calls `librarian-recent`, and answers from records, not git |
-   | P3 | "What do my notes say about X?" (X is a real vault topic) | It calls `librarian-search` |
-   | P4 | A real small coding task that ends in a decision | A record lands, and the directive is in the final reply |
+The rules file is therefore needed for capture. Whether it is needed for recall in interactive
+sessions is still to be shown.
 
-4. For each, check the session log (`~/.codex/sessions/…/rollout-*.jsonl`) for the
-   `agents_md` world-state slot, any `tool_search` call and any `mcp__rutter` call. Check
-   the vault too. Same method as the session A and B checks.
-5. **Repeat P2 inside the rutter repo.** This is the hard case: git history competes
-   with rutter, and the repo has no project `AGENTS.md`. Then repeat P2 again in a
-   scratch git repo that has its own `AGENTS.md`. That checks Codex still loads the
-   global file next to a project one.
-6. Remove the hand-written file when done, unless step 2 goes ahead the same day.
+Found along the way: the Codex hook wrote to `~/Documents/knowledge-vault` because Codex gives its
+MCP server the vault from `config.toml` but hooks only the shell's environment. Fixed and shipped in
+v0.8.3 (the installer bakes the vault into the hook command); verified on the live hook.
 
-**Exit:** P1 to P4 all pass from a non-rutter folder. If capture passes but recall
-doesn't, try a stronger routing sentence once. If recall still fails, record it, and
-ship the capture half alone (step 2), with recall listed as a known issue.
+Probe 1 (interactive, v0.8.3, no `AGENTS.md`, started in the rutter repo; 2026-10-20 run by the user):
+**recall passed.** The model checked git first, then called `librarian-recent` twice and answered from
+records. So recall without the rules file is not broken in 0.163.0 (one interactive pass, one `exec`
+pass, against the earlier session B failure). Capture is the real gap. This favors shipping the
+full routing-and-capture text that passed P1 to P4, rather than a capture-only fallback, because it is
+the content with evidence behind it and costs only the routing lines.
 
-**Output:** add a "Codex rules file" section to `docs/instruction-limits-2026-10.md`,
-with Codex version, date, the four results and the session ids.
+Still to run, from a normal install (v0.8.3):
 
-## Step 2: Build (only after step 1 passes)
+1. ~~Interactive recall without the file.~~ Done, see above. Not yet run from a folder other than
+   the rutter repo.
+Override precedence (item 3 below) was run 2026-10-20: a nonempty `AGENTS.override.md` replaces
+`AGENTS.md`, an empty one is ignored. Step 3b is therefore needed. Step 2 is built (v0.8.4) with the
+full routing-and-capture block, `--no-rules`, and the override policy; its tests are in
+`test/codex-rules.test.ts`.
+
+2. **P2 inside the rutter repo**, with the file in place: git history competes with rutter there.
+   Then P2 in a scratch git repo with its own `AGENTS.md`, to check Codex loads the global file next
+   to a project one.
+3. **Override precedence.** In an isolated `CODEX_HOME` (a temp directory with a copy of `auth.json`
+   and `config.toml`), write `AGENTS.md` plus a nonempty `AGENTS.override.md`, run P1, and check
+   whether the `agents_md` slot still carries the `AGENTS.md` content. Discard the directory. This
+   decides whether step 3b below is needed.
+4. **Capture-only fallback**, only if recall fails with the file in place: the Codex lead without the
+   recall sentence, plus `captureContract()` only. Re-run P1 and P4 with that exact text before
+   shipping it.
+
+**Output:** add a "Codex rules file" section to `docs/instruction-limits-2026-10.md` with the Codex
+version, date, the results above and the session ids.
+
+## Step 2: Build (after the remaining probes above)
 
 1. **`install-hook --client codex` writes a marked block** into `$CODEX_HOME/AGENTS.md`
    (default `~/.codex/AGENTS.md`). Use Muse's block logic rather than Copilot's
@@ -96,12 +108,35 @@ with Codex version, date, the four results and the session ids.
    use. Reuse Muse's handling as is: BEGIN/END markers on their own lines, markers
    ignored inside code fences, refuse ambiguous files and change nothing, write
    atomically. Factor that code into a shared helper rather than copying it.
-2. **Content:** a Codex lead, then the routing and capture text. Pull both from
+2. **Content:** a Codex lead, then the routing and capture text (or the capture-only
+   fallback if step 1 ended there, using exactly the text that passed P1 and P4). Pull both from
    `SERVER_INSTRUCTIONS` so SR-027's single-source rule holds. Add a sibling to
    `captureContract()` (for example `routingAndCaptureContract()`) rather than
    restating the text.
 3. **Order of operations:** prepare the block before touching `hooks.json`, so a refused
    `AGENTS.md` leaves both files unchanged. This matches the Copilot deferred write.
+3a. **Run on every successful Codex path, not just a fresh install.** The installer
+   exits early when the hook is already registered unchanged, is custom, or is updated
+   in place (`hooks/install-hook.mjs:1023`, `:1031`, `:1047`). Preparing a deferred write
+   isn't enough, because those exits skip it. Restructure so each of those paths applies
+   the `AGENTS.md` block (install if missing, refresh if stale, no-op if current) before
+   exiting. Existing users, who are the ones hitting this, get the fix by rerunning
+   the installer. The `config.toml` inline-hook refusal still stops everything first.
+3b. **Global override file.** Codex loads a nonempty `$CODEX_HOME/AGENTS.override.md`
+   *instead of* `AGENTS.md` (per the official instruction-loading guide). If it exists
+   and is nonempty, a block in `AGENTS.md` is invisible while the installer reports
+   success. Policy, in order:
+   - If the override already holds a rutter block (markers present), manage the block
+     there with the same install, refresh or no-op logic, and leave `AGENTS.md` alone.
+   - Otherwise refuse before writing anything, naming the file. The message offers two
+     ways forward: remove the override, or rerun with `--no-rules`.
+   - **`--no-rules`** (Codex only) installs or refreshes the hook and skips every rules
+     file. The user then adds the block to the override by hand; the message prints the
+     exact text. This makes the refusal recoverable on a fresh install, so the hook
+     isn't left missing. Once the user has pasted the block, the first rule above keeps
+     it current on later reruns.
+   - An empty or missing override file is ignored. Verify the precedence on Codex
+     0.163.0 in step 1 before relying on it.
 4. **Installer messages:** say which file was written or updated, or that it's already
    current.
 5. **Copilot and Muse recall:** their files have the same routing gap. Don't change them
@@ -115,6 +150,14 @@ with Codex version, date, the four results and the session ids.
 - A file with two BEGIN markers, or a marker inside a code fence, is refused and
   nothing is written, `hooks.json` included.
 - `CODEX_HOME` is respected.
+- A nonempty `AGENTS.override.md` without a rutter block makes the installer refuse
+  with its path and the `--no-rules` hint, and nothing is written (`hooks.json`
+  included). An empty one is ignored.
+- `--no-rules` with a nonempty override on a fresh install writes `hooks.json` and no
+  rules file. Rerunning with the block now in the override refreshes it there only.
+- Existing hook, missing or stale `AGENTS.md`: with `hooks.json` already holding the
+  unchanged hook, a custom hook, and an outdated hook (one case each), rerunning
+  installs or refreshes the block. With the block already current, it changes nothing.
 - The block's text matches `SERVER_INSTRUCTIONS` (an anchor test, like the Copilot and
   Muse ones), so a later instruction change can't leave Codex stale without a failing
   test.
@@ -127,8 +170,10 @@ with Codex version, date, the four results and the session ids.
   what it contains and how to remove it. Replace "The server's instructions tell the
   client to put it there" with the rules file. Update the "Verified with Codex 0.160.0"
   line to the version step 1 tested.
-- `docs/manage-and-privacy.md`: removing rutter from Codex now also means deleting the
-  block from `~/.codex/AGENTS.md`.
+- `docs/manage-and-privacy.md`: removing rutter from Codex now also means checking both
+  `$CODEX_HOME/AGENTS.md` and `$CODEX_HOME/AGENTS.override.md` (default `~/.codex/`)
+  and deleting any rutter block from each. The block can be in the override file, so
+  checking only `AGENTS.md` could leave capture instructions active.
 - `docs/known-issues.md`: under Codex, note that without the rules file Codex never
   sees rutter's instructions (0.163.0). Note any recall shortfall from step 1.
 - `CHANGELOG.md`: an entry in the release that ships this.

@@ -58,7 +58,7 @@ export const CLIENT_CAPABILITIES: Record<Client, ClientCapability> = {
     capture: true,
     recall: true,
     instructionsFile: false,
-    lastVerified: { version: "0.160.0", date: "2026-10" },
+    lastVerified: { version: "0.163.0", date: "2026-10" },
     qualification: NO_CLAUDE_CODE,
   },
   copilot: {

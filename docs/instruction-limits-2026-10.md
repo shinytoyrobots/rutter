@@ -128,3 +128,21 @@ Codex "instructions only after discovery" behavior is confirmed over three runs.
 The budget test now uses Grok's limit: `CLIENT_LIMIT = 2033`. It counts how many times
 the user label appears instead of assuming 3 (it's 2 now). Worst case with a
 40-character name: 2,004.
+
+## Codex rules file (2026-10-19 and 2026-10-20, Codex 0.163.0)
+
+Probed with `codex exec` from `~`, using a hand-made `~/.codex/AGENTS.md` holding the Codex lead plus
+the full server instructions (2,481 bytes):
+
+| Probe | Result |
+|---|---|
+| P1 settle a preference | Pass: session and position lines written, hook recorded them |
+| P2 recent work | Pass: `librarian_recent` called, answered from records |
+| P3 notes lookup | Pass: `librarian_search` and `librarian_get_note` called |
+| P4 small coding task | Pass: line in the final reply, hook recorded it |
+| Baseline, no file, settle a preference | Capture fails: no line written, no rutter text in the prompt |
+| Baseline, no file, recent work (exec and an interactive run in the rutter repo) | Pass both times: the model found `librarian-recent` itself. Earlier session B failed. |
+| Override precedence | A nonempty `AGENTS.override.md` replaces `AGENTS.md` entirely; an empty one is ignored (isolated `CODEX_HOME`, marker strings in each) |
+
+Session ids are in the Codex session logs under `~/.codex/sessions/2026/10/19/` (P1 `01a156b5`,
+P3 `01a156b6-3d04`, P2 `01a156b6-9693`).

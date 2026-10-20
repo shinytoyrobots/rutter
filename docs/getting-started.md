@@ -143,7 +143,7 @@ ls "$LIBRARIAN_VAULT_PATH/_librarian/sessions/"
 
 ## Codex path
 
-Codex cannot use the plugin: it fills in none of a plugin's variables and installs no hook. You install rutter from npm instead. Check [Before you start](#before-you-start) first. Verified with Codex 0.160.0 (October 2026), on a machine that also had Claude Code. The recorded run on the [home page](./index.md#proof) used a later build, Codex 0.162.0.
+Codex cannot use the plugin: it fills in none of a plugin's variables and installs no hook. You install rutter from npm instead. Check [Before you start](#before-you-start) first. Verified with Codex 0.163.0 (October 2026), on a machine that also had Claude Code. The recorded run on the [home page](./index.md#proof) used Codex 0.162.0.
 
 **1. Install rutter.** The npm package is named `rutter-memory`, because `rutter` on npm is an unrelated library.
 
@@ -181,9 +181,9 @@ The hook runs `node` too, so capture also needs Codex started from a shell where
 rutter-memory install-hook --client codex
 ```
 
-Pass `--vault <path>` to choose the folder the hook writes to; re-running keeps the folder already set unless you do. This merges into `~/.codex/hooks.json` (or `$CODEX_HOME/hooks.json`). If an equivalent hook is already registered inline in `~/.codex/config.toml`, the installer stops and tells you rather than stacking a second one. Codex will not run a new hook until you trust it: start Codex, run `/hooks`, review the Librarian Stop hook, and trust it. Installing does not grant trust, and an untrusted hook never runs.
+Pass `--vault <path>` to choose the folder the hook writes to; re-running keeps the folder already set unless you do. This merges into `~/.codex/hooks.json` (or `$CODEX_HOME/hooks.json`). It also adds a marked block to `~/.codex/AGENTS.md` (or `$CODEX_HOME/AGENTS.md`): Codex does not show the model a server's instructions until it loads one of the server's tools, so without the block the model never learns to write the summary line. The block holds the server's own instructions, and re-running the installer refreshes it. Everything else in your `AGENTS.md` stays as it is. To remove it, delete the lines from `BEGIN rutter-capture-rule` to `END rutter-capture-rule`. If you keep a nonempty `AGENTS.override.md`, Codex reads that instead of `AGENTS.md`, so the installer stops and tells you; remove the override, or re-run with `--no-rules` and paste the block into the override yourself (the installer then keeps it current there). If an equivalent hook is already registered inline in `~/.codex/config.toml`, the installer stops and tells you rather than stacking a second one. Codex will not run a new hook until you trust it: start Codex, run `/hooks`, review the Librarian Stop hook, and trust it. Installing does not grant trust, and an untrusted hook never runs.
 
-**5. Do one small real task.** Restart Codex from the shell in step 2 and make one decision or one small change. The summary line must be in Codex's final reply. The hook reads only the final assistant message, so a line left in earlier commentary is not captured, and if the final reply holds two lines, only the last is kept. The server's instructions tell the client to put it there.
+**5. Do one small real task.** Restart Codex from the shell in step 2 and make one decision or one small change. The summary line must be in Codex's final reply. The hook reads only the final assistant message, so a line left in earlier commentary is not captured, and if the final reply holds two lines, only the last is kept. The rules block from step 4 tells the model to put it there.
 
 **6. Check capture.** A file for today's UTC day should exist, and its new entry should carry `client: codex`:
 
