@@ -80,6 +80,10 @@
 <p><strong>What you see:</strong> only the last of two lines in a final reply is stored.</p>
 <p><strong>Why:</strong> the hook keeps the last directive it finds in what it reads.</p>
 <p><strong>What to do:</strong> write one line per turn.</p>
+<h3 id="codex-needs-the-rules-block-copilot-cli-and-muse-code-may-need-routing-text">Codex needs the rules block; Copilot CLI and Muse Code may need routing text</h3>
+<p><strong>What you see:</strong> on Codex 0.163.0 without the block <code>install-hook</code> adds to <code>~/.codex/AGENTS.md</code>, the model writes no summary line. Recall worked without the block in two runs and failed in one earlier session, so it is less dependable than capture, not broken.</p>
+<p><strong>Why:</strong> Codex hides a server&#39;s instructions from the model until it loads one of the server&#39;s tools, so the model never learns that rutter exists or how to write the line. The Copilot CLI and Muse Code rules files carry only the capture part of the instructions, not the lines that route "what was I working on?" to rutter&#39;s tools. Whether those two clients recall unprompted without them has not been checked.</p>
+<p><strong>What to do:</strong> on Codex, run <code>rutter-memory install-hook --client codex</code> again after upgrading to get the block. On Copilot CLI or Muse Code, if recall fails, ask for rutter by name.</p>
 <h3 id="muse-code-codex-and-copilot-cli-have-client-specific-limits">Muse Code, Codex, and Copilot CLI have client-specific limits</h3>
 <ul>
 <li><strong>Muse Code:</strong> a project <code>AGENTS.md</code> in an untrusted workspace may suppress the user-level rule. The <code>muse</code> command name can also collide with a cmux binary.</li>
@@ -142,7 +146,7 @@
 <li><a href="faq.html">FAQ</a>: how several clients share one memory</li>
 <li><a href="manage-and-privacy.html">Pause, remove, and privacy</a>: pause or remove capture</li>
 </ul>
-<p class="ref-line"><code>docs/known-issues.md@sha256:8acb881b33f3 · built from main@4e87ca3</code> · <time class="date" datetime="2026-10-19">19 October 2026</time> · <a href="sources.json">source hashes</a></p>
+<p class="ref-line"><code>docs/known-issues.md@sha256:8acb881b33f3 · built from main@93001d0</code> · <time class="date" datetime="2026-10-19">19 October 2026</time> · <a href="sources.json">source hashes</a></p>
 <p class="to-dir"><a href="#doc-directory">Docs navigation</a></p>
 </article>
 </div>
