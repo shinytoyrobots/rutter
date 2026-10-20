@@ -1000,8 +1000,14 @@ const expandHome = (v) => (v === "~" ? os.homedir() : v.startsWith("~/") ? path.
 function codexMcpVault() {
   try {
     const toml = fs.readFileSync(path.join(codexHome, "config.toml"), "utf8");
-    const section = toml.match(/^\[mcp_servers\.rutter\.env\][^\n]*\n((?:(?!\[).*\n?)*)/m);
-    return section?.[1].match(/^\s*LIBRARIAN_VAULT_PATH\s*=\s*"([^"\n]*)"/m)?.[1].trim() || undefined;
+    // The section runs to the next table header, indented or not.
+    const section = toml.match(/^[ \t]*\[mcp_servers\.rutter\.env\][^\n]*\n((?:(?![ \t]*\[).*\n?)*)/m);
+    const m = section?.[1].match(/^[ \t]*LIBRARIAN_VAULT_PATH[ \t]*=[ \t]*(?:"((?:[^"\\\n]|\\.)*)"|'([^'\n]*)')/m);
+    if (!m) return undefined;
+    // A basic string may carry escapes; TOML's are JSON's for the cases a path can need.
+    const value = (m[2] ?? JSON.parse(`"${m[1]}"`)).trim();
+    // A relative path means the server's working directory, not this installer's, so it can't be baked.
+    return path.isAbsolute(expandHome(value)) ? value : undefined;
   } catch {
     return undefined;
   }
@@ -1024,7 +1030,7 @@ function codexVault(preserved) {
   if (raw === undefined) return undefined;
   if (raw.trim() === "") fail("--vault needs a path.");
   const vault = path.resolve(expandHome(raw.trim()));
-  if (/["$`\\\n\r]/.test(vault)) fail(`vault path ${JSON.stringify(vault)} contains a quote, $, backtick, backslash or newline; pass a plainer path.`);
+  if (/["$`\\\n\r}]/.test(vault)) fail(`vault path ${JSON.stringify(vault)} contains a quote, $, backtick, backslash, brace or newline; pass a plainer path.`);
   codexVaultSource = source;
   return vault;
 }

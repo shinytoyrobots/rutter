@@ -74,6 +74,35 @@ t("codex: an unbaked hook picks up the vault the MCP server is configured with",
   assert.match(cmd, /:-\/tmp\/mcp-vault\}" .* --client codex$/);
 });
 
+function codexWithToml(toml: string, ...args: string[]) {
+  const sb = sandbox();
+  fs.mkdirSync(sb.codexHome, { recursive: true });
+  fs.writeFileSync(path.join(sb.codexHome, "config.toml"), toml, "utf8");
+  const res = spawnSync(process.execPath, [path.join(import.meta.dirname, "..", "hooks", "install-hook.mjs"), "--client", "codex", ...args], {
+    env: { ...process.env, HOME: sb.home, CODEX_HOME: sb.codexHome, LIBRARIAN_VAULT_PATH: "" },
+    encoding: "utf8",
+  });
+  const cmd = fs.existsSync(sb.hooksJson) ? JSON.parse(fs.readFileSync(sb.hooksJson, "utf8")).hooks.Stop[0].hooks[0].command : undefined;
+  return { res, cmd };
+}
+
+t("codex: the config.toml vault is read from literal and escaped strings, and only from rutter's own env table", () => {
+  assert.match(codexWithToml(`[mcp_servers.rutter.env]\nLIBRARIAN_VAULT_PATH = '/tmp/lit'\n`).cmd ?? "", /:-\/tmp\/lit\}"/);
+  assert.match(codexWithToml(`[mcp_servers.rutter.env]\nLIBRARIAN_VAULT_PATH = "/tmp/\\u006eotes"\n`).cmd ?? "", /:-\/tmp\/notes\}"/);
+  const other = codexWithToml(`[mcp_servers.rutter.env]\nFOO = "1"\n  [mcp_servers.other.env]\n  LIBRARIAN_VAULT_PATH = "/tmp/other"\n`);
+  assert.equal(other.res.status, 0, other.res.stderr);
+  assert.doesNotMatch(other.cmd ?? "", /other/);
+});
+
+t("codex: a relative config.toml vault is not baked, and a brace in the vault is refused", () => {
+  const rel = codexWithToml(`[mcp_servers.rutter.env]\nLIBRARIAN_VAULT_PATH = "notes"\n`);
+  assert.equal(rel.res.status, 0, rel.res.stderr);
+  assert.doesNotMatch(rel.cmd ?? "", /notes/);
+  const brace = codexWithToml("", "--vault", "/tmp/a}b");
+  assert.equal(brace.res.status, 1);
+  assert.match(brace.res.stderr, /brace/);
+});
+
 t("codex: merges without disturbing unrelated hooks, and is idempotent", () => {
   const sb = sandbox();
   fs.mkdirSync(sb.codexHome, { recursive: true });

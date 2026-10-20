@@ -397,7 +397,8 @@ Codex cannot use the plugin. It fills in none of a plugin's variables and instal
 Verified with Codex 0.160.0. Install rutter with `npm install -g rutter-memory`, then:
 
 1. Export `LIBRARIAN_VAULT_PATH` in the shell that launches Codex. Its hooks see only that
-   environment, not `~/.claude/settings.json`. Without it they write captures to the default folder.
+   environment, not `~/.claude/settings.json`. Step 3's installer also bakes the folder into the hook
+   (from `--vault`, this variable, or the server's `config.toml` entry); with none of them, captures go to the default folder.
 2. Register the server with `codex mcp add rutter … -- rutter-memory`, passing your notes path with
    `--env LIBRARIAN_VAULT_PATH=…`. See the [Codex path](./docs/getting-started.md#codex-path) in `docs/getting-started.md`.
 3. Install the hook with `rutter-memory install-hook --client codex`. Then trust it in Codex with
