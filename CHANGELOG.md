@@ -4,6 +4,17 @@ Notable changes to rutter, newest first. Detailed per-ship records — grounds,
 disclosed gaps, and what is being watched — are kept by the maintainer
 outside this repository.
 
+## v0.9.0 — 2026-10-20
+
+- **Session lines now say when you made the call.** The instructions rutter gives your client ask it to credit
+  you when you decided, chose, ruled on or corrected something, not when you only asked, and to keep any reason
+  you gave. Before, a line could read as the assistant's own conclusion, so later sessions couldn't tell your
+  decisions from its suggestions. In a replay over 19 of your confirmed decisions, the new wording credited you
+  on 13 (68%). To stay inside Grok's 2,033-character limit, two filler clauses were cut ("nothing else is needed"
+  and "most sessions emit none") and the budget test now assumes a display name up to 24 characters. Restart
+  your client, or re-run the installer for clients that keep a copy of the instructions (Codex, Copilot, Muse,
+  Antigravity), to pick up the new wording.
+
 ## v0.8.4 — 2026-10-20
 
 - **Codex now learns that rutter exists.** Codex 0.163.0 hides an MCP server's instructions from the model
