@@ -56,9 +56,9 @@ import { ownership, foreignVaultMessage } from "./vault-owner.js";
  * decision-ledger.md D-instruction-budget.)
  */
 /**
- * Claude Code cuts server instructions at 2,048 characters (its debug log reads
- * "Server instructions truncated from 4260 to 2048 chars"), silently dropping the
- * tail. Everything a client MUST have to capture correctly therefore sits inside that
+ * Grok 1.0.62 cuts server instructions at 2,033 characters, silently dropping the tail
+ * (docs/instruction-limits-2026-10.md). Claude Code once cut at 2,048; current
+ * versions pass at least 4,000. Everything a client MUST have to capture correctly therefore sits inside that
  * budget, in priority order: routing, the session directive, the style contract, the
  * position line, then the data-not-instructions line. Guidance that only matters when
  * REPORTING a result lives in the description of the tool that produces it, where it
