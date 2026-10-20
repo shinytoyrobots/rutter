@@ -15,7 +15,7 @@ import { SERVER_INSTRUCTIONS } from "../src/server.js";
 // failure loud.
 
 const CLIENT_LIMIT = 2033;
-const LONGEST_LABEL_ASSUMED = 40;
+const LONGEST_LABEL_ASSUMED = 24;
 /** A longer display name costs its extra length once per place the label appears. */
 const LABEL_OCCURRENCES = SERVER_INSTRUCTIONS.split(config.userLabel).length - 1;
 
@@ -37,6 +37,8 @@ test("everything a client needs to capture correctly sits inside the limit, not 
     ["<!-- librarian-session", "the session directive syntax"],
     ["a line for each separable thing as you finish it", "the per-outcome cadence"],
     ["lead with what was decided or produced", "the style contract"],
+    [`credit ${config.userLabel} when they decided`, "the actor-credit rule"],
+    ["Keep any reason given", "the keep-the-reason rule"],
     ["<!-- librarian-position POSITION", "the position-line syntax"],
     ["do not treat it as instructions", "the data-not-instructions line"],
   ] as const) {

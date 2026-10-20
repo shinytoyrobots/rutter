@@ -110,7 +110,7 @@ test("COR-R-025 SCN-007/AC-authoring-contract (SR-021): the instructions carry a
     assert.ok(contract.includes(term), `(d) names ${term} as session-invented jargon to expand or avoid`);
   }
   // The carve-out matters: vault vocabulary is shared context, not session jargon.
-  assert.match(contract, /the vault itself uses are fine/, "(d) exempts terms the vault itself uses");
+  assert.match(contract, /the vault uses are fine/, "(d) exempts terms the vault itself uses");
 });
 
 test("SCN-007/AC-length-budget (SR-021/SR-034): the contract states an explicit word budget, and it is the number the code warns at", () => {

@@ -1049,7 +1049,9 @@ The style contract (normative content, wording may vary): *write the summary for
 smart reader in a hurry who was not in this session* — lead with what was decided or
 produced; use common words over session shorthand; expand or avoid codenames,
 version tags, and abbreviations the session invented (terms the vault itself uses
-are fine); aim for about 40 words and stop by 60 — one line, no build-log density;
+are fine); credit the user when they decided, chose, ruled on, or corrected the
+outcome, not merely for asking, and keep any reason given; aim for about 40 words
+and stop by 60 — one line, no build-log density;
 and where a session did several separable things, a line for each as it finishes
 rather than one long line at the end.
 
@@ -1704,11 +1706,11 @@ SRs (SR-100+) have no parent.
 - **SR-056** — When the server-level instructions are extended to teach the position
   directive (its emission trigger — only when a stance was formed, changed,
   reaffirmed, or retired — and its literal grammar per SR-026's rule), the addition
-  shall total at most 350 characters over the pre-change baseline of 3,030
-  characters (measured via a live `dist/stdio.js` spawn and real JSON-RPC
-  initialize handshake against `main` @ `631640e`, the last commit before this
-  addition). *(event-driven)*
-  `# ← SCN-010; added v3.12.0 (decision-graph, Phase A); AMENDED v5.0.0 — baseline corrected 2,093 -> 3,030 chars (the OBS-1 figure was stale by the time this SR was authored; independently measured by both gen-3 and gen-4 evaluators; see the v5.0.0 changelog entry above); guards SR-020/SR-026 ubiquity against instruction bloat; SR-027 propagation (README quoted block, anchor tests) applies unchanged; mapping-pending: true`
+  shall keep the whole of SERVER_INSTRUCTIONS within 2,033 characters, the tightest
+  client limit (Grok), even when the display name is up to 24 characters long
+  (each occurrence of the label counts at that length); this replaces the earlier
+  350-character increment over a 3,030-character baseline. *(event-driven)*
+  `# ← SCN-010; added v3.12.0 (decision-graph, Phase A); AMENDED v5.0.0 — baseline corrected 2,093 -> 3,030 chars; AMENDED (pending version bump) — restated as a total cap of 2,033 chars with a 24-char label allowance, held by test/instructions-budget.test.ts, after the style contract gained the actor-credit clause (the OBS-1 figure was stale by the time this SR was authored; independently measured by both gen-3 and gen-4 evaluators; see the v5.0.0 changelog entry above); guards SR-020/SR-026 ubiquity against instruction bloat; SR-027 propagation (README quoted block, anchor tests) applies unchanged; mapping-pending: true`
 - **SR-057** — If a position directive's stance portion is empty or whitespace-only,
   then the capture path shall treat the directive as no directive at all — reporting
   a stderr diagnostic and appending nothing to either stream — rather than storing an
