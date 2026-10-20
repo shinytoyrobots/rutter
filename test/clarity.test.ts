@@ -63,7 +63,7 @@ function authoringSection(): string {
 /**
  * The text addressing READ-TIME reporting of recalled summaries. It lives in the
  * description of librarian-recent (and is pointed at from librarian-search), because
- * the instructions have a 2,048-character budget the capture contract needs all of.
+ * the instructions have a 2,033-character budget the capture contract needs all of.
  */
 async function withClient<T>(fn: (client: Client) => Promise<T>): Promise<T> {
   const server = createServer();

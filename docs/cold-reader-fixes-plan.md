@@ -7,7 +7,7 @@ Page sources: home = `docs/index.md`, design = `docs/overview.md`, plus `docs/ge
 ## Decisions (settled 2026-10-19)
 
 1. **Audience framing: resolved.** The six clients are coding harnesses, but people use them for non-coding work too (research, drafting, planning). Home should say "AI agent harnesses" or similar, and say once that they are often used for non-coding tasks. Replace "AI coding clients" on home, in the home eyebrow, and in `llms.txt`. The design page's "this is not about coding sessions" stays, reworded to match: the tools are coding harnesses; rutter's use is not limited to code.
-3. **Site motto: revised 2026-10-19.** "The model isn't the memory. Your notes are." is no longer the general subtitle. It becomes the opening line of the *Why not built-in memory?* block on home, in `docs/rutter-website-implementation-plan.md` (Priority 1). The hero keeps "One memory. Multiple agents. Yours."; the masthead carries "Who owns memory owns truth." (`docs/field-log-design-plan.md`). See "Deferred: motto".
+3. **Site motto: revised 2026-10-19.** "The model isn't the memory. Your notes are." is no longer the general subtitle. It becomes the opening line of the *Why not built-in memory?* block on home, in `docs/archived/rutter-website-implementation-plan.md` (Priority 1). The hero keeps "One memory. Multiple agents. Yours."; the masthead carries "Who owns memory owns truth." (`docs/field-log-design-plan.md`). See "Deferred: motto".
 2. **Getting-started: split.** Move the manual route and the pause/remove/privacy material onto their own pages. The top nav is already crowded, so the split ships together with a nav review (Phase 3b).
 
 ## Phase 1: contradictions and overclaims (do first)
@@ -27,7 +27,7 @@ Item 3, the three kinds of version claim:
 
 ## Deferred: motto (follow-up task, not part of this plan's work)
 
-Do not add the motto during this work. It is a subsequent task, now owned by `docs/rutter-website-implementation-plan.md` (Priority 1). Leave "One memory. Multiple agents. Yours." and the existing hero copy untouched. Revised 2026-10-19: the motto is not a subtitle. It opens the *Why not built-in memory?* block, so the bullets below that replace the hero subtitle, `README.md:3`, or rename the "One memory. Multiple agents." section heading no longer apply. The bullets on `llms.txt`, meta descriptions, the cold-reader check and the archived plan still apply.
+Do not add the motto during this work. It is a subsequent task, now owned by `docs/archived/rutter-website-implementation-plan.md` (Priority 1). Leave "One memory. Multiple agents. Yours." and the existing hero copy untouched. Revised 2026-10-19: the motto is not a subtitle. It opens the *Why not built-in memory?* block, so the bullets below that replace the hero subtitle, `README.md:3`, or rename the "One memory. Multiple agents." section heading no longer apply. The bullets on `llms.txt`, meta descriptions, the cold-reader check and the archived plan still apply.
 
 Motto: "The model isn't the memory. Your notes are."
 

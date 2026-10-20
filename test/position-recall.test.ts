@@ -406,7 +406,7 @@ test("SR-062: a retired topic states its retirement date, labelled a retirement 
 });
 
 test("SR-062: the librarian-positions description teaches the attribution and forbids restating a recorded stance as the client's own conclusion", async () => {
-  // The instructions have a 2,048-character budget the capture contract needs, so this
+  // The instructions have a 2,033-character budget the capture contract needs, so this
   // read-time guidance travels with the tool that produces the stance instead.
   assert.match(SERVER_INSTRUCTIONS, /librarian-positions/, "the tool is named in the routing guidance");
   const server = createServer();
