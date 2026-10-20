@@ -918,6 +918,43 @@ full (see 1.4, "Enough"). Otherwise, go back to the 1.5 table with the new resul
 5. Update `docs/decision-graph.md` and `docs/decision-graph-plan.md` to say the position
    layer was retired, and why.
 
+## 2.E Actor-credit session line: trial and no-regression check
+
+*(Registered 2026-10-20, before the release. Covers the fix shipped in PR #149. This is
+for us, not an end-user feature.)*
+
+**Window:** 14 days from the first day the released wording runs in Robin's own install.
+Start date: _to be filled in at release_.
+
+**Measure (primary):**
+- **Unit:** each session line that credits Robin (says Robin decided, chose, ruled on or
+  corrected something).
+- **Check:** at day 14, list every credited line from `_librarian/sessions/`. Robin marks
+  each "real decision" or "just a request", blind to the session it came from.
+- **Success:** at least 70% are real decisions, and at least 10 credited lines exist.
+- **Failure:** below 70%, or fewer than 10 credited lines. The fix has used its one
+  trial (see "Return after a failed trial" in 1.5); the same wording is not retried.
+- Also record lines that credit Robin for only asking, as examples for the next attempt.
+
+**No-regression check (guardrail):** the wording change must not weaken decision logging
+in general. Baseline is the 14 days before the change (2026-10-06 to 2026-10-19):
+12 active days, 286 session lines (about 24 per active day), median 38 words,
+0.3% over the 60-word ceiling, 4 position-stream entries in October. At day 14 compare
+the same figures for the trial window. The guardrail fails if any of these holds:
+- lines per active day fall by more than 25% (about 18 or fewer);
+- median length drops below 25 words, or more than 5% of lines exceed 60 words;
+- Robin finds, in a blind sample of 20 lines, that fewer lines than before keep a stated
+  reason (the credit clause says to keep it; losing reasons would be the regression);
+- position lines stop appearing where the user stated a belief (spot check of 5 known
+  cases).
+A guardrail failure holds the release even if the primary measure passes.
+
+**Standing automated check:** `test/instructions-budget.test.ts` pins that the credit rule,
+the keep-the-reason rule, the session directive, the cadence and the position-line syntax
+all sit inside the first 2,033 characters, so a later wording edit cannot silently push
+any of them out of reach of the tightest client. It cannot show a model still follows
+them; that is what the day-14 comparison is for.
+
 ## Sequencing
 
 1.1 and 1.2 are done. 1.3 starts once the count bands are re-fixed from the pilot
