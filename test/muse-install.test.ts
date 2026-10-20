@@ -187,7 +187,7 @@ t("muse: --vault is accepted for muse and still refused for claude", () => {
   const sb = sandbox();
   const bad = spawnSync(process.execPath, [script, "--client", "claude", "--vault", "/v"], { env: { ...process.env, HOME: sb.home }, encoding: "utf8" });
   assert.equal(bad.status, 1);
-  assert.match(bad.stderr, /antigravity or muse/);
+  assert.match(bad.stderr, /antigravity, muse or codex/);
 });
 
 const generated = (vault: string, script = hookPath) =>
