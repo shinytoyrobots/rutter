@@ -4,6 +4,19 @@ Notable changes to rutter, newest first. Detailed per-ship records — grounds,
 disclosed gaps, and what is being watched — are kept by the maintainer
 outside this repository.
 
+## v0.8.4 — 2026-10-20
+
+- **Codex now learns that rutter exists.** Codex 0.163.0 hides an MCP server's instructions from the model
+  until it loads one of the server's tools, so in ordinary sessions the model never wrote a summary line and
+  nothing was captured. `install-hook --client codex` now adds a marked block holding the server's own
+  instructions to `~/.codex/AGENTS.md` (or `$CODEX_HOME/AGENTS.md`), and re-running it refreshes the block, even
+  when the hook is already installed. Anything else in the file is kept byte for byte, and a file the installer
+  can't parse safely is refused with nothing changed. Codex reads a nonempty `AGENTS.override.md` instead of
+  `AGENTS.md`, so a block already in the override is kept current there, any other nonempty override is refused
+  with the way forward, and `--no-rules` installs the hook and touches no rules file. Checked on Codex 0.163.0
+  from outside the repo: a preference settled in chat, a notes lookup, a recency question and a small coding
+  task each worked with the block. See [Getting started](./docs/getting-started.md#codex-path).
+
 ## v0.8.3 — 2026-10-19
 
 - **Codex captures now land in the vault Codex reads from.** Codex gives its MCP server the vault from `config.toml`

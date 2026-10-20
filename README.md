@@ -394,7 +394,7 @@ path](./docs/getting-started.md#grok-path) has the full sequence.
 ### Codex
 
 Codex cannot use the plugin. It fills in none of a plugin's variables and installs no hook.
-Verified with Codex 0.160.0. Install rutter with `npm install -g rutter-memory`, then:
+Verified with Codex 0.163.0. Install rutter with `npm install -g rutter-memory`, then:
 
 1. Export `LIBRARIAN_VAULT_PATH` in the shell that launches Codex. Its hooks see only that
    environment, not `~/.claude/settings.json`. Step 3's installer also bakes the folder into the hook
