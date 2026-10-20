@@ -15,7 +15,7 @@ import { SERVER_INSTRUCTIONS } from "../src/server.js";
 // failure loud.
 
 const CLIENT_LIMIT = 2033;
-const LONGEST_LABEL_ASSUMED = 40;
+const LONGEST_LABEL_ASSUMED = 24;
 /** A longer display name costs its extra length once per place the label appears. */
 const LABEL_OCCURRENCES = SERVER_INSTRUCTIONS.split(config.userLabel).length - 1;
 
