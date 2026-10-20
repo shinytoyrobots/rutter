@@ -924,7 +924,7 @@ full (see 1.4, "Enough"). Otherwise, go back to the 1.5 table with the new resul
 for us, not an end-user feature.)*
 
 **Window:** 14 days from the first day the released wording runs in Robin's own install.
-Start date: _to be filled in at release_.
+Start date: 2026-10-20 (v0.9.0 approved on npm). Day-14 comparison: 2026-11-03.
 
 **Measure (primary):**
 - **Unit:** each session line that credits Robin (says Robin decided, chose, ruled on or
