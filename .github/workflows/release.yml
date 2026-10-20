@@ -62,6 +62,31 @@ jobs:
             console.log(`all version fields match v${tag}`);
           '
 
+      # Every npm release needs a CHANGELOG entry, and a GitHub Release is made from it below.
+      # Fail now, before anything is staged, if the entry is missing.
+      - name: Check the CHANGELOG has this version
+        run: node scripts/changelog-section.mjs "$GITHUB_REF_NAME" > /dev/null
+
       # Staged, not published: approve it on npmjs.com (or `npm stage approve <id>`) to release.
       - name: Stage for approval
         run: npm stage publish --provenance --access public
+
+  # The GitHub Release mirrors the npm release. It is created as a DRAFT so nothing points at a
+  # version that is not installable yet: publish it (and mark it latest) once the npm release is
+  # approved. Its own job keeps `contents: write` away from the publishing job above.
+  github-release:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Draft the GitHub Release from the CHANGELOG
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node scripts/changelog-section.mjs "$GITHUB_REF_NAME" > notes.md
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$(node scripts/changelog-section.mjs --title "$GITHUB_REF_NAME")" \
+            --notes-file notes.md --verify-tag --draft
