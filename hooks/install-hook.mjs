@@ -45,8 +45,8 @@ for (let i = 0; i < args.length; i++) {
     fail(`unknown argument "${args[i]}" -- usage: install-hook [--client claude|codex|antigravity|copilot|muse|grok] [--vault <path>]`);
   }
 }
-if (vaultArg !== undefined && client !== "antigravity" && client !== "muse") {
-  fail("--vault is only for --client antigravity or muse (other clients read LIBRARIAN_VAULT_PATH from the environment they launch with).");
+if (vaultArg !== undefined && client !== "antigravity" && client !== "muse" && client !== "codex") {
+  fail("--vault is only for --client antigravity, muse or codex (other clients read LIBRARIAN_VAULT_PATH from the environment they launch with).");
 }
 if (client !== "claude" && client !== "codex" && client !== "antigravity" && client !== "copilot" && client !== "muse" && client !== "grok") {
   fail(`unknown client "${client}" -- expected claude, codex, antigravity, copilot, muse, or grok.`);
@@ -990,13 +990,51 @@ if (!Array.isArray(settings.hooks.Stop)) {
   fail(`${settingsPath} has a non-array hooks.Stop -- fix it, then re-run (nothing was changed).`);
 }
 
-// The vault a Claude Code or Codex hook writes to is not in its command: it inherits the environment
-// the client is launched from. Say which vault that is here, so the server registration can match it.
+// The vault a Claude Code hook writes to is not in its command: it inherits the environment the client
+// is launched from. Say which vault that is here, so the server registration can match it. A Codex hook
+// gets its vault baked in (below), because Codex's MCP server takes its vault from config.toml while its
+// hooks do not, so the two silently disagreed (probed 2026-10-19: captures landed in the default vault).
 const envVault = process.env.LIBRARIAN_VAULT_PATH?.trim();
-const vaultNote = () =>
+const expandHome = (v) => (v === "~" ? os.homedir() : v.startsWith("~/") ? path.join(os.homedir(), v.slice(2)) : v);
+/** The vault Codex's MCP server is configured with ([mcp_servers.rutter.env] in config.toml), if any. */
+function codexMcpVault() {
+  try {
+    const toml = fs.readFileSync(path.join(codexHome, "config.toml"), "utf8");
+    const section = toml.match(/^\[mcp_servers\.rutter\.env\][^\n]*\n((?:(?!\[).*\n?)*)/m);
+    return section?.[1].match(/^\s*LIBRARIAN_VAULT_PATH\s*=\s*"([^"\n]*)"/m)?.[1].trim() || undefined;
+  } catch {
+    return undefined;
+  }
+}
+/**
+ * Codex only: the one vault the hook writes to. Order: --vault, the vault the existing hook already
+ * sets (so a re-run does not quietly move it), this shell's LIBRARIAN_VAULT_PATH, then the vault the
+ * MCP server is configured with. Undefined leaves the command bare, as before.
+ */
+let codexVaultSource = "";
+function codexVault(preserved) {
+  if (client !== "codex") return undefined;
+  const picks = [
+    [vaultArg, "--vault"],
+    [preserved, "the existing hook"],
+    [envVault, "LIBRARIAN_VAULT_PATH in this shell"],
+    [codexMcpVault(), "the MCP server's config.toml entry"],
+  ];
+  const [raw, source] = picks.find(([v]) => v !== undefined && (v !== "" || v === vaultArg)) ?? [];
+  if (raw === undefined) return undefined;
+  if (raw.trim() === "") fail("--vault needs a path.");
+  const vault = path.resolve(expandHome(raw.trim()));
+  if (/["$`\\\n\r]/.test(vault)) fail(`vault path ${JSON.stringify(vault)} contains a quote, $, backtick, backslash or newline; pass a plainer path.`);
+  codexVaultSource = source;
+  return vault;
+}
+const commandFor = (name, vault) => (vault ? `LIBRARIAN_VAULT_PATH="\${LIBRARIAN_VAULT_PATH:-${vault}}" ${hookCommand} --client ${name}` : `${hookCommand} --client ${name}`);
+const vaultNote = (vault) =>
   console.error(
-    `[install-hook] vault the hook will use: ${envVault ? `${envVault} (LIBRARIAN_VAULT_PATH in this shell)` : "~/Documents/knowledge-vault (the default)"}` +
-      " -- whatever LIBRARIAN_VAULT_PATH is when the client starts. Register the MCP server with the same value."
+    vault
+      ? `[install-hook] vault the hook will use: ${vault} (from ${codexVaultSource}); LIBRARIAN_VAULT_PATH exported when Codex starts still overrides it.`
+      : `[install-hook] vault the hook will use: ${envVault ? `${envVault} (LIBRARIAN_VAULT_PATH in this shell)` : "~/Documents/knowledge-vault (the default)"}` +
+        " -- whatever LIBRARIAN_VAULT_PATH is when the client starts. Register the MCP server with the same value."
   );
 
 // The command we register carries the explicit client identity (`--client claude|codex`), which
@@ -1009,7 +1047,7 @@ const known = [];
 let custom = false;
 for (const group of settings.hooks.Stop) {
   for (const h of Array.isArray(group?.hooks) ? group.hooks : []) {
-    const parsed = parseOurs(h?.command);
+    const parsed = (client === "codex" ? parseAgy : parseOurs)(h?.command);
     if (parsed) known.push({ group, hook: h, parsed });
     else if (typeof h?.command === "string" && (h.command.includes(hookPath) || h.command.includes(hookCommand))) custom = true;
   }
@@ -1019,15 +1057,16 @@ if (known.length === 0 && custom) {
     `[install-hook] already registered in ${settingsPath} with a custom command; left unchanged. Add \`--client ${client}\` to it ` +
       `if you want records labeled with the client.`
   );
-  vaultNote();
+  vaultNote(codexVault(undefined));
   process.exit(0);
 }
 if (known.length > 0) {
   const [keep, ...extra] = known;
-  const target = `${hookCommand} --client ${keep.parsed.client ?? client}`;
+  const vault = codexVault(keep.parsed.vault);
+  const target = commandFor(keep.parsed.client ?? client, vault);
   if (extra.length === 0 && keep.hook.command === target) {
     console.error(`[install-hook] already registered in ${settingsPath}; nothing to do.`);
-    vaultNote();
+    vaultNote(vault);
     process.exit(0);
   }
   keep.hook.command = target;
@@ -1043,7 +1082,7 @@ if (known.length > 0) {
       `[install-hook] removed ${extra.length} more registration(s) of this hook (${extra.map((e) => e.parsed.script).join(", ")}), so capture runs once.`
     );
   }
-  vaultNote();
+  vaultNote(vault);
   process.exit(0);
 }
 
@@ -1057,7 +1096,8 @@ if (client === "codex") {
   }
 }
 
-const entry = { type: "command", command: `${hookCommand} --client ${client}` };
+const newVault = codexVault(undefined);
+const entry = { type: "command", command: commandFor(client, newVault) };
 if (client === "codex") {
   entry.timeout = 30;
   entry.statusMessage = "Librarian: capturing session memory";
@@ -1069,9 +1109,9 @@ fs.writeFileSync(tmp, `${JSON.stringify(settings, null, 2)}\n`, "utf8");
 fs.renameSync(tmp, settingsPath);
 
 console.error(`[install-hook] registered the Stop hook in ${settingsPath}.`);
-vaultNote();
+vaultNote(newVault);
 if (client === "codex") {
-  console.error("[install-hook] Codex hooks read LIBRARIAN_VAULT_PATH from the environment Codex is launched with, not from config.toml.");
+  if (!newVault) console.error("[install-hook] Codex hooks read LIBRARIAN_VAULT_PATH from the environment Codex is launched with, not from config.toml; pass --vault to fix one.");
   console.error("[install-hook] Codex does not run a new hook until you trust it: start Codex, run /hooks, review the");
   console.error("[install-hook] Librarian Stop hook and trust it (installing did NOT grant trust). Then check");
   console.error("[install-hook] <vault>/_librarian/sessions/ after your next turn. Directives must be in the final reply.");

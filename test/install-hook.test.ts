@@ -42,12 +42,36 @@ t("codex: creates hooks.json with the shared hook, timeout, and a trust-review m
   assert.equal(res.status, 0, res.stderr);
   const cfg = JSON.parse(fs.readFileSync(sb.hooksJson, "utf8"));
   assert.equal(cfg.hooks.Stop.length, 1);
-  assert.equal(cfg.hooks.Stop[0].hooks[0].command, `${hookPath} --client codex`, "carries the explicit client identity");
+  assert.equal(cfg.hooks.Stop[0].hooks[0].command, `LIBRARIAN_VAULT_PATH="\${LIBRARIAN_VAULT_PATH:-${process.env.LIBRARIAN_VAULT_PATH}}" ${hookPath} --client codex`, "carries the explicit client identity and the shell's vault");
   assert.equal(cfg.hooks.Stop[0].hooks[0].type, "command");
   assert.match(res.stderr, /\/hooks/);
   assert.match(res.stderr, /did NOT grant trust/);
   assert.match(res.stderr, /LIBRARIAN_VAULT_PATH/, "tells the user how the hook finds the vault");
   assert.equal(fs.existsSync(path.join(sb.home, ".claude", "settings.json")), false, "Claude config untouched");
+});
+
+t("codex: --vault bakes the vault into the hook command; a re-run keeps it and --vault changes it", () => {
+  const sb = sandbox();
+  assert.equal(install(sb, "--client", "codex", "--vault", "/tmp/va").status, 0);
+  const cmd = () => JSON.parse(fs.readFileSync(sb.hooksJson, "utf8")).hooks.Stop[0].hooks[0].command;
+  assert.equal(cmd(), `LIBRARIAN_VAULT_PATH="\${LIBRARIAN_VAULT_PATH:-/tmp/va}" ${hookPath} --client codex`);
+  assert.match(install(sb, "--client", "codex").stderr, /nothing to do/, "preserved, so stable");
+  assert.equal(install(sb, "--client", "codex", "--vault", "/tmp/vb").status, 0);
+  assert.match(cmd(), /:-\/tmp\/vb\}/);
+});
+
+t("codex: an unbaked hook picks up the vault the MCP server is configured with", () => {
+  const sb = sandbox();
+  fs.mkdirSync(sb.codexHome, { recursive: true });
+  fs.writeFileSync(sb.hooksJson, JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: "command", command: `${hookPath} --client codex`, timeout: 30 }] }] } }), "utf8");
+  fs.writeFileSync(path.join(sb.codexHome, "config.toml"), `[mcp_servers.rutter]\ncommand = "node"\n\n[mcp_servers.rutter.env]\nLIBRARIAN_VAULT_PATH = "/tmp/mcp-vault"\n\n[other]\nx = 1\n`, "utf8");
+  const res = spawnSync(process.execPath, [path.join(import.meta.dirname, "..", "hooks", "install-hook.mjs"), "--client", "codex"], {
+    env: { ...process.env, HOME: sb.home, CODEX_HOME: sb.codexHome, LIBRARIAN_VAULT_PATH: "" },
+    encoding: "utf8",
+  });
+  assert.equal(res.status, 0, res.stderr);
+  const cmd = JSON.parse(fs.readFileSync(sb.hooksJson, "utf8")).hooks.Stop[0].hooks[0].command;
+  assert.match(cmd, /:-\/tmp\/mcp-vault\}" .* --client codex$/);
 });
 
 t("codex: merges without disturbing unrelated hooks, and is idempotent", () => {
@@ -74,7 +98,7 @@ t("codex: an existing registration (e.g. made by hand) is detected and gains the
   assert.match(install(sb, "--client", "codex").stderr, /updated the Stop hook/);
   const cfg = JSON.parse(fs.readFileSync(sb.hooksJson, "utf8"));
   assert.equal(cfg.hooks.Stop.length, 1, "updated in place, not duplicated");
-  assert.deepEqual(cfg.hooks.Stop[0].hooks[0], { type: "command", command: `${hookPath} --client codex`, timeout: 30 });
+  assert.deepEqual(cfg.hooks.Stop[0].hooks[0], { type: "command", command: `LIBRARIAN_VAULT_PATH="\${LIBRARIAN_VAULT_PATH:-${process.env.LIBRARIAN_VAULT_PATH}}" ${hookPath} --client codex`, timeout: 30 });
   const after = fs.readFileSync(sb.hooksJson, "utf8");
   assert.match(install(sb, "--client", "codex").stderr, /already registered/);
   assert.equal(fs.readFileSync(sb.hooksJson, "utf8"), after, "and then stable");
@@ -281,7 +305,7 @@ t("antigravity: a vault path that would change the shell command is refused; --v
     assert.match(res.stderr, /pass a plainer path/);
   }
   assert.equal(fs.existsSync(agyHooks(sb.home)), false, "nothing written");
-  assert.equal(install(sb, "--client", "codex", "--vault", "/tmp/v").status, 1);
+  assert.equal(install(sb, "--client", "grok", "--vault", "/tmp/v").status, 1);
   assert.equal(install(sb, "--vault", "/tmp/v").status, 1);
 });
 

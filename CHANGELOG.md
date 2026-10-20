@@ -4,6 +4,14 @@ Notable changes to rutter, newest first. Detailed per-ship records — grounds,
 disclosed gaps, and what is being watched — are kept by the maintainer
 outside this repository.
 
+## v0.8.3 — 2026-10-19
+
+- **Codex captures now land in the vault Codex reads from.** Codex gives its MCP server the vault from `config.toml`
+  but its hooks only the launching shell's environment, so a Codex hook started without `LIBRARIAN_VAULT_PATH`
+  quietly wrote to `~/Documents/knowledge-vault` while recall read your notes. `install-hook --client codex` now
+  bakes the vault into the hook command, taken from `--vault` (new for Codex), the existing hook, your shell, or the
+  server's `config.toml` entry. Re-run the installer, then trust the changed hook in `/hooks`.
+
 ## v0.8.2 — 2026-10-19
 
 - **The release and registry workflows no longer run on Node 20 actions.** `actions/checkout` and
