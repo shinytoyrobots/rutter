@@ -1,6 +1,6 @@
 {
   "name": "rutter-memory",
-  "version": "0.8.4",
+  "version": "0.9.0",
   "mcpName": "io.github.shinytoyrobots/rutter",
   "type": "module",
   "description": "One memory across Claude Code, Grok, Codex, Copilot CLI, Antigravity, and Muse Code: a record of what your AI sessions decided, and the versioned references behind it. MCP server over a folder of markdown notes.",
