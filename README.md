@@ -401,8 +401,9 @@ Verified with Codex 0.163.0. Install rutter with `npm install -g rutter-memory`,
    (from `--vault`, this variable, or the server's `config.toml` entry); with none of them, captures go to the default folder.
 2. Register the server with `codex mcp add rutter … -- rutter-memory`, passing your notes path with
    `--env LIBRARIAN_VAULT_PATH=…`. See the [Codex path](./docs/getting-started.md#codex-path) in `docs/getting-started.md`.
-3. Install the hook with `rutter-memory install-hook --client codex`. Then trust it in Codex with
-   `/hooks`. Installing does not grant trust, and an untrusted hook never runs.
+3. Install the hook with `rutter-memory install-hook --client codex`. It also adds a marked block of
+   rutter's instructions to `~/.codex/AGENTS.md`, because Codex otherwise hides them from the model.
+   Then trust the hook in Codex with `/hooks`. Installing does not grant trust, and an untrusted hook never runs.
 4. Expect the summary line in Codex's final reply, because that is where its hook looks for it.
    If the final reply holds two lines, only the last is kept.
 
