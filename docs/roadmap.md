@@ -10,6 +10,8 @@ conditions); discursive-librarian direction added (Phase 5).
 Phases A–B shipped, and the work that shipped outside the phases (npm, the MCP Registry, the
 client label, Copilot CLI, Muse Code, the Actions Node 24 move) is recorded under "Since the
 phases were written".
+**Amended:** 2026-10-26 — unprompted recall retired (Robin's ruling), and Phase 5 redefined
+as history-shaped answers on request, with the personality half dropped.
 **Status:** proposal, not ratified. `spec/spec.md` remains the executable source of truth;
 nothing here is a requirement until it lands there.
 **Purpose:** high-level sequencing for work after the S1.5 desirability gate. Phases are
@@ -23,9 +25,9 @@ v0.8.2. The desirability gate and the read-value question both came back PASS (P
 and 1). The repo is public and MIT (Phase 2). Position capture and position recall
 shipped (Phase 3, Phases A–B). Spec is at v15.0.0. Six clients have a supported hook.
 
-Open: decision-graph Phases C–D and the backfill decision (Phase 3), the Phase 5 and
-unprompted-recall directions (no build scheduled), and the site work under "Since the
-phases were written".
+Open: decision-graph Phases C–D and the backfill decision (Phase 3), the Phase 5 direction
+(no build scheduled), and the site work under "Since the phases were written". Unprompted
+recall was retired on 2026-10-26.
 
 The two live problems named on 2026-08-03 are closed: the gate's blind spot to call
 intent (Phase 0) and summary-length drift (Phase 1, spec v3.6.0 with a drift test).
@@ -241,6 +243,24 @@ is real and acted on. A personality on a write-only record is a costume.
 (read-value, decided qualitatively). This clears the gate; Phase 5 is still a
 direction, not scheduled, until someone decides to build it.
 
+**Redefined 2026-10-26.** With unprompted recall retired, "discursive" means answers told as
+a history when asked, not a voice. Three parts:
+
+- **History-shaped tool output.** Results come dated, in order, attributed and with reasons:
+  "you chose X on 08-05 because Y; on 10-20 you changed it to Z." This depends on record
+  quality (the actor-credit trial, `positions-plan.md` 2.E) and on output shape (Branch C's
+  read-time derivation work).
+- **Honest gaps.** Say what the records don't hold: "no record says why", or "older records
+  sit under `my-librarian`".
+- **Asking back.** When a question matches several threads, name them and ask which.
+
+The personality half is dropped. The instructions sit within about 10 characters of Grok's
+2,033-character limit, so there is no room for a voice there, and a manner adds little once
+the answers are good.
+
+**Exit:** a "what did I decide about X, and did it change?" question answered in a live
+session as a dated, attributed history that names any gap, on request only.
+
 ---
 
 ## Phase 6 — State the host-integration rules once (done 2026-10-18)
@@ -292,31 +312,16 @@ a working `librarian-recent`, tested on a machine that has never had Claude Code
 
 ---
 
-## Future possibility — unprompted recall (not phased)
+## Retired — unprompted recall (2026-10-26)
 
-Added 2026-10-10. Noted so the idea isn't lost; deliberately **not** part of Phase 5,
-which stays about how the librarian answers when asked.
+Added 2026-10-10 as a future possibility: an opt-in mode where rutter offers a past record
+without being asked, via a deterministic prompt hook. **Retired by Robin on 2026-10-26:**
+rutter recalls only when asked. This keeps constitution principle 3's "never at-you"
+reading without needing to settle it in writing.
 
-The idea: an opt-in mode where rutter offers a past record without being asked, when the
-current conversation clearly connects to it — e.g. one line, *"Possibly related:
-2026-09-14, decided X (notes cited)."* This goes beyond the inspiration; Stephenson's
-Librarian answers, it does not volunteer.
-
-Likely shape, if ever built: a deterministic prompt hook (full-text search over the
-prompt, no model) that hands the client one line of context on a strong match, leaving
-the client to decide whether to mention it. Instruction-only nudging is the cheaper
-alternative but is unreliable and unmeasurable.
-
-Guardrails it would need: off by default; strong matches only; at most one line per
-prompt and each record at most once per session; provenance on every suggestion.
-
-**Before any build:**
-- Clarify constitution principle 3. "Surface only when relevant" arguably permits this
-  and opting in arguably counts as "invited", but "never at-you" should be settled in
-  writing, not by reading.
-- Tag these calls separately in instrumentation (pulled by: unprompted). Otherwise they
-  are exactly the "consulted only under standing instruction" calls the first kill
-  condition counts against the tool.
+One consequence: `docs/decision-graph-plan.md` Phase C's exit ("a real drifted position
+surfaces unprompted in a live session") no longer fits. Restate it as surfacing on request
+if Phase C is taken up.
 
 ---
 
@@ -327,6 +332,7 @@ prompt and each record at most once per session; provenance on every suggestion.
 - Server-side summarizing, merging, or rewriting on the read path — INV-6, COR-A-012.
 - Becoming a supported open-source product with roadmap obligations to strangers.
 - Multi-user / team features while the single-user thesis is still unverified.
+- Unprompted recall: offering past records without being asked (retired 2026-10-26).
 
 ## Kill conditions
 
