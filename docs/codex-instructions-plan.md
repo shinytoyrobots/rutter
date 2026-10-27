@@ -1,8 +1,8 @@
 ---
 type: plan
-status: built (v0.8.4, awaiting release)
+status: shipped (v0.8.4, 2026-10-20)
 created: 2026-10-19
-updated: 2026-10-20
+updated: 2026-10-26
 domain: capture
 ---
 
