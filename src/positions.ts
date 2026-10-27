@@ -232,7 +232,8 @@ export function serializeStream(stream: PositionStream): string {
 
 function renderBody(stream: PositionStream): string {
   const lines = stream.events.map((e) => {
-    const time = e.time.slice(11, 19);
+    // A stream spans a month, so each line carries its date, not just the time.
+    const time = `${e.time.slice(0, 10)} ${e.time.slice(11, 19)}`;
     const provenance = e.refs.map((r) => `${r.path}@${r.hash.slice(0, 14)}`).join(", ");
     const project = e.workspace ? ` [${e.workspace.project}]` : "";
     const revises = e.revises ? ` (revises: ${e.revises})` : "";

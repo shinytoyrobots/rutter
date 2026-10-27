@@ -57,6 +57,12 @@ test("gen-4/var-1-graft Fix 3: a freshly-written stream is self-describing as th
   assert.equal(stream.schema, "position-event@1-provisional");
 });
 
+test("the human-readable body dates each event, since one stream file spans a month", () => {
+  capturePosition({ kind: "assert", topicKey: "t", rawStance: " a stance", sessionId: "S-day", now: NOON });
+  const raw = readPositions(MONTH);
+  assert.match(raw, /^- 2026-08-24 12:00:00 .*assert t: a stance$/m);
+});
+
 test("SR-048: named refs (via [[wikilink]]) are hashed as-read exactly like session refs", () => {
   const abs = writeNote("Notes/foo.md", "# Foo\ncontent");
   const result = capturePosition({
