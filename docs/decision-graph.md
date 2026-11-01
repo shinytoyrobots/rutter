@@ -3,6 +3,7 @@
 **Written:** 2026-08-04
 **Status:** proposal, not ratified. `spec/spec.md` remains the executable source of truth;
 nothing here is a requirement until it lands there.
+**Update (v1.0.0, 2026-11-01):** position capture stopped in v0.10.0 and v1.0.0 removed the recall tool. This note is kept as the original design record.
 **Purpose:** answer three capability questions raised on 2026-08-04 — how prior opinion is
 surfaced without the server judging, how a decision graph relates to the knowledge graph,
 and what the accumulating record looks like after a year and after five.

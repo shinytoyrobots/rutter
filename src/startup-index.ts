@@ -25,8 +25,7 @@ import { ownership, foreignVaultMessage, markClaiming, withRebuildLock } from ".
  *   - Anything it cannot inspect is an error, not "unchanged". Only a directory that
  *     does not exist yet counts as empty.
  *
- * This only ever calls `reindex()`, so the phases, ordering and write behavior that
- * SR-058 pins (the position fold's only trigger is a reindex) are unchanged.
+ * This only ever calls `reindex()`, so the phases, ordering and write behavior are unchanged.
  */
 
 export type IndexVerdict = { stale: false; warning?: string } | { stale: true; reason: string };
@@ -96,10 +95,10 @@ export function indexVerdict(db: DB): IndexVerdict {
 
   const indexedOverlay = readMeta(db, "overlay_count");
   if (indexedOverlay !== undefined && countOverlayMarkdown() !== indexedOverlay) {
-    return { stale: true, reason: "session or position records have been added or removed" };
+    return { stale: true, reason: "session records have been added or removed" };
   }
-  if (newerMarkdownIn(config.sessionsDir, indexedAt) || newerMarkdownIn(config.positionsDir, indexedAt)) {
-    return { stale: true, reason: "session or position records have changed" };
+  if (newerMarkdownIn(config.sessionsDir, indexedAt)) {
+    return { stale: true, reason: "session records have changed" };
   }
   return { stale: false };
 }

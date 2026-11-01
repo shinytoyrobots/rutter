@@ -108,15 +108,13 @@ time.
 - **Ambient capture.** As a session decides or produces something, your client leaves a line about it, and a Claude Code, Grok, Codex, Copilot CLI, Antigravity, or Muse Code Stop hook appends that line to `<notes>/_librarian/sessions/<date>.md`, referencing touched notes by content hash. The client is asked for one line per separable outcome rather than one per session — a working session usually leaves three or four — grouped back into a single account of that session when you read it. A line the same session already recorded is skipped (the exact rule is in [`docs/memory-of-use.md`](./docs/memory-of-use.md#where-rutter-keeps-what-it-remembers)). Durable, git-committable, written by your client.
 - **A style contract on that line.** Write for a smart reader in a hurry who wasn't in the session: outcome first, common words over session shorthand, no invented codenames or version tags, about 40 words. The contract is guidance carried in the server's MCP instructions. The server does not rewrite a summary for style — over-budget summaries are reported on the capture path and then stored without edits. It does normalize each line to one line (control characters dropped, whitespace collapsed) and cut it past 2,000 characters; see [the style contract](./docs/memory-of-use.md#the-style-contract).
 - **Workspace provenance.** Each entry carries the session's working directory, a project name derived from it, and the git remote URL when there is one, so a day spanning three efforts reads cleanly. Nothing to configure; resolution is pure local file reads — it never runs `git` and never contacts a remote.
-- Four read-only MCP tools:
+- Three read-only MCP tools:
   - `librarian-search` — ranked full-text search. Every result carries its path, `type`/`status`/`created` provenance, and a matching snippet. Multi-word queries are AND-matched, so "blue man group" finds notes with all three rather than any. A result you engaged before also carries a quiet prior-engagement note, additive only, never re-ranking.
   - `librarian-get-note` — one note's full content, by path.
   - `librarian-recent` — *"what was I working on lately?"* Sessions newest-first, with dates, project, and provenance; optional `project` filter, `window` in days, or `count`.
-  - `librarian-positions` — *read-only, going in v1.0.0.* Reads the positions recorded before capture stopped (`topic`, `query` or `note`; `chain: true` for history). Nothing new is written; session records now carry who decided what.
 - **Instructions that travel with the server.** Any connected client is told to reach for `librarian-recent` on recency questions and `librarian-search` on "have I seen this?" questions before reading files directly, and to report recalled summaries in plain language — including entries written before the contract existed, which is the only way dense old records ever read clearly. No per-project client configuration.
 - **Instruments its own use.** A local per-ISO-week count of how often the stateful behavior gets reached for.
-- **Position capture: stopped (v0.10.0).** Rutter no longer asks your client for a second, rarer position line, and the capture hook stores none. No new positions are recorded. Session lines now say when you made the call and keep your reason; the belief questions that originally motivated positions have not been rerun to confirm that is enough. Existing streams in `_librarian/positions/` stay as history. Why: [docs/position-retirement-2026-11.md](./docs/position-retirement-2026-11.md).
-- **Position recall** reads the old stream until v1.0.0 removes it. `librarian-positions` answers from it as before: a topic's live position, the dates it was formed and last revised, and the chain behind it. It sees only what was recorded before retirement.
+- **Position capture: stopped (v0.10.0); the positions tool is removed (v1.0.0).** Rutter no longer asks your client for a second, rarer position line, and the capture hook stores none. No new positions are recorded. Session lines now say when you made the call and keep your reason; the belief questions that originally motivated positions have not been rerun to confirm that is enough. Existing streams in `_librarian/positions/` stay as your own history, which rutter no longer reads or changes. Why: [docs/position-retirement-2026-11.md](./docs/position-retirement-2026-11.md).
 - **Note identity survives a rename.** A reference records the note's path *and* its content hash as captured. "Dead" means the path is missing from disk, full stop, regardless of file type — a reference to any confined vault artifact (a `.gitignore`, an exported `.html`, a file under `_librarian/` itself) is live for as long as that file exists, whether or not it's an indexed markdown note. Rename a referenced note without touching its content and the next `npm run reindex` binds the old reference to its new path automatically — no heuristics, no similarity scoring, just an exact content-hash match — and `librarian-recent` / search enrichment quietly resolve through it. If reindex can't tell (the note was also edited, so no current note's hash matches; or more than one current note shares the hash), the reference renders explicitly as unresolved with its candidates on `librarian-recent`, and on search enrichment against any candidate note that happens to be a search result, and stays that way until you confirm it with `npm run identity-confirm`. A reference with no candidates at all (renamed *and* edited) is visible on `librarian-recent` only — that listing is the complete discovery surface for unresolved references; enrichment is candidate-anchored and cannot mention what has no candidate. On the search surface, a mere candidate is never annotated as if it had been engaged with; the unresolved state and its candidates render as a separate, explicit note instead. A confirmed binding is sticky: if the vault later changes such that automatic exact-hash matching would point somewhere else, the confirmed binding still wins, and the disagreement is surfaced ("confirmed X; the hash now matches Y") rather than silently overridden — only re-running `npm run identity-confirm` moves it. The stored session record is never rewritten either way.
 
 ## Known limitations
@@ -131,7 +129,7 @@ Stated here rather than discovered later:
 - **Shared across your tools, not across people.** One person's tools share one memory. Nothing
   here addresses records shared between people, ratification, or whose version of a decision wins.
   Those are the hard problems at team scale and none of them are solved here.
-- **Records name the client, not the model.** A session entry or position event carries a `client`
+- **Records name the client, not the model.** A session entry carries a `client`
   label (`claude`, `grok`, `codex`, `agy`, `copilot`, or `muse`) when the hook can establish it, so
   you can see which client stopped writing summaries. It is the host, not the model: `agy` runs
   Gemini and Claude models, and no hook payload says which. A label is left off rather than guessed,
@@ -210,7 +208,7 @@ enrichment / gate behaviors in depth. The same docs are published readable at
 [shinytoyrobots.github.io/rutter](https://shinytoyrobots.github.io/rutter/) —
 `npm run site-drift` reports when that site has drifted from these files. [`docs/roadmap.md`](./docs/roadmap.md) is the current
 sequencing.
-[`docs/decision-graph.md`](./docs/decision-graph.md) is the design behind positions — why a position is a
+[`docs/decision-graph.md`](./docs/decision-graph.md) is the design behind positions, which v1.0.0 removed — why a position is a
 projection over the append-only event log rather than a second thing you maintain — and
 [`docs/decision-graph-plan.md`](./docs/decision-graph-plan.md) is the build plan that split it into phases.
 
@@ -356,7 +354,7 @@ lists rutter for Cowork; capture there has not been checked.
   (`~/.claude/plugins/data/…`) and survives updates. Session records go in `_librarian/` inside
   your notes folder.
 - **The index looks after itself.** The server builds it the first time it starts, and rebuilds it
-  when it next starts after your notes, session records or position streams have changed. Start a
+  when it next starts after your notes or session records have changed. Start a
   new session to pick up changes made mid-session.
 - **If you already registered the hook by hand** (`rutter-memory install-hook` or `npm run install-hook`), remove that entry from
   `~/.claude/settings.json` when you add the plugin, or captures are attempted twice. The duplicate
@@ -497,7 +495,7 @@ src/
   startup-index.ts   build the index at start if missing, rebuild only if notes or records changed
   search.ts          FTS5 query + get-note
   embeddings.ts      stubbed port (not implemented)
-  server.ts          MCP tool registration (search, get-note, recent, positions) + server instructions
+  server.ts          MCP tool registration (search, get-note, recent) + server instructions
   stdio.ts           stdio entry point (local Claude Code)
   # memory-of-use:
   fs-safe.ts         write choke point: path confinement + atomic, append-only writes
@@ -507,10 +505,6 @@ src/
   session-record.ts  typed record format + append-preserving persistence
   capture.ts         ambient capture orchestration
   directive.ts       parse the client's session-summary directive (no inference)
-  positions.ts       position-event stream format + append-preserving persistence (decision-graph Phase A)
-  position-fold.ts   fold the position streams into the rebuildable projection (reindex only, Phase B)
-  position-recall.ts librarian-positions' three query modes + what is computed rather than stored
-  position-render.ts how a recalled position is worded (attribution, retired stub, inert rendering)
   recent.ts          librarian-recent (grouping / project / window / count / empty-state)
   enrichment.ts      additive prior-engagement annotation on search results
   instrumentation.ts append-only use log + per-ISO-week counts
@@ -549,7 +543,7 @@ folder; the fifth lives with the plugin:
   hashes of the notes it cited, the working directory, the project name derived from it, the
   session ID, which client wrote it (one of four fixed names, never the model), and the git remote URL of that directory if it has one (read from `.git/config`;
   never contacted, and any token, password or query string in it is removed before it is stored).
-- **Position records** in `_librarian/positions/`: stances recorded before position capture stopped. Kept as history, read by `librarian-positions`, never added to.
+- **Position records** in `_librarian/positions/`: stances recorded before position capture stopped. Kept as your history; rutter does not read them, change them or add to them.
 - **A note-identity ledger** (`_librarian/note-identity.md`): when a note you referenced has been
   renamed, which path the reference now points to, as the old and new paths with a content hash.
   It is written when the index is rebuilt or when you confirm a match.

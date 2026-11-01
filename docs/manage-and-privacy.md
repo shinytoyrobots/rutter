@@ -32,7 +32,7 @@ Hooks are read at session start, so restart the client after a change. Asking th
 The server only appends; it has no delete command. The records are your markdown, so you remove an entry by hand:
 
 - **A session line:** open `_librarian/sessions/<day>.md` and delete the entry from the `sessions:` list in the frontmatter. The frontmatter is the record. The body below it is regenerated from the frontmatter the next time that day's file grows, so delete the matching body line too if you want it gone now. The day's top-level `refs:` list is also rebuilt on the next write. Recall reads these files directly, so the entry disappears from recall at once.
-- **A position** (recorded before position capture stopped): delete the event from `_librarian/positions/<YYYY-MM>.md`, then run `rutter-memory reindex` (`npm run reindex` from a clone) or restart the server, because positions are recalled from the index.
+- **A position** (recorded before position capture stopped): rutter no longer reads `_librarian/positions/`, so nothing there reaches your client. Delete a file or an event from it whenever you like; nothing else needs to change.
 - **Keep the YAML valid.** If a file stops parsing, recall skips it, and capture refuses to write into it rather than overwrite it.
 - **Mind your history.** If your notes folder is a git repository, the line stays in its history until you rewrite that history.
 
@@ -42,4 +42,4 @@ A hand edit is outside the append-only rule, which binds only the server, and no
 
 rutter's server and hook make no network calls and run no model. Your records and index stay in your notes folder and the index file.
 
-That does not settle what your AI client sends. Whatever rutter's tools return becomes part of the client's context: search snippets, a full note from `librarian-get-note`, recalled summaries, and positions. The client sends its context to its model provider under the client's own terms. rutter cannot see or change that, and makes no promise about how a provider handles it. Point rutter at a folder you are content for your client to read.
+That does not settle what your AI client sends. Whatever rutter's tools return becomes part of the client's context: search snippets, a full note from `librarian-get-note`, and recalled summaries. The client sends its context to its model provider under the client's own terms. rutter cannot see or change that, and makes no promise about how a provider handles it. Point rutter at a folder you are content for your client to read.

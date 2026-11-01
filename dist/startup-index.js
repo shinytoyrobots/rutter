@@ -73,10 +73,10 @@ export function indexVerdict(db) {
     }
     const indexedOverlay = readMeta(db, "overlay_count");
     if (indexedOverlay !== undefined && countOverlayMarkdown() !== indexedOverlay) {
-        return { stale: true, reason: "session or position records have been added or removed" };
+        return { stale: true, reason: "session records have been added or removed" };
     }
-    if (newerMarkdownIn(config.sessionsDir, indexedAt) || newerMarkdownIn(config.positionsDir, indexedAt)) {
-        return { stale: true, reason: "session or position records have changed" };
+    if (newerMarkdownIn(config.sessionsDir, indexedAt)) {
+        return { stale: true, reason: "session records have changed" };
     }
     return { stale: false };
 }

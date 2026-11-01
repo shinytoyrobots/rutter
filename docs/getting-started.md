@@ -65,7 +65,7 @@ Choose your notes folder when asked, then run `/reload-plugins`. If you install 
 /mcp
 ```
 
-You should see `rutter` listed with four tools: `librarian-search`, `librarian-get-note`, `librarian-recent`, and `librarian-positions` (read-only: it recalls stances recorded before v0.10.0, and v1.0.0 removes it).
+You should see `rutter` listed with three tools: `librarian-search`, `librarian-get-note` and `librarian-recent`.
 
 **3. Do one small real task.** Open a project directory you work in and make one decision or one small change. A "hello" leaves nothing worth recalling. As the work finishes, your client leaves a one-line summary on its own. You never write it yourself.
 
@@ -341,7 +341,7 @@ Any MCP client can search your notes and recall what Claude Code, Grok, Codex, C
 
 The version in `args` decides which release runs. Pin to the release you want; `0.8.2` is the current release at the time of writing. Without it, `npx` may fetch a newer release when the client starts, so an upgrade can arrive without you choosing it. [Upgrading](#upgrading) covers moving to a new version. The first start downloads the package and builds the index, so it takes a few seconds longer than later starts.
 
-If the client cannot start the server, it was probably launched without Node on its `PATH`, which happens when it starts from the Dock or another app rather than a shell. Add a `PATH` entry to `env` that includes the folder `dirname "$(which node)"` prints. Check it the same way as any server: the client should list four tools, `librarian-search`, `librarian-get-note`, `librarian-recent`, and `librarian-positions`.
+If the client cannot start the server, it was probably launched without Node on its `PATH`, which happens when it starts from the Dock or another app rather than a shell. Add a `PATH` entry to `env` that includes the folder `dirname "$(which node)"` prints. Check it the same way as any server: the client should list three tools, `librarian-search`, `librarian-get-note` and `librarian-recent`.
 
 This route captures nothing. Capture needs a hook, and a hook registered from the `npx` cache would stop working without warning when the cache is cleared. For capture, use the [Codex](#codex-path), [Copilot CLI](#copilot-cli-path), [Antigravity](#antigravity-path), or [Muse Code](#muse-code-path) path, which install globally.
 

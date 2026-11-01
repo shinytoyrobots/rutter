@@ -8,7 +8,6 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { classifyClient, parseExplicitIdentity, CLIENTS, type PayloadShape } from "../src/client.js";
 import { captureSession } from "../src/capture.js";
-import { seedPosition as capturePosition } from "./position-seed.js";
 import { readAllRecords } from "../src/session-record.js";
 
 beforeEach(resetLibrarian);
@@ -114,10 +113,6 @@ test("the label is never part of identity: the same directive from another clien
   const b = captureSession({ summary: "same", sessionId: "S-d", client: "grok", now: new Date("2026-07-24T10:00:05Z") });
   assert.equal(a.captured, true);
   assert.equal(b.deduped, true);
-  const p1 = capturePosition({ kind: "assert", topicKey: "k", rawStance: "s", sessionId: "S-d", client: "claude", now: new Date("2026-07-24T10:00:00Z") });
-  const p2 = capturePosition({ kind: "assert", topicKey: "k", rawStance: "s", sessionId: "S-d", client: "agy", now: new Date("2026-07-24T10:00:05Z") });
-  assert.equal(p1.captured, true);
-  assert.equal(p2.deduped, true);
 });
 
 test("the label stays out of the summary text and the human-readable body", () => {

@@ -4,7 +4,6 @@ import { walkMarkdown, readNote, countOverlayMarkdown } from "./vault.js";
 import { config } from "./config.js";
 import { runIdentityPass, type IdentityPassStats } from "./identity.js";
 import { readAllRecords } from "./session-record.js";
-import { materializePositionFold, type PositionFoldStats } from "./position-fold.js";
 
 export interface IndexStats {
   notes: number;
@@ -12,8 +11,6 @@ export interface IndexStats {
   ms: number;
   /** SR-036..045, SR-104: dead-ref detection, exact-hash matching, projection rebuild. */
   identity: IdentityPassStats;
-  /** SR-058/SR-059: the position fold. Reindex is its ONLY trigger. */
-  positions: PositionFoldStats;
 }
 
 /**
@@ -41,7 +38,7 @@ export function reindex(db?: DB, now: Date = new Date()): IndexStats {
     // a number that was never real. The rebuild itself proceeds as it always did.
   }
   // Clear the stamp BEFORE touching the tables, and write it only after every phase has
-  // succeeded. A rebuild that dies half way (say, the position fold) must leave an index
+  // succeeded. A rebuild that dies half way (say, the identity pass) must leave an index
   // that reads as "not built", never one that still carries the previous, now false,
   // "up to date" marker.
   clearIndexMeta(database);
@@ -86,13 +83,6 @@ export function reindex(db?: DB, now: Date = new Date()): IndexStats {
   // (reversibility: the two phases are independently rollback-safe).
   const identity = runIdentityPass(database, readAllRecords(), now);
 
-  // Position fold (SCN-011, SR-058): the third and last phase, again in its own
-  // transaction. THIS CALL SITE IS THE FOLD'S ONLY TRIGGER -- nothing outside
-  // reindex, and specifically not SCN-010's capture path, may materialize the
-  // position projection. Running it last means a fold problem cannot unwind the
-  // note index or the identity ledger either.
-  const positions = materializePositionFold(database);
-
   const setMeta = database.prepare("INSERT OR REPLACE INTO index_meta (key, value) VALUES (?, ?)");
   setMeta.run("walked_count", String(notes + skipped));
   if (overlayCount !== undefined) setMeta.run("overlay_count", String(overlayCount));
@@ -101,5 +91,5 @@ export function reindex(db?: DB, now: Date = new Date()): IndexStats {
   // the database unowned, never owned by a vault whose notes it does not hold.
   recordOwner(database);
 
-  return { notes, skipped, ms: Date.now() - start, identity, positions };
+  return { notes, skipped, ms: Date.now() - start, identity };
 }

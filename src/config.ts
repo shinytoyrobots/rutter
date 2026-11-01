@@ -127,13 +127,6 @@ export const config = {
   userLabel,
   /** Where per-day session records live: `_librarian/sessions/<YYYY-MM-DD>.md`. */
   sessionsDir: path.join(librarianDir, "sessions"),
-  /**
-   * Where per-month position-event streams live (SCN-010, decision-graph Phase A):
-   * `_librarian/positions/<YYYY-MM>.md`. A wholly separate directory from
-   * `sessionsDir` -- SR-055 requires session-record storage to be untouched by
-   * position capture, so the two live under sibling paths with no shared file.
-   */
-  positionsDir: path.join(librarianDir, "positions"),
   /** Append-only stateful-use instrumentation log (JSONL); durable, never in the DB. */
   statefulLogPath: path.join(librarianDir, "stateful-use.jsonl"),
   /** Directory names never indexed. `_librarian/` is reserved for the memory-of-use overlay. */
@@ -151,26 +144,7 @@ export const config = {
    * Calibrated from observed capture: the first fortnight of real records averaged
    * 37-61 words per step; the drift to 141-192 words per step (2026-08-02..04) is
    * what these numbers exist to make visible.
-   *
-   * SR-054 reuses these same two numbers for a position directive's stance line
-   * ("the same numbers SR-021 states") rather than declaring a second pair -- one
-   * style contract, two carriers.
    */
   summaryWordTarget: 40,
   summaryWordCeiling: 60,
-  /**
-   * How long a live position may go without any recorded event -- revision,
-   * reaffirmation, or reference -- before `librarian-positions` calls it
-   * dormant (SCN-011 / SR-063).
-   *
-   * This lives in config precisely BECAUSE dormancy is never stored: it is
-   * recomputed from the events' own timestamps on every read, so changing this
-   * number changes every answer immediately, with no schema migration, no
-   * reindex, and no stale stored flag to invalidate. That property is the point
-   * of SR-063, and this constant is where it is exercised.
-   *
-   * 180 days is a starting guess, not a calibrated figure: positions are rare
-   * (≪1 per session) and no real stream is old enough yet to calibrate against.
-   */
-  positionDormantAfterDays: 180,
 };

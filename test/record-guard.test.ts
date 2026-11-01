@@ -1,4 +1,4 @@
-import { resetLibrarian, sessionsDir, positionsDir, vaultRoot, readSession, readPositions } from "./setup.js";
+import { resetLibrarian, sessionsDir, positionsDir, vaultRoot, readSession } from "./setup.js";
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -8,7 +8,6 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import { captureSession } from "../src/capture.js";
-import { seedPosition as capturePosition } from "./position-seed.js";
 import {
   appendSession,
   readRecord,
@@ -19,7 +18,6 @@ import {
   SCHEMA_ID,
   type SessionRecord,
 } from "../src/session-record.js";
-import { appendPositionEvent, readPositionStream, PositionEventSchema, PositionStreamSchema } from "../src/positions.js";
 
 beforeEach(resetLibrarian);
 
@@ -56,15 +54,6 @@ test("a corrupt session day file is not overwritten: capture reports failed, byt
   assert.equal(result.entry, undefined);
   assert.deepEqual(result.failed, { reason: "unparseable-record", path: abs });
   assert.equal(fs.readFileSync(abs, "utf8"), before, "the file is byte-identical");
-});
-
-test("a corrupt position month file is not overwritten either", () => {
-  const abs = plant(positionsDir, `${MONTH}.md`, "---\nbroken: [\n---\n");
-  const before = fs.readFileSync(abs, "utf8");
-  const result = capturePosition({ kind: "assert", topicKey: "t", rawStance: "stance", now: NOON });
-  assert.equal(result.captured, false);
-  assert.equal(result.failed?.reason, "unparseable-record");
-  assert.equal(fs.readFileSync(abs, "utf8"), before);
 });
 
 test("an absent file still starts a fresh record", () => {
@@ -118,8 +107,6 @@ test("the capture diagnostic names the build, so an out-of-date clone is visible
 // is exactly what a manual clone that has not been updated still runs.
 const OldSessionEntry = SessionEntrySchema.omit({ client: true });
 const OldRecord = RecordSchema.extend({ sessions: z.array(OldSessionEntry).min(1) });
-const OldPositionEvent = PositionEventSchema.omit({ client: true });
-const OldStream = PositionStreamSchema.extend({ events: z.array(OldPositionEvent).min(1) });
 
 function oldAppendSession(day: string, entry: Record<string, unknown>): void {
   const abs = path.join(sessionsDir, `${day}.md`);
@@ -156,26 +143,6 @@ test("the current writer preserves labels, including an unfamiliar value, across
 test("an unfamiliar client value does not make the day unreadable", () => {
   appendSession(DAY, entry("1", "Claude  <weird>"));
   assert.ok(readRecord(DAY), "still parses");
-});
-
-test("positions: labels survive a rewrite and an unfamiliar value loses nothing", () => {
-  const ev = (id: string, client?: string) => ({
-    id,
-    time: `2026-07-24T12:00:0${id}.000Z`,
-    kind: "assert" as const,
-    topic_key: `t-${id}`,
-    stance: `s ${id}`,
-    refs: [],
-    ...(client ? { client } : {}),
-  });
-  appendPositionEvent(MONTH, ev("1", "grok"));
-  appendPositionEvent(MONTH, ev("2", "from-the-future"));
-  appendPositionEvent(MONTH, ev("3"));
-  assert.deepEqual(readPositionStream(MONTH)!.events.map((e) => e.client), ["grok", "from-the-future", undefined]);
-  // And the pre-change position writer strips them, same hazard as sessions.
-  const abs = path.join(positionsDir, `${MONTH}.md`);
-  const existing = OldStream.parse(matter(fs.readFileSync(abs, "utf8")).data);
-  assert.equal((existing.events[0] as { client?: string }).client, undefined, "old schema drops the key on read");
 });
 
 test("pre-change records round-trip unchanged and the schema id is still session-record@1", () => {

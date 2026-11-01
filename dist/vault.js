@@ -96,14 +96,13 @@ export function readNote(absPath, root = config.vaultPath) {
     };
 }
 /**
- * How many `.md` files the memory-of-use overlay holds (session records plus position
- * streams). Only a directory that does not exist yet counts as empty; any other
+ * How many `.md` files the memory-of-use overlay holds (session records). Only a directory that does not exist yet counts as empty; any other
  * failure (permissions, a file where a directory should be) is thrown, because
  * reporting zero would let an unreadable input pass for an unchanged one.
  */
 export function countOverlayMarkdown() {
     let total = 0;
-    for (const dir of [config.sessionsDir, config.positionsDir]) {
+    for (const dir of [config.sessionsDir]) {
         try {
             total += fs.readdirSync(dir).filter((n) => n.toLowerCase().endsWith(".md")).length;
         }

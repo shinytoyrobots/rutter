@@ -86,7 +86,7 @@ test("a missing or empty notes folder never replaces a good index with an empty 
   assert.equal(search("precious index content", {}, db).length, 1, "the existing index is untouched");
 });
 
-test("new session records or position streams trigger a rebuild", () => {
+test("new session records trigger a rebuild; position streams are not an input (SR-105)", () => {
   writeNote("Notes/a.md", "# A\nalpha");
   const db = openDb();
   ensureIndex(db);
@@ -97,7 +97,7 @@ test("new session records or position streams trigger a rebuild", () => {
   touchAhead(session);
   const afterSession = ensureIndex(db);
   assert.equal(afterSession.built, true);
-  assert.match(afterSession.reason ?? "", /session or position records/);
+  assert.match(afterSession.reason ?? "", /session records/);
 
   // Settle the index first, so the stream below is the ONLY thing that has changed --
   // otherwise the session record above could be what triggers the rebuild. (Its mtime
@@ -110,7 +110,7 @@ test("new session records or position streams trigger a rebuild", () => {
   fs.writeFileSync(stream, "stream\n", "utf8");
   touchAhead(stream, 120);
   const afterStream = ensureIndex(db);
-  assert.equal(afterStream.built, true, "a position stream is also an input to the index");
+  assert.equal(afterStream.built, false, "a position stream is no longer an input to the index");
 });
 
 test("an index built before this check existed counts as never built, and one rebuild fixes it", () => {
@@ -175,7 +175,7 @@ test("notes that cannot be parsed do not make every start rebuild", () => {
   assert.equal(ensureIndex(db).built, false, "an unchanged vault stays unchanged, skipped notes or not");
 });
 
-test("a deleted position stream is noticed, so its stances do not linger in the projection", () => {
+test("a deleted position stream is not noticed: the index no longer reads it (SR-105)", () => {
   writeNote("Notes/a.md", "# A\nalpha");
   fs.mkdirSync(positionsDir, { recursive: true });
   const stream = path.join(positionsDir, "2026-10.md");
@@ -185,9 +185,7 @@ test("a deleted position stream is noticed, so its stances do not linger in the 
   assert.equal(ensureIndex(db).built, false);
 
   fs.rmSync(stream);
-  const result = ensureIndex(db);
-  assert.equal(result.built, true);
-  assert.match(result.reason ?? "", /records have been added or removed/);
+  assert.equal(ensureIndex(db).built, false);
 });
 
 test("a rebuild that dies part-way leaves the index reading as not built, never as current", () => {
@@ -221,7 +219,7 @@ test("a rebuild that dies part-way leaves the index reading as not built, never 
   assert.equal(ensureIndex(db).built, true, "and the next start repairs it");
 });
 
-test("an unreadable session or position directory is an error, not 'nothing changed'", { skip: isRoot }, () => {
+test("an unreadable session directory is an error, not 'nothing changed'", { skip: isRoot }, () => {
   writeNote("Notes/a.md", "# A\nalpha");
   fs.mkdirSync(sessionsDir, { recursive: true });
   const db = openDb();

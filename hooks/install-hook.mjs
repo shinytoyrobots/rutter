@@ -30,6 +30,7 @@ function fail(message) {
 }
 
 const args = process.argv.slice(2);
+console.error("[install-hook] note: v1.0.0 removed librarian-positions; restart your client so it drops any cached instructions that still mention it.");
 let client = "claude";
 let vaultArg;
 let noRules = false;

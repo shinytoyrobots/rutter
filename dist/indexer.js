@@ -4,7 +4,6 @@ import { walkMarkdown, readNote, countOverlayMarkdown } from "./vault.js";
 import { config } from "./config.js";
 import { runIdentityPass } from "./identity.js";
 import { readAllRecords } from "./session-record.js";
-import { materializePositionFold } from "./position-fold.js";
 /**
  * Full rebuild of the derived index from the vault. The vault is the source of
  * truth; this cache is disposable and regenerable (QA3). At ~2k notes a full
@@ -31,7 +30,7 @@ export function reindex(db, now = new Date()) {
         // a number that was never real. The rebuild itself proceeds as it always did.
     }
     // Clear the stamp BEFORE touching the tables, and write it only after every phase has
-    // succeeded. A rebuild that dies half way (say, the position fold) must leave an index
+    // succeeded. A rebuild that dies half way (say, the identity pass) must leave an index
     // that reads as "not built", never one that still carries the previous, now false,
     // "up to date" marker.
     clearIndexMeta(database);
@@ -58,12 +57,6 @@ export function reindex(db, now = new Date()) {
     // so a problem here can never unwind an otherwise-successful reindex
     // (reversibility: the two phases are independently rollback-safe).
     const identity = runIdentityPass(database, readAllRecords(), now);
-    // Position fold (SCN-011, SR-058): the third and last phase, again in its own
-    // transaction. THIS CALL SITE IS THE FOLD'S ONLY TRIGGER -- nothing outside
-    // reindex, and specifically not SCN-010's capture path, may materialize the
-    // position projection. Running it last means a fold problem cannot unwind the
-    // note index or the identity ledger either.
-    const positions = materializePositionFold(database);
     const setMeta = database.prepare("INSERT OR REPLACE INTO index_meta (key, value) VALUES (?, ?)");
     setMeta.run("walked_count", String(notes + skipped));
     if (overlayCount !== undefined)
@@ -72,6 +65,6 @@ export function reindex(db, now = new Date()) {
     // Ownership only after every phase has succeeded: a claim that fails part-way leaves
     // the database unowned, never owned by a vault whose notes it does not hold.
     recordOwner(database);
-    return { notes, skipped, ms: Date.now() - start, identity, positions };
+    return { notes, skipped, ms: Date.now() - start, identity };
 }
 //# sourceMappingURL=indexer.js.map
