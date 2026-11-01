@@ -1,11 +1,11 @@
 ---
-version: "15.0.0"
+version: "16.0.0"
 status: active
 effort:
   - s1-5-ambient-capture   # converged
-  - decision-graph         # active (v3.8.0 Phase 0 shipped; v3.12.0 Phase A drafted; v4.0.0 panel amendments; v5.0.0 SR-056 baseline correction; v6.0.0 wire-format ratification; v7.0.0 Phase B drafted; v8.0.0 retired-stub content pinned; v9.0.0 fold timing pinned; v10.0.0 response envelope pinned; v11.0.0 incremental-clause dropped; v12.0.0 attribution semantics pinned; v13.0.0 dormancy/retirement exemption pinned; v14.0.0 not-found shape + match scope pinned)
-last-amended: 2026-08-13
-mapping-pending: true      # SCN-012/SCN-013/SR-066..SR-072 (v15.0.0, client label) + SR-104 (bound pending gen-1 calibration) + SCN-010/SR-047..057 (Phase A) + SCN-011/SR-058..065 (Phase B) — entirely unmapped, evals/ owned by flow-eval
+  - decision-graph         # active (v3.8.0 Phase 0 shipped; v3.12.0 Phase A drafted; v4.0.0 panel amendments; v5.0.0 SR-056 baseline correction; v6.0.0 wire-format ratification; v7.0.0 Phase B drafted; v8.0.0 retired-stub content pinned; v9.0.0 fold timing pinned; v10.0.0 response envelope pinned; v11.0.0 incremental-clause dropped; v12.0.0 attribution semantics pinned; v13.0.0 dormancy/retirement exemption pinned; v14.0.0 not-found shape + match scope pinned; v16.0.0 Phase A position capture retired, Phase B kept as a legacy read-only surface)
+last-amended: 2026-11-01
+mapping-pending: true      # SCN-015/SR-073..SR-076/SR-105 (v16.0.0, position retirement) + SR-056 (re-parented to SCN-006 at v16.0.0) + SCN-012/SCN-013/SR-066..SR-072 (v15.0.0, client label) + SR-104 (bound pending gen-1 calibration) + SCN-011/SR-058..065 (Phase B, legacy from v16.0.0) — entirely unmapped, evals/ owned by flow-eval
 # NOTE: the per-version snapshots named in the 'History:' pointers below (spec/history/) and the
 #   panel records and proposed amendments in spec/.staging/ are kept locally and are not part of
 #   the published repository; earlier commits still contain them.
@@ -24,6 +24,10 @@ pending-amendment: true    # code is ahead of this spec (rutter v0.3.0); see PEN
 #      baseline (v5.0.0) and the instruction-budget decision should be restated as a
 #      TOTAL cap with the client limit as the reason. Likely also explains zero positions
 #      captured since the 2026-08-13 ship (see the 2026-12-20 check-in).
+#      v16.0.0: RESOLVED for SR-056 (ratified as a total cap, re-parented to SCN-006) and
+#      SR-062 (now names the librarian-positions tool description). STILL PENDING for
+#      SR-022 (its guidance lives in the librarian-recent description). SR-020/021 are
+#      routing and authoring guidance and did stay in SERVER_INSTRUCTIONS.
 #   2. New behavior with no scenario or requirement: the server builds and refreshes its
 #      own index at start (src/startup-index.ts; index_meta table). It only ever calls
 #      reindex(), so SR-058 (reindex is the position fold's only trigger) still holds; the
@@ -31,8 +35,37 @@ pending-amendment: true    # code is ahead of this spec (rutter v0.3.0); see PEN
 #      scenario: first start builds; unchanged start does not rebuild; never rebuild from a
 #      partial vault walk (missing/unreadable folder keeps the existing index); a failed
 #      rebuild cannot leave a stale "up to date" stamp.
+#      v16.0.0: still pending. SR-058's lag clause now speaks of any change to the stream
+#      on disk rather than a capture, since no capture path remains.
 #   3. The server's reported version is read from package.json (single source), kept in
 #      step with the plugin manifest and CHANGELOG by test/version.test.ts. Non-functional.
+#      v16.0.0: still pending.
+# v16.0.0 (major — position capture retired; Robin's decision 2026-11-01, Branch D of
+# docs/positions-plan.md, recorded in docs/position-retirement-2026-11.md; code on branch
+# feat/retire-positions). Constitution escalation trigger 1 (capture semantics) applies:
+# ratification is HITL. Change record: spec-change-record-v16.0.0.md (spec/.staging, kept
+# locally — see NOTE above); the full v15.0.0 text is spec/spec.md at commit d94a6fe.
+#   REMOVED: SCN-010 and SR-047..SR-055, SR-057 (position capture). The IDs are retired and
+#   are not reused. The positions stream they wrote is kept, frozen (SR-105), and read
+#   through the legacy librarian-positions tool (SCN-011).
+#   RE-PARENTED + AMENDED: SR-056 (SCN-010 -> SCN-006). Ratifies the PENDING AMENDMENT's
+#   restatement as a total cap of 2,033 characters (Grok) with a 24-character label
+#   allowance, no longer tied to teaching a position directive.
+#   AMENDED: SCN-006 (+1 criterion); SCN-011 (legacy read-only: Given, cross-month,
+#   materialization, retire-stub, attribution, topic-key, non-interference criteria; +1
+#   criterion); SR-058, SR-062 (the guidance's home is the tool description), SR-065;
+#   SR-059/SR-060 derivation comments only; SCN-012/SR-069 (the label is written on session
+#   entries only); SCN-013/SR-071/SR-072 (one capture plus the retirement check); Purpose,
+#   Phase A scope (replaced by a Retired note), Phase B scope, traceability, conformance,
+#   glossary.
+#   ADDED: SCN-015 (a position line emitted after retirement is reported, not stored),
+#   SR-073..SR-076, SR-105. SCN-014 is skipped: docs/decision-still-holds-plan.md already
+#   names a planned SCN-014.
+#   Not changed: INV-1..INV-6, the constitution, session-record@1, note-identity@1,
+#   position-event@1-provisional. The changelog entries below (v3.12.0..v15.0.0) still name
+#   SCN-010 and SR-047..SR-057; they are history, left verbatim.
+#   Mapping: every new and amended ID is mapping-pending: true (evals/ owned by flow-eval);
+#   the change record lists the existing branch tests and the missing ones per ID.
 # v15.0.0 (major — client label, docs/archived/client-label-plan.md): adds SCN-012 (a captured record
 # names the host client that wrote it, when established) and SCN-013 (a capture never destroys
 # a record it cannot read), SR-066..SR-072. Amends SR-018 and SR-049 (the label joins the
@@ -679,7 +712,7 @@ genuine mechanism open (the exact Claude Code Stop-hook wiring; the depth of
 appraisal), this spec constrains the observable behavior and records the openness —
 it does not fabricate mechanism detail.
 
-### Effort: decision-graph (Phase 0 + Phase A) *(v3.8.0, v3.12.0)*
+### Effort: decision-graph (Phase 0; Phase A retired; Phase B legacy) *(v3.8.0, v3.12.0, v16.0.0)*
 
 From v3.8.0 this spec is the shared living artifact of two efforts:
 **s1-5-ambient-capture** (converged — everything above reads unchanged) and
@@ -694,13 +727,15 @@ non-silently where it is not, and nothing else.
 **Phases A–C were OUT of scope pending the desirability-gate verdict and the
 operator's wish-log entry recording demand (constitution escalation trigger 5); both
 cleared 2026-08-12** (`docs/gate-verdict-2026-08.md`; wish-log entries dated
-2026-08-11/12). **Phase A (position capture) is IN scope as of v3.12.0** — see
-SCN-010 below. **Phase B (position recall with supersession) is IN scope as of
-v7.0.0** — see SCN-011 below; its own scope section follows Phase A's. **Phases
-C–D (drift visibility and threads, optional backfill) remain OUT of scope**, gated
-on nothing further than ordinary spec/build sequencing — there is no outstanding
-evidence gate on them, only the normal build order (Phase B's read path lands
-before Phase C's drift-comparison has anything to compare against).
+2026-08-11/12). **Phase A (position capture) entered scope at v3.12.0 and was
+retired at v16.0.0** (Robin, 2026-11-01; `docs/position-retirement-2026-11.md`) —
+see the Retired notes in the Phase A scope section and at SCN-010. **Phase B
+(position recall with supersession) entered scope at v7.0.0 and, from v16.0.0, is a
+legacy read-only surface over the frozen positions stream** — see SCN-011 below; its
+own scope section follows Phase A's. **Phases C–D (drift visibility and threads,
+optional backfill) remain OUT of scope.** With capture retired they have no new data
+to build on; re-entering scope would first require reversing the retirement (the
+conditions that would do so are listed in `docs/position-retirement-2026-11.md`).
 
 ## Scope
 
@@ -766,48 +801,43 @@ Out of scope for Phase 0 (boundaries):
   specified; near-matches are unresolved by design.
 - Backfill or retrofit of any stored session record.
 
-### Effort: decision-graph (Phase A) — scope *(v3.12.0)*
+### Effort: decision-graph (Phase A) — scope *(v3.12.0; retired v16.0.0)*
 
-In scope:
-- **Position capture**: a new sentinel-channel directive
-  (`POSITION <assert|revise|reaffirm|retire> <topic-key>: <stance>`), routed by
-  `capture-cli` alongside the existing session-summary directive, stored in a wholly
-  separate append-only stream (`_librarian/positions/<YYYY-MM>.md`, schema
-  `position-event@1-provisional`). See SCN-010, SR-047..SR-057.
+**Retired.** Position capture — the `librarian-position` directive, its routing, and
+every write to `_librarian/positions/` — was retired by Robin on 2026-11-01
+(`docs/position-retirement-2026-11.md`). Nothing remains in scope here: no production
+code path writes a position event (SR-105), a position line that still arrives is
+reported and not stored (SCN-015), and the server-level instructions no longer teach
+it (SR-073). The stream already on disk is kept, frozen, and readable through the
+legacy `librarian-positions` tool (SCN-011). The v15.0.0 text of this section, of
+SCN-010, and of SR-047..SR-055 and SR-057 is archived in the v16.0.0 change record
+(`spec-change-record-v16.0.0.md`, kept locally with the other per-version records)
+and in `spec/spec.md` at commit `d94a6fe`.
 
-Out of scope for Phase A (boundaries):
-- **Phases B–D of `docs/decision-graph-plan.md`** *(Phase B entered scope at
-  v7.0.0 — see its own scope section below; this bullet's boundary now covers
-  only C–D)* — drift visibility and threads, and optional backfill of the
-  ~193 pre-position records.
-- Any change to `session-record@1`, capture idempotence identity (SR-013/SR-018/
-  SR-024), read-path grouping (SR-030..032), or instrumentation (SCN-004) — SR-055
-  makes this a required test, not just an intention.
-- Dispatch to `flow-generate` — constitution escalation trigger 4 (a light →
-  standard weight-class promotion review) is a separate, not-yet-cleared gate; this
-  spec round satisfies escalation trigger 1 (capture-semantics HITL) and trigger 5
-  (the evidence gate), not trigger 4.
-
-### Effort: decision-graph (Phase B) — scope *(v7.0.0)*
+### Effort: decision-graph (Phase B) — scope *(v7.0.0; legacy read-only from v16.0.0)*
 
 In scope:
 - **Reindex fold**: position events from every `_librarian/positions/<YYYY-MM>.md`
-  file (all months, not only the most recent — mirroring SR-049's already-corrected
-  cross-month scope) are folded by `topic_key` into projection tables
-  (`position_events`, `position_refs`, `positions`: topic → live event, status,
-  formed/revised timestamps). A full rebuild and an incremental rebuild must agree
-  byte-for-byte (INV-4, cited not restated).
+  file (all months, not only the most recent — mirroring the cross-month scope the
+  retired capture path's idempotence check used) are folded by `topic_key` into
+  projection tables (`position_events`, `position_refs`, `positions`: topic → live
+  event, status, formed/revised timestamps). Two full rebuilds over an unchanged
+  stream agree byte-for-byte (INV-4, cited not restated). *(v16.0.0 — corrects this
+  bullet to the v11.0.0 wording; SR-059 dropped the incremental clause there, and
+  this bullet had kept it.)*
 - **New read-only tool `librarian-positions`**: query by topic key, free text (FTS
   over stance content), or note (versioned identity — surfacing positions whose refs
   include that note). Default view returns live positions only; the full
   supersession chain (verbatim stance quotes, formed/revised/reaffirmed/retired
   timestamps, session ids, and the refs each stance was based on) is available on
-  request.
-- **Read-time attribution guidance**: a `SERVER_INSTRUCTIONS` extension telling
-  clients to render a recalled position's provenance explicitly (e.g., "from your
-  position record, formed Jul 28, revised Aug 2") and never blend it silently into
-  the client's own stated belief — the SCN-007 recall-clarity precedent (cited, not
-  restated) applied to positions.
+  request. *(v16.0.0: kept as a legacy read-only surface over the frozen stream, its
+  title and description marked retired — SR-076.)*
+- **Read-time attribution guidance**: guidance telling clients to render a recalled
+  position's provenance explicitly (e.g., "from your position record, formed Jul 28,
+  revised Aug 2") and never blend it silently into the client's own stated belief —
+  the SCN-007 recall-clarity precedent (cited, not restated) applied to positions.
+  *(v16.0.0: carried in the `librarian-positions` tool description; the server-level
+  instructions no longer mention positions.)*
 - **Dormant is computed, never stored.** No status or decay score is added to the
   event schema; a live-view display attribute (e.g., not reaffirmed or referenced
   within some window) is computed purely at read/render time from timestamps
@@ -824,24 +854,25 @@ In scope:
 - **`topic_key` rendering stays inert.** Any topic key `librarian-positions` prints
   (e.g., in a listing of live positions) goes through the same inert-rendering
   treatment other client-authored text already gets before reaching a terminal —
-  `topic_key` is stored raw and unbounded (Phase A `SG-10`), and this is the first
-  read surface that actually prints one.
+  `topic_key` was stored raw and unbounded by the retired capture path (`SG-10`),
+  and this is the first read surface that actually prints one.
 
 Out of scope for Phase B (boundaries):
 - **Phase C's drift visibility and thread grouping** (comparing a position's
   recorded ref hash against the note's current hash; topic-key-prefix grouping at
   read time) and **Phase D's optional backfill** — separate future rounds.
-- **Any change to the position write path** (SCN-010/SR-047..057) — Phase B is
-  read-only; a required test proves the write path's observable behavior
-  (append-only, idempotence, event shape) is byte-for-byte unchanged by the fold or
-  the new tool existing, mirroring SR-055's guarantee for session capture.
+- **Any write to the positions stream** — Phase B is read-only; a required test
+  proves the fold and the tool leave every positions file byte-for-byte unchanged
+  (SR-065). *(v16.0.0: the position write path itself is retired — see the Phase A
+  Retired note.)*
 - **A shared or multi-user projection** — the fold and the tool operate over one
   person's `_librarian/` sidecar, matching every other read surface this spec
   describes; multi-user overlay is out of scope for this effort entirely.
 - Dispatch to `flow-generate` — constitution escalation trigger 4 applies again
   here (the read-time attribution guidance extends `SERVER_INSTRUCTIONS`, exactly
   the surface trigger 4 names); this spec round satisfies trigger 5 (already
-  cleared for Phases A–C), not trigger 4.
+  cleared for Phases A–C), not trigger 4. *(v16.0.0: that guidance now lives in the
+  tool description, not `SERVER_INSTRUCTIONS`.)*
 
 ---
 
@@ -1029,8 +1060,15 @@ cross-project recall is usable once provenance exists.
 - *(v3.4.0)* **The contract has one in-repo source.** `SERVER_INSTRUCTIONS` is
   authoritative; README and `docs/memory-of-use.md` quote it verbatim rather than
   restating it, and a divergence between them is a test failure.
+- *(v16.0.0)* **No position contract, and the whole text fits.** The declared
+  instructions, and every client rules file the installer writes from them, neither
+  teach a position line nor route any question to `librarian-positions` — position
+  capture is retired (SCN-015). The whole instruction text stays within the tightest
+  client's limit (2,033 characters, with a 24-character display name allowed for),
+  so nothing a client needs is cut off.
 
-**Derived requirements:** SR-019, SR-020, SR-025, SR-026, SR-027, SR-028
+**Derived requirements:** SR-019, SR-020, SR-025, SR-026, SR-027, SR-028, SR-056,
+SR-073
 
 ---
 
@@ -1150,111 +1188,22 @@ only by human confirmation, appended and attributed `detected: confirmed`.
 
 ---
 
-### SCN-010: A formed stance is captured as a position event, exactly once per distinct directive *(v3.12.0, effort decision-graph, Phase A)*
-**Given** a Claude Code session in which the client formed, changed, reaffirmed, or
-retired a stance on a topic — expected ≪ 1 per session, against ~19.3 outcome entries
-per day — with the librarian registered and the Stop hook installed
-**When** the client emits a position directive on the same general sentinel
-mechanism session directives use — a client-authored HTML comment, invisible in
-rendered markdown, that the Stop hook scans for — under its own distinct tag,
-`<!-- librarian-position POSITION <assert|revise|reaffirm|retire> <topic-key>:
-<stance> -->` *(v6.0.0 — pins the wire format; NOT the `librarian-session` tag,
-NOT a bare unwrapped line: see SR-047)*, and the capture hook lifts it
-**Then** the capture path shall route the directive by kind and append exactly one
-position event per distinct directive to a separate positions stream
-`_librarian/positions/<YYYY-MM>.md` (schema `position-event@1-provisional`), storing the stance
-byte-verbatim with workspace provenance and versioned refs — while `session-record@1`
-and all existing session capture behavior remain byte-for-byte unchanged.
+### SCN-010: *Retired v16.0.0* — position capture *(was: v3.12.0, effort decision-graph, Phase A)*
 
-**Acceptance criteria:**
-- **Grammar and kind routing.** A `<!-- librarian-position POSITION
-  <assert|revise|reaffirm|retire> <topic-key>: <stance> -->` comment is routed by
-  `capture-cli` to the position write path; a `librarian-session` directive routes
-  to session capture exactly as before, via a disjoint regex that cannot see the
-  position tag or vice versa — the two extractions are independent by
-  construction, not by careful sequencing *(v6.0.0)*. Kind is the only
-  router — no content heuristics, no model (INV-6 / constitution prohibition 1, cited
-  not restated). A comment matching the `librarian-position` tag whose kind token
-  is not one of the four literals, or whose topic key is empty or missing, fails
-  the grammar match entirely and is treated as no directive at all — silently,
-  with no stderr diagnostic and nothing appended, exactly as an absent comment
-  would be *(v6.0.0 — closes `SG-9` and the empty-topic-key gap panel-2026-08-13
-  found; SR-057's empty-STANCE case is the one and only grammar failure that
-  gets a diagnostic)*.
-- **Separate stream.** The event is appended to `_librarian/positions/<YYYY-MM>.md` —
-  append-only, schema `position-event@1-provisional`, mdbase-compatible frontmatter (constitution
-  preference 2) — never to a session record. Writes stay under `_librarian/` (INV-2 /
-  constitution prohibition 5).
-- **Event shape.** Each event carries an event id, the directive kind, the topic key,
-  the stance byte-verbatim, a timestamp, workspace provenance (SR-015's derivation,
-  SR-016's never-blocks rule), and any named refs by versioned identity hashed as-read
-  exactly as session refs are (SR-003 pattern) — so a future read path can resolve
-  them later without retrofit. Named refs are `[[wikilink]]`-style tokens found
-  anywhere in the stance text, using the same wikilink convention `refs.ts`
-  already applies elsewhere; extraction is a read-only scan and never removes
-  the token from the stored stance *(v6.0.0 — closes the ref-extraction-syntax
-  gap both panels flagged; see SR-048)*.
-- **Idempotence.** A repeat capture of an unchanged position directive (same session
-  id, kind, topic key, stance, and referenced-path set — referenced-note content
-  hashes inert, per SR-024's rule) appends nothing and leaves the positions stream
-  byte-identical, regardless of how many Stop events fire (SCN-001/SR-013 pattern). A
-  `reaffirm` differs by kind or by session and is a distinct directive that appends
-  normally — idempotence guards hook re-firing, never the lifecycle. The check
-  scans every month's positions file, not just the one a new event would land
-  in, mirroring `session-record@1`'s identical cross-day handling for the same
-  reason — a session can straddle the boundary *(v6.0.0 — closes `SG-2`; see
-  SR-049)*.
-- **Retire is an event.** A `retire` directive appends a new position event; no
-  earlier event is modified, removed, or compacted (INV-3 / constitution
-  prohibition 3). The stream is never rewritten, reordered, or compacted.
-- **Supersession is deterministic fold order.** For events sharing a topic key,
-  supersession is implicit in the stream's append order — a deterministic fold
-  computable by code alone, no model judgment (INV-6 / constitution prohibition 1) —
-  with an explicit `revises: <event-id>` field, where supplied, stored verbatim on the
-  event for precision. `revises:<event-id>` (also `(revises: <event-id>)`) is not a
-  separate grammar slot — it is derived by a read-only scan of the stance text
-  itself, the same "derive without stripping" principle named-ref extraction uses,
-  so it remains visible verbatim in the stored stance alongside the derived field
-  *(v6.0.0 — pins the syntax; see SR-052)*. Phase A guarantees the data supports the fold; querying that
-  fold for recall is a separate future round and is deliberately NOT specced here.
-- **Topic keys are reported, never enforced.** Topic keys are free-form kebab-case,
-  client-chosen, grouped only at read time; a key departing from the convention is
-  reported as a stderr diagnostic and stored byte-verbatim — never rejected,
-  rewritten, or normalized (constitution preference 3's quiet-when-unprompted spirit;
-  the SR-034 report-don't-enforce pattern applied to a new field).
-- **Stance budget is reported, never enforced.** The stance line carries the style
-  contract's 40/60 word budget; an over-budget stance is reported on stderr and
-  stored byte-verbatim with no annotation on the record (SR-034 shape; refines
-  SR-023 / INV-6 — never rewrite, truncate, or reject on style or length grounds).
-- **Session capture untouched.** `session-record@1`, every existing session record's
-  bytes, and SCN-001/SCN-002 observable behavior are byte-for-byte unchanged by the
-  presence or absence of position capture — positions are a wholly separate write
-  path, and a session-record byte-compare before/after a position capture is a
-  required test.
-- **Instruction budget.** The `SERVER_INSTRUCTIONS` addition teaching the directive
-  (its emission trigger — only when a stance was formed, changed, reaffirmed, or
-  retired — and its literal grammar, per SR-026's rule) adds at most 350 characters
-  to the pre-change baseline (3,030 chars, corrected v5.0.0 — measured via a live
-  `dist/stdio.js` initialize handshake against `main` @ `631640e`; see SR-056);
-  SR-027's single-source rule applies unchanged, so the README quoted block
-  regenerates and the instruction-anchor tests move deliberately, not accidentally.
-- **Empty stance is no directive.** *(v4.0.0, flow-panel divergence 2)* A directive
-  whose stance portion — the text after the topic key's colon — is empty or
-  whitespace-only fails to match the grammar and is treated as no directive at all,
-  the same treatment SCN-001 gives an unfilled `<template>`: reported as a stderr
-  diagnostic, nothing appended to either stream. A non-empty stance of any length is
-  always a valid directive; SR-054's word budget is advisory only and never
-  establishes a minimum.
-
-**Derived requirements:** SR-047, SR-048, SR-049, SR-050, SR-051, SR-052, SR-053,
-SR-054, SR-055, SR-056, SR-057
+Position capture was retired on 2026-11-01 (`docs/position-retirement-2026-11.md`).
+This scenario and its derived requirements SR-047..SR-055 and SR-057 are removed;
+SR-056 is re-parented to SCN-006. The IDs are not reused. The archived text is in the
+v16.0.0 change record (`spec-change-record-v16.0.0.md`, kept locally with the other
+per-version records) and in `spec/spec.md` at commit `d94a6fe`. What a client now
+sees when it still emits a position line: SCN-015.
 
 ---
 
-### SCN-011: A live position and its supersession chain are recalled for a topic *(v7.0.0, effort decision-graph, Phase B)*
+### SCN-011: A recorded position and its supersession chain are recalled for a topic, read-only *(v7.0.0, effort decision-graph, Phase B; legacy read-only surface from v16.0.0)*
 **Given** one or more position events exist across `_librarian/positions/*.md` for a
-topic — asserted, and possibly revised, reaffirmed, or retired since (SCN-010),
-potentially spanning more than one month's file
+topic — recorded before position capture was retired (v16.0.0): asserted, and
+possibly revised, reaffirmed, or retired since, potentially spanning more than one
+month's file — and no new event is ever added to that stream (SR-105)
 **When** a client queries `librarian-positions` by topic key, free text over stance
 content, or a note's versioned identity
 **Then** the tool shall return the topic's live position (the verbatim stance from
@@ -1266,18 +1215,21 @@ newly concluded.
 
 **Acceptance criteria:**
 - **Cross-month fold.** The fold reads every `_librarian/positions/<YYYY-MM>.md`
-  file that exists, not only the most recent one, mirroring SR-049's cross-month
-  idempotence scope (SCN-010) — a topic whose events span a month boundary folds
-  correctly regardless.
-- **Materialization is reindex-triggered only.** *(v9.0.0)* The fold runs
+  file that exists, not only the most recent one, mirroring the cross-month scope
+  the retired capture path's idempotence check used — a topic whose events span a
+  month boundary folds correctly regardless.
+- **Materialization is reindex-triggered only.** *(v9.0.0; v16.0.0)* The fold runs
   exclusively as part of reindex; `librarian-positions` reads only the
-  already-materialized projection and never re-folds or reaches into the write
-  path at query time. A position captured between two reindexes is not visible to
-  `librarian-positions` until the next reindex runs — a disclosed, bounded
-  staleness window, not a silent gap. This mirrors the note-identity ledger's
-  identical reindex-only materialization (SCN-008) and keeps the fold structurally
-  decoupled from SCN-010's write path, so SR-065's non-interference guarantee
-  holds by construction rather than only by a written-after-the-fact test.
+  already-materialized projection and never re-folds at query time. A change to the
+  stream on disk made between two reindexes (for example, a restored file) is not
+  visible to `librarian-positions` until the next reindex runs — a disclosed,
+  bounded staleness window, not a silent gap. This mirrors the note-identity
+  ledger's identical reindex-only materialization (SCN-008) and keeps the fold
+  structurally separate from every other code path, so SR-065's non-interference
+  guarantee holds by construction rather than only by a written-after-the-fact
+  test. *(v16.0.0 — with capture retired, the earlier example of "a position
+  captured between two reindexes" no longer arises in production; the reindex-only
+  rule itself is unchanged.)*
 - **Deterministic fold, rebuildable.** Folding is a pure function of the event
   stream (topic key, append order, event id, optional `revises`) — running a full
   rebuild twice against an unchanged event stream produces byte-for-byte identical
@@ -1294,15 +1246,15 @@ newly concluded.
   folded the same way any other event is — appended to the chain in order — but the
   fold's live-view computation treats it as the topic's terminal state: the default
   view shows a retired stub — the retire event's own kind, timestamp, session id,
-  refs, and its own byte-verbatim stance (every valid `retire` directive carries a
-  non-empty stance per SR-057, exactly like every other directive kind; this is the
-  retirement's own recorded text — e.g. a reason — never a copy of the stance from
-  the event before it) — rather than the stance of the event before it. No event is
-  removed from the underlying stream or the full-chain view to produce this.
-  *(v8.0.0 — pins the retired stub's shape; panel-2026-08-13-phase-b.md's
+  refs, and its own byte-verbatim stance (the retired capture path never stored an
+  empty stance for any kind, so every retire event in the frozen stream carries
+  one; this is the retirement's own recorded text — e.g. a reason — never a copy of
+  the stance from the event before it) — rather than the stance of the event before
+  it. No event is removed from the underlying stream or the full-chain view to
+  produce this. *(v8.0.0 — pins the retired stub's shape; panel-2026-08-13-phase-b.md's
   Divergence 1: the alternative reading, suppressing the retire event's own stance,
   would silently discard client-authored content on every single retirement, since
-  SR-057 already guarantees that stance is never empty.)*
+  the capture contract then in force guaranteed that stance was never empty.)*
 - **Query modes.** `librarian-positions` accepts a topic key (exact match), free
   text (matched against stance content), or a note's versioned identity (returning
   positions whose refs include that note). A topic-key query returns a single
@@ -1343,12 +1295,14 @@ newly concluded.
   additionally states the retirement's own date, labeled explicitly as a
   retirement (e.g. "retired \<date\>") — never folded into or presented as a
   "revision," since retiring withdraws a topic rather than changing its content.
-  Attribution is per read-time guidance taught in `SERVER_INSTRUCTIONS`. A client
-  is told to present this as "from your position record," never to restate it as
-  its own present-tense belief without that framing. *(v12.0.0 — pins which event
-  kinds advance "revision date" and how a retirement's own date is labeled;
-  panel-2026-08-13-phase-b-reprobe.md's Divergence 3, folding in the first Phase B
-  panel's gap 1 since it's the same design question.)*
+  Attribution is per read-time guidance carried in the `librarian-positions` tool
+  description *(v16.0.0 — moved out of the server-level instructions, which no
+  longer mention positions; see SR-073)*. A client is told to present this as
+  "from your position record," never to restate it as its own present-tense belief
+  without that framing. *(v12.0.0 — pins which event kinds advance "revision date"
+  and how a retirement's own date is labeled; panel-2026-08-13-phase-b-reprobe.md's
+  Divergence 3, folding in the first Phase B panel's gap 1 since it's the same
+  design question.)*
 - **Dormant is computed, never stored, and never applies to a retired topic.**
   No new stored field represents "dormant," "stale," or any decay score. A
   convenience display attribute may be computed at read time from an event's
@@ -1364,35 +1318,42 @@ newly concluded.
 - **`topic_key` renders inert.** Every place `librarian-positions` prints a topic
   key — a listing, a query echo, an error message — passes it through the same
   inert-rendering treatment (`toInertLine`-class handling) already applied to other
-  client-authored text before it reaches a terminal (Phase A `SG-10`).
-- **Session capture and position capture stay unchanged.** `session-record@1`'s
-  bytes, SCN-001/SCN-002's observable behavior, and SCN-010's position-capture
-  write path (append-only, idempotence, event shape) are byte-for-byte unchanged by
-  the fold running or `librarian-positions` existing — a required test, mirroring
-  SR-055's guarantee for Phase A.
+  client-authored text before it reaches a terminal (topic keys were stored raw and
+  unbounded by the retired capture path; `SG-10`).
+- **Recall leaves the records unchanged.** `session-record@1`'s bytes,
+  SCN-001/SCN-002's observable behavior, and the bytes of every positions stream
+  file are byte-for-byte unchanged by the fold running or `librarian-positions`
+  existing and being queried — a required test. *(v16.0.0 — previously this also
+  guarded the position-capture write path, which is retired.)*
 - **Instrumentation excluded from the gate.** Every `librarian-positions` call is
   logged under its own kind, distinct from the SCN-004 desirability-gate metric,
   per constitution prohibition 9 (cited, not restated — already decided, not a new
   decision made here).
+- *(v16.0.0)* **Legacy, read-only, and says so.** `librarian-positions` stays
+  registered and read-only over the frozen stream. Its title says it is retired,
+  and its description says position capture is retired and nothing new is added to
+  the stream it reads, so a client never presents it as a live record of current
+  beliefs. Removing the tool is out of scope for v16.0.0 and needs its own
+  amendment.
 
 **Derived requirements:** SR-058, SR-059, SR-060, SR-061, SR-062, SR-063, SR-064,
-SR-065
+SR-065, SR-076
 
 ---
 
-### SCN-012: A captured record names the host client that wrote it, when that is established *(v15.0.0, client label)*
+### SCN-012: A captured record names the host client that wrote it, when that is established *(v15.0.0, client label; amended v16.0.0)*
 **Given** one notes folder is written by Claude Code, Grok, Codex, and Antigravity
 through the same Stop hook
-**When** the hook captures a session summary or a position directive
-**Then** the entry or event shall carry a `client` label — exactly one of `claude`,
+**When** the hook captures a session summary
+**Then** the entry shall carry a `client` label — exactly one of `claude`,
 `grok`, `codex`, `agy` — only where the original envelope's shape and the
 installer-supplied identity agree, and no label otherwise, so a reader can tell which
 client stopped writing summaries without reading logs or guessing.
 
 **Acceptance criteria:**
 - The label names the host client, never the model, and is metadata only: the summary
-  and stance stay byte-verbatim (SR-023, INV-6), and the label is shown in frontmatter,
-  not the human-readable body.
+  stays byte-verbatim (SR-023, INV-6), and the label is shown in frontmatter, not the
+  human-readable body.
 - The host is classified from the ORIGINAL envelope, before Antigravity normalization
   rewrites it, by the table in `src/client.ts`: Antigravity shape => `agy`; camelCase
   `lastAssistantMessage` => `grok`; the installer identity (`--client` or
@@ -1402,9 +1363,10 @@ client stopped writing summaries without reading logs or guessing.
   different case, a future client — never treated as absent), two disagreeing identity
   sources, and Codex with no identity. Entries from hooks registered before the identity
   existed, and all pre-existing records, show none.
-- The field is **additive-optional** on `session-record@1` and
-  `position-event@1-provisional` (schema ids unchanged). Stored as a plain string: an
-  unfamiliar value is preserved on rewrite and ignored by readers, never an error.
+- The field is **additive-optional** on `session-record@1` (schema id unchanged).
+  Stored as a plain string: an unfamiliar value is preserved on rewrite and ignored by
+  readers, never an error. Position events in the frozen stream may also carry it
+  (written before v16.0.0), and the read surface tolerates it the same way.
 - The label never participates in idempotence identity.
 - Rollout is two releases: label-preserving readers and writers ship, and every active
   writer is confirmed on them, before any writer emits a label — an older writer
@@ -1414,13 +1376,13 @@ client stopped writing summaries without reading logs or guessing.
 
 ---
 
-### SCN-013: A capture never destroys a record it cannot read *(v15.0.0, client label)*
-**Given** a day's session file or a month's position file already exists but fails
-validation (hand-edited, truncated, or written by something else)
+### SCN-013: A capture never destroys a record it cannot read *(v15.0.0, client label; amended v16.0.0)*
+**Given** a day's session file already exists but fails validation (hand-edited,
+truncated, or written by something else)
 **When** a capture targets that file
 **Then** the file shall be left byte-identical, the capture shall report that nothing
-was recorded and why, and the other kind of capture in the same hook run shall still
-proceed.
+was recorded and why, and the retired-position check in the same hook run (SCN-015)
+shall still run.
 
 **Acceptance criteria:**
 - An existing file that fails validation is never rewritten; an absent file still
@@ -1428,10 +1390,44 @@ proceed.
 - The result is `failed` with a reason (`unparseable-record` or `write-error`), never
   `captured`; stderr names the file and is distinct from "nothing to capture"; the hook
   still exits 0 (INV-5, a hook failure must never break the session).
-- Session capture and position capture run independently: a failure or unexpected
-  throw in one never skips the other.
+- Session capture and the retired-position check run independently: a failure or
+  unexpected throw in one never skips the other. A positions file that fails
+  validation has no effect on session capture.
 
 **Derived requirements:** SR-071, SR-072
+
+---
+
+### SCN-015: A position line emitted after retirement is reported, not stored *(v16.0.0, position retirement)*
+**Given** position capture is retired, and a client still emits a `librarian-position`
+comment — from a rules file installed before the retirement, a session started before
+the upgrade, or a model that remembers the old grammar — or a caller sends a direct
+`position` field
+**When** the Stop hook runs for that turn
+**Then** nothing is stored as a position, the hook writes one stderr line saying
+position capture is retired and the position line was not stored, and a session line
+in the same turn is captured exactly as it would be without the position line.
+
+**Acceptance criteria:**
+- **Nothing stored.** No file under `_librarian/positions/` is created, appended to,
+  or modified by the run.
+- **One notice.** The run writes exactly one stderr line containing "position capture
+  is retired" and "not stored". A malformed position comment (empty stance,
+  unrecognized kind, empty topic key) gets the same notice. Nothing is written to
+  stdout, and the hook exits 0 (INV-5).
+- **Scope of the check.** The notice is triggered by a direct `position` field or by
+  a `librarian-position` comment in the turn reply (see Glossary). It is never
+  triggered by the session's accumulated transcript, so a session that only discusses
+  the tag, or a user message that echoes it, gets no notice.
+- **Session line unaffected.** A session directive in the same turn is stored with
+  the same summary, refs, workspace provenance, and client label as the same turn
+  would produce without the position line; replaying the turn stays a byte-identical
+  no-op (SR-013).
+- **Disclosed limitation.** A host whose Stop event carries no turn reply, and whose
+  transcript the hook does not read per turn, gets no notice for a position comment.
+  Nothing is stored in that case either.
+
+**Derived requirements:** SR-074, SR-075
 
 ---
 
@@ -1639,105 +1635,37 @@ SRs (SR-100+) have no parent.
   hash now matches Y"); only a fresh human confirmation (SR-044) supersedes a
   confirmed binding. *(unwanted-behavior)*
   `# ← SCN-009; added v3.10.0 (gen-1 population fork: var-1 HIGH ambiguity + var-3 MEDIUM echo — SR-045's newest-wins did not carve out confirmed bindings; HITL 2026-08-04: confirmed is sticky, conflict surfaced, never silently outvoted by automation). Scopes SR-045: newest-wins governs AUTOMATIC bindings only. Mapping registered @ suite 0.7.0 (v3.10.1): COR-A-018 conflict preserve+surface, COR-A-019 fresh-confirmation supersede. NOTE: all three gen-1 variants predate this SR (uniform newest-wins) — nonconformance expected at cull, gen-2 refinement item.`
-- **SR-047** — When a capture invocation carries a `<!-- librarian-position
-  POSITION <assert|revise|reaffirm|retire> <topic-key>: <stance> -->` HTML
-  comment — a distinct tag from `librarian-session`, sharing only the general
-  Stop-hook-scanned comment mechanism — `capture-cli` shall route it by
-  directive kind to the position write path and append exactly one position
-  event per distinct directive, leaving session-summary routing unchanged. A
-  comment matching this tag whose kind token is not one of the four literals,
-  or whose topic key is empty or missing, shall be treated as no directive at
-  all: no diagnostic, no append, never misrouted to session-summary handling.
-  *(event-driven)*
-  `# ← SCN-010; added v3.12.0 (decision-graph, Phase A); amended v6.0.0 (panel-2026-08-13, divergence 1: pins the wire format — a distinct tag prevents directive.ts's keep-the-LAST-occurrence rule from letting a position silently displace a session summary in the same turn, which SR-055 forbids; closes SG-9's malformed-kind gap and panel-2026-08-13's empty-topic-key gap by stating both fail the grammar match and collapse to silent no-directive, mirroring SCN-001's unfilled-template precedent); routing is by kind alone — no content heuristics, no model (INV-6 / constitution prohibition 1); KNOWN LIMITATION, not resolved by this amendment: a topic key containing a colon is split on the FIRST colon, which can mis-parse a key that itself looks like "HH:MM" — disclosed, not spec-mandated as correct, since a different parse is equally defensible and this round has no basis to pick between them; mapping-pending: true`
-- **SR-048** — Position events shall be persisted in `_librarian/positions/<YYYY-MM>.md`
-  as an append-only markdown stream under schema `position-event@1-provisional` with
-  mdbase-compatible frontmatter, each event carrying an event id, the directive kind,
-  the topic key, the stance byte-verbatim, a timestamp, workspace provenance per
-  SR-015/SR-016 (derived automatically, never blocking a capture), and any named refs
-  by versioned identity hashed as-read per SR-003. Named refs are `[[wikilink]]`-style
-  tokens found anywhere in the stance text, extracted by a read-only scan that never
-  removes the token from the stored stance. *(ubiquitous)*
-  `# ← SCN-010; added v3.12.0 (decision-graph, Phase A); amended v6.0.0 (panel-2026-08-13 gap 3, carried from panel-2026-08-12 gap 2: pins the ref-marker syntax that was previously assumed, never stated — [[wikilink]] tokens, reusing refs.ts's existing convention, derived without stripping); amended v7.0.0 (Phase B drafting: corrects the schema id to position-event@1-provisional, matching src/positions.ts#SCHEMA_ID and dissent-2026-08-13-0004's M1 mitigation — the non-provisional id was never actually shipped; a reader following this SR literally would look for a schema string that doesn't exist on disk); frontmatter per constitution preference 2; writes confined to _librarian/ per INV-2 / constitution prohibition 5 (cited, not restated); parallels SR-039 (note-identity ledger) and SR-100 (session-record schema); mapping-pending: true`
-- **SR-049** — If a position capture invocation carries a session id and directive
-  content identical (after inert-line normalization) to a position event already
-  recorded for that session — kind, topic key, stance, referenced note paths, and the
-  `revises` field (present-or-absent, and its value where present) all unchanged,
-  referenced-note content hashes inert per SR-024's rule — then the system shall
-  append nothing and leave the positions stream byte-identical. This check shall scan
-  every month's positions file, not only the file a new event would be written to.
-  If only the `revises`
-  field differs (added, removed, or changed in value) from an otherwise-identical
-  prior directive, the two directives are not identical and the later one shall
-  append as a new event. The host-client label (SR-066) is likewise inert: a directive
-  identical but for `client` is a duplicate. *(unwanted-behavior)*
-  `# ← SCN-010; added v3.12.0 (decision-graph, Phase A); amended v4.0.0 (flow-panel 2026-08-12, divergence 1: revises is client-authored directive content, not derived metadata like a timestamp — excluding it from identity risked silently dropping a supersession correction the client explicitly typed, contrary to HANDOFF §1's 'never silently' stance); amended v6.0.0 (panel-2026-08-13, divergence 2: pins cross-month scope, closing SG-2 — mirrors session-record.ts's identical cross-day handling for the same reason, a session can straddle the boundary; panel readers split 2-2 on this exact question, only half guessing the shipped answer); SR-013's idempotence pattern applied to the positions stream; a reaffirm differs by kind or session and is a distinct directive; mapping-pending: true`
-- **SR-050** — When a `retire` directive is captured, the system shall append a new
-  position event attributed to it and shall never modify, remove, reorder, or compact
-  any earlier event in the positions stream. *(event-driven)*
-  `# ← SCN-010; added v3.12.0 (decision-graph, Phase A); enforces INV-3 / constitution prohibition 3 — retirement is an event, not a deletion; mapping-pending: true`
-- **SR-051** — Supersession among position events sharing a topic key shall be
-  implicit in the stream's deterministic fold order (append order, stable event ids),
-  computable by code alone with no model judgment and no load-bearing state beyond
-  the events themselves. *(ubiquitous)*
-  `# ← SCN-010; added v3.12.0 (decision-graph, Phase A); INV-6 / constitution prohibition 1; rebuildable per INV-4; querying this fold for recall/trajectory is a separate future round and deliberately not specced here; mapping-pending: true`
-- **SR-052** — Where a position directive's stance contains a `revises:<event-id>`
-  (or `(revises: <event-id>)`) substring, the system shall derive the referenced
-  event id by scanning the stance for it and store the derived value verbatim on
-  the resulting event, without removing the substring from the stored,
-  byte-verbatim stance. *(optional-feature)*
-  `# ← SCN-010; added v3.12.0 (decision-graph, Phase A); amended v6.0.0 (panel-2026-08-13, divergence 3: pins the syntax — revises: is not a separate grammar slot but a read-only scan over the stance text, the same "derive without stripping" principle SR-048's ref extraction uses; the panel's own readers did not converge on this answer, each proposing an unshipped separate-slot alternative); precision override for SR-051's implicit order; interpretation belongs to a future read-path round; mapping-pending: true`
-- **SR-053** — If a position directive's topic key departs from free-form
-  kebab-case, then the capture path shall report a diagnostic on stderr and store the
-  key byte-verbatim — never rejecting, rewriting, or normalizing it; topic keys are
-  client-chosen and grouped only at read time. *(unwanted-behavior)*
-  `# ← SCN-010; added v3.12.0 (decision-graph, Phase A); report-don't-enforce (SR-034 pattern; constitution preference 3); diagnostics to stderr per INV-5 / constitution prohibition 4; mapping-pending: true`
-- **SR-054** — If a captured stance line exceeds the style contract's stated word
-  budget (target 40, ceiling 60 — the same numbers SR-021 states), then the capture
-  path shall report the word count and the budget on stderr and store the stance
-  byte-verbatim with no annotation on the record; length shall never be grounds for
-  rewriting, truncating, or rejecting a position directive. *(unwanted-behavior)*
-  `# ← SCN-010; added v3.12.0 (decision-graph, Phase A); SR-034 applied to the stance line; refines SR-023 / INV-6; the ceiling stays inside the SR-101 oversized-input bound; mapping-pending: true`
-- **SR-055** — The position write path shall write only to `_librarian/positions/`;
-  the `session-record@1` schema, every existing session record's bytes, and the
-  observable behavior of SCN-001 and SCN-002 shall be byte-for-byte unchanged before
-  and after any position capture. *(ubiquitous)*
-  `# ← SCN-010; added v3.12.0 (decision-graph, Phase A); the separate-stream decision (plan HITL point 1) exists to make this provable — session schema, dedupe identity, and read-time grouping untouched; mapping-pending: true`
-- **SR-056** — When the server-level instructions are extended to teach the position
-  directive (its emission trigger — only when a stance was formed, changed,
-  reaffirmed, or retired — and its literal grammar per SR-026's rule), the addition
-  shall keep the whole of SERVER_INSTRUCTIONS within 2,033 characters, the tightest
-  client limit (Grok), even when the display name is up to 24 characters long
-  (each occurrence of the label counts at that length); this replaces the earlier
-  350-character increment over a 3,030-character baseline. *(event-driven)*
-  `# ← SCN-010; added v3.12.0 (decision-graph, Phase A); AMENDED v5.0.0 — baseline corrected 2,093 -> 3,030 chars; AMENDED (pending version bump) — restated as a total cap of 2,033 chars with a 24-char label allowance, held by test/instructions-budget.test.ts, after the style contract gained the actor-credit clause (the OBS-1 figure was stale by the time this SR was authored; independently measured by both gen-3 and gen-4 evaluators; see the v5.0.0 changelog entry above); guards SR-020/SR-026 ubiquity against instruction bloat; SR-027 propagation (README quoted block, anchor tests) applies unchanged; mapping-pending: true`
-- **SR-057** — If a position directive's stance portion is empty or whitespace-only,
-  then the capture path shall treat the directive as no directive at all — reporting
-  a stderr diagnostic and appending nothing to either stream — rather than storing an
-  empty stance. *(unwanted-behavior)*
-  `# ← SCN-010; added v4.0.0 (decision-graph, Phase A; flow-panel 2026-08-12, divergence 2); mirrors SCN-001's unfilled-<template>-is-no-directive precedent (SR-029); does not establish a minimum word count — SR-054's budget stays advisory-only above zero; mapping-pending: true`
+- **SR-047..SR-055, SR-057** — *Retired v16.0.0* with SCN-010 (position capture:
+  grammar and routing, stream shape, idempotence, retire-as-event, fold order,
+  `revises`, topic-key and stance-budget diagnostics, session non-interference,
+  empty-stance handling). The IDs are not reused. The text is archived in the v16.0.0
+  change record and in `spec/spec.md` at commit `d94a6fe`.
+  `# retired v16.0.0 (Robin, 2026-11-01; docs/position-retirement-2026-11.md)`
+- **SR-056** — The server-level instructions shall total at most 2,033 characters —
+  the tightest client limit (Grok) — even when the display name is 24 characters
+  long, each occurrence of the label counted at that length. *(ubiquitous)*
+  `# ← SCN-006 (re-parented from SCN-010 at v16.0.0); added v3.12.0; amended v5.0.0 (baseline corrected 2,093 -> 3,030 chars); amended v16.0.0 — ratifies the PENDING AMENDMENT's restatement as a total cap with a 24-char label allowance (replacing the 350-character increment over a 3,030-character baseline) and drops the "when extended to teach the position directive" trigger, since no position directive is taught any longer; held by test/instructions-budget.test.ts; guards SR-020/SR-026 ubiquity against instruction bloat; SR-027 propagation (README quoted block, anchor tests) applies unchanged; mapping-pending: true`
 - **SR-058** — When a reindex runs, the position fold shall read every
   `_librarian/positions/<YYYY-MM>.md` file that exists, not only the most recently
   written one, before computing any topic's live position or chain. Reindex shall
-  be the fold's only trigger: no code path outside reindex — including SCN-010's
-  position-capture write path — shall invoke the fold or write to its projection
-  tables, so `librarian-positions` always reads an already-materialized projection
-  and a position captured between reindexes remains invisible to it until the next
-  reindex runs. *(event-driven)*
-  `# ← SCN-011; added v7.0.0 (decision-graph, Phase B); amended v9.0.0 (panel-2026-08-13-phase-b.md, Divergence 2: pins materialization to reindex-only, ruling out a write-time hook into SCN-010's write path — matches this project's only existing precedent for a read-surface projection, SCN-008's note-identity ledger, and keeps SR-065's non-interference guarantee true by construction rather than by a hook that must be proven additive-only after the fact); mirrors SR-049's cross-month idempotence scope on the read side; mapping-pending: true`
+  be the fold's only trigger: no code path outside reindex shall invoke the fold or
+  write to its projection tables, so `librarian-positions` always reads an
+  already-materialized projection, and a change to the stream on disk becomes
+  visible to it only after the next reindex runs. *(event-driven)*
+  `# ← SCN-011; added v7.0.0 (decision-graph, Phase B); amended v9.0.0 (panel-2026-08-13-phase-b.md, Divergence 2: pins materialization to reindex-only, ruling out a write-time hook into the then-live position write path — matches this project's only existing precedent for a read-surface projection, SCN-008's note-identity ledger, and keeps SR-065's non-interference guarantee true by construction rather than by a hook that must be proven additive-only after the fact); amended v16.0.0 (position capture retired: the "including the position-capture write path" and "a position captured between reindexes" wording restated as any change to the stream on disk, since no capture path remains; the reindex-only rule is unchanged); mirrors the retired capture path's cross-month idempotence scope on the read side; mapping-pending: true`
 - **SR-059** — The position fold shall be a pure, deterministic function of the
   event stream (topic key, append order, stable event ids, optional `revises`),
   with no model judgment and no load-bearing state that is not rebuildable from
   `_librarian/`; running a full rebuild twice against an unchanged event stream
   shall produce byte-for-byte identical projection tables. *(ubiquitous)*
-  `# ← SCN-011; added v7.0.0 (decision-graph, Phase B); amended v11.0.0 (panel-2026-08-13-phase-b-reprobe.md, Divergence 2: drops the "incremental update after one new event" clause — SR-058 already commits every reindex to a full re-read of every positions file, so no separate incremental-fold code path exists for that clause to test against; restated as rebuild-determinism only, mirroring SR-041's identical guarantee for the note-identity ledger's projections (SCN-008), this project's only other precedent for this kind of read-surface projection); INV-4 / INV-6, cited not restated; parallels SR-051's write-side determinism guarantee; mapping-pending: true`
+  `# ← SCN-011; added v7.0.0 (decision-graph, Phase B); amended v11.0.0 (panel-2026-08-13-phase-b-reprobe.md, Divergence 2: drops the "incremental update after one new event" clause — SR-058 already commits every reindex to a full re-read of every positions file, so no separate incremental-fold code path exists for that clause to test against; restated as rebuild-determinism only, mirroring SR-041's identical guarantee for the note-identity ledger's projections (SCN-008), this project's only other precedent for this kind of read-surface projection); INV-4 / INV-6, cited not restated; comment amended v16.0.0 (pointer to the retired write-side fold-order requirement removed; normative text unchanged); mapping-pending: true`
 - **SR-060** — When the most recent event for a topic key is a `retire`, the
   default (live) view of `librarian-positions` shall render that topic as a
   retired stub carrying the retire event's own kind, timestamp, session id, refs,
   and byte-verbatim stance, rather than the stance of any earlier event, while
   every event for that topic — including those before the retirement — shall
   remain unmodified and queryable via the full-chain view. *(event-driven)*
-  `# ← SCN-011; added v7.0.0 (decision-graph, Phase B); amended v8.0.0 (panel-2026-08-13-phase-b.md, Divergence 1: pins the retired stub's shape — it carries the retire event's OWN stance, never suppresses it, since SR-057 already guarantees every retire directive has a non-empty stance and omitting it would silently discard client-authored content on every retirement); INV-3 / constitution prohibition 3, cited not restated; "dropped from the default view" is a read-time display decision, never a write to the underlying stream; mapping-pending: true`
+  `# ← SCN-011; added v7.0.0 (decision-graph, Phase B); amended v8.0.0 (panel-2026-08-13-phase-b.md, Divergence 1: pins the retired stub's shape — it carries the retire event's OWN stance, never suppresses it, since the capture contract then in force guaranteed every retire directive a non-empty stance, and omitting it would silently discard client-authored content on every retirement); comment amended v16.0.0 (that contract is retired and archived with SCN-010; every retire event in the frozen stream was recorded under it; normative text unchanged); INV-3 / constitution prohibition 3, cited not restated; "dropped from the default view" is a read-time display decision, never a write to the underlying stream; mapping-pending: true`
 - **SR-061** — `librarian-positions` shall support querying by topic key (exact
   match), by free text matched against stance content, and by a note's versioned
   identity (returning positions whose refs include that note). A topic-key query
@@ -1757,8 +1685,8 @@ SRs (SR-100+) have no parent.
   convention `librarian-get-note` and `librarian-search` already use for their own
   not-found/empty-result cases. *(ubiquitous)*
   `# ← SCN-011; added v7.0.0 (decision-graph, Phase B); amended v10.0.0 (panel-2026-08-13-phase-b.md, Divergence 3: pins the response envelope shape — singular for topic-key's exact-match lookup, list for the two search-like modes — matching this project's own established get-vs-search tool-shape convention (librarian-get-note singular, librarian-search list) rather than inventing a new uniform-envelope convention for this one tool); amended v14.0.0 (panel-2026-08-13-phase-b-reprobe.md, Divergence 1 + single-reader flag: pins the not-found response's wire shape, verified against src/server.ts's actual shipped librarian-get-note/librarian-search handlers rather than re-derived from panel readings alone — neither uses isError, both return a plain-text sentinel in a normal success result; and pins match scope to the full event chain, not just the live event, so search never silently misses a topic because its matching text was later superseded); the "default live, history on request" split mirrors the plan's own status-lifecycle framing; mapping-pending: true`
-- **SR-062** — When `SERVER_INSTRUCTIONS` is extended to teach read-time rendering
-  of a recalled position, the guidance shall require every rendered stance to state
+- **SR-062** — The `librarian-positions` tool description shall teach read-time
+  rendering of a recalled position, requiring every rendered stance to state
   its provenance explicitly: the formed date (the topic's original `assert`
   event's timestamp), and — only where at least one `revise` event exists for that
   topic — the most recent revision date, meaning the latest `revise` event's
@@ -1768,7 +1696,7 @@ SRs (SR-100+) have no parent.
   retirement's own date to be stated, labeled explicitly as a retirement and never
   presented as a revision. The guidance shall forbid presenting a recalled stance
   as the client's own present-tense belief without this attribution. *(ubiquitous)*
-  `# ← SCN-011; added v7.0.0 (decision-graph, Phase B); amended v12.0.0 (panel-2026-08-13-phase-b-reprobe.md, Divergence 3, folding in panel-2026-08-13-phase-b.md's gap 1: pins "revision date" to revise-only, matching the glossary's own "changed (revise)" vs. "re-endorsed (reaffirm)" distinction, and requires a retired topic's own retirement date be labeled distinctly rather than folded into "revision"); applies the SCN-007 recall-clarity precedent (cited, not restated) to positions; this is the SR that trips constitution escalation trigger 4 — it extends SERVER_INSTRUCTIONS, the exact surface the trigger names; mapping-pending: true`
+  `# ← SCN-011; added v7.0.0 (decision-graph, Phase B); amended v12.0.0 (panel-2026-08-13-phase-b-reprobe.md, Divergence 3, folding in panel-2026-08-13-phase-b.md's gap 1: pins "revision date" to revise-only, matching the glossary's own "changed (revise)" vs. "re-endorsed (reaffirm)" distinction, and requires a retired topic's own retirement date be labeled distinctly rather than folded into "revision"); amended v16.0.0 (the guidance's home moves from SERVER_INSTRUCTIONS to the librarian-positions tool description — what shipped in v0.3.0 per the PENDING AMENDMENT's item 1 — so this SR no longer touches the surface constitution escalation trigger 4 names; verified by test/position-recall.test.ts "SR-062: the librarian-positions description teaches the attribution"); applies the SCN-007 recall-clarity precedent (cited, not restated) to positions; mapping-pending: true`
 - **SR-063** — No stored field or value shall represent a position's dormancy,
   staleness, or decay; any such indicator shown by `librarian-positions` shall be
   computed at read time from timestamps already present on the position's events.
@@ -1786,10 +1714,9 @@ SRs (SR-100+) have no parent.
   `# ← SCN-011; added v7.0.0 (decision-graph, Phase B); topic_key is stored raw and unbounded per Phase A's SG-10 — this is the first read surface that actually prints one, so the gap stops being merely theoretical; mapping-pending: true`
 - **SR-065** — The position fold running, and `librarian-positions` existing and
   being queried, shall leave `session-record@1`'s bytes, SCN-001/SCN-002's
-  observable behavior, and SCN-010's position-capture write path (append-only,
-  idempotence, event shape) byte-for-byte unchanged — verified by a required
-  before/after comparison test. *(ubiquitous)*
-  `# ← SCN-011; added v7.0.0 (decision-graph, Phase B); mirrors SR-055's guarantee for Phase A, extended to cover a second new surface (the fold and the new tool) touching the same underlying stream; mapping-pending: true`
+  observable behavior, and the bytes of every positions stream file byte-for-byte
+  unchanged — verified by a required before/after comparison test. *(ubiquitous)*
+  `# ← SCN-011; added v7.0.0 (decision-graph, Phase B); originally mirrored the session non-interference guarantee the retired capture path carried; amended v16.0.0 (the guarded surface is now the positions stream's bytes, since no position write path remains to guard); verified by test/position-recall.test.ts "SR-065 (MANDATORY)"; mapping-pending: true`
 
 - **SR-066** — Session entries and position events shall accept an optional `client`
   field stored as a plain string, with schema ids unchanged; a stored value this build
@@ -1807,20 +1734,45 @@ SRs (SR-100+) have no parent.
   `client` field. *(unwanted-behavior)*
   `# ← SCN-012; added v15.0.0; mapping-pending: true`
 - **SR-069** — The `client` label shall not participate in idempotence identity
-  (SR-013, SR-049) and shall never appear in or alter summary or stance text.
-  *(ubiquitous)* `# ← SCN-012; added v15.0.0; extends SR-018; mapping-pending: true`
+  (SR-013) and shall never appear in or alter summary text.
+  *(ubiquitous)* `# ← SCN-012; added v15.0.0; extends SR-018; amended v16.0.0 (position idempotence and stance text retired with SCN-010); mapping-pending: true`
 - **SR-070** — No writer shall emit a `client` label until a release that preserves it
   has shipped and every active writer is confirmed on it, and each capture diagnostic
   shall name the build version so a stale writer is observable. *(ubiquitous)*
   `# ← SCN-012; added v15.0.0; process requirement, verified by the mixed-version append probe test; mapping-pending: true`
-- **SR-071** — If the destination session or position file exists and fails
-  validation, then the system shall append nothing, leave it byte-identical, and report
-  `failed` (reason `unparseable-record`, or `write-error` for a failed atomic write)
-  rather than `captured`. *(unwanted-behavior)*
-  `# ← SCN-013; added v15.0.0; refines INV-3; mapping-pending: true`
-- **SR-072** — The system shall run session capture and position capture each in its
-  own guard, so a failure or unexpected error in one never prevents the other.
-  *(ubiquitous)* `# ← SCN-013; added v15.0.0; mirrors SR-055; mapping-pending: true`
+- **SR-071** — If the destination session file exists and fails validation, then the
+  system shall append nothing, leave it byte-identical, and report `failed` (reason
+  `unparseable-record`, or `write-error` for a failed atomic write) rather than
+  `captured`. *(unwanted-behavior)*
+  `# ← SCN-013; added v15.0.0; refines INV-3; amended v16.0.0 (positions files are no longer a capture destination); mapping-pending: true`
+- **SR-072** — The system shall run session capture and the retired-position check
+  (SR-074) each in its own guard, so a failure or unexpected error in one never
+  prevents the other. *(ubiquitous)*
+  `# ← SCN-013; added v15.0.0; amended v16.0.0 (position capture replaced by the retirement check; verified by test/record-guard.test.ts "a corrupt session day is reported, and the retired position field still writes nothing"); mapping-pending: true`
+- **SR-073** — The server-level instructions, and any client rules text the
+  installer derives from them, shall neither include the position directive's syntax
+  nor direct any question to `librarian-positions`; the string `librarian-position`
+  shall not appear in either. *(ubiquitous)*
+  `# ← SCN-006; added v16.0.0 (position retirement); verified by test/instructions-budget.test.ts "position capture is retired" and test/install-hook.test.ts (Antigravity rules file); TODO(flow-eval): no test asserts this for the other installer-written rules files (they are built from the instructions, so the instructions test covers them only indirectly); mapping-pending: true`
+- **SR-074** — If a capture invocation carries a direct `position` field, or its turn
+  reply contains a `librarian-position` comment (well-formed or not), then the
+  capture path shall store no position event, shall create or modify no file under
+  `_librarian/positions/`, and shall write exactly one stderr line stating that
+  position capture is retired and the position line was not stored; the check shall
+  read only the direct field and the turn reply, never the session's accumulated
+  transcript. *(unwanted-behavior)*
+  `# ← SCN-015; added v16.0.0 (position retirement); verified by test/codex-capture.test.ts (CODEX-2, CODEX-4b), test/antigravity-capture.test.ts (AGY-6), test/record-guard.test.ts (direct field); TODO(flow-eval): no test counts the notice lines (tests match, not count) or proves that a mention outside the turn reply gets no notice; mapping-pending: true`
+- **SR-075** — When a capture invocation carries both a session directive and a
+  position line, the system shall capture the session directive exactly as it would
+  if the position line were absent: the stored entry shall be identical in every
+  field except capture time, and a replay of the same turn shall remain a
+  byte-identical no-op (SR-013). *(event-driven)*
+  `# ← SCN-015; added v16.0.0 (position retirement); verified in part by CODEX-3, CODEX-5, AGY-1, AGY-4, CP-1 (summary and replay); TODO(flow-eval): docs/positions-plan.md 2.D step 2 promised a field-by-field comparison against a position-free control turn — not present on the branch; mapping-pending: true`
+- **SR-076** — While position capture is retired, `librarian-positions` shall remain
+  registered as a read-only tool whose title contains the word "retired" and whose
+  description states that position capture is retired and that nothing new is added
+  to the stream it reads. *(state-driven)*
+  `# ← SCN-011; added v16.0.0 (position retirement); the legacy surface is kept for one release (docs/position-retirement-2026-11.md) and removed in the release after the one that ships this retirement (Robin, 2026-11-01); the removal is its own amendment; TODO(flow-eval): no test on the branch asserts the title or the retirement wording; mapping-pending: true`
 
 ### Non-functional (no scenario parent)
 
@@ -1844,6 +1796,11 @@ SRs (SR-100+) have no parent.
   stated wall-time bound at the live vault's scale (~2,300 notes, ~420 recorded
   refs). *(event-driven)*
   `# added v3.8.0 (decision-graph); the numeric bound is deliberately uncalibrated — no defensible figure exists in docs/decision-graph*.md; mapping-pending: true — TODO(flow-eval): calibrate the bound at gen-1 from measured baseline, then fix the number here by patch amendment`
+- **SR-105** — No production code path shall create, append to, rewrite, reorder, or
+  delete any file under `_librarian/positions/`: capture, reindex, and every
+  `librarian-positions` query shall leave each existing positions file byte-identical
+  and create none. *(ubiquitous)*
+  `# added v16.0.0 (position retirement); refines INV-3 / constitution prohibition 3 for the frozen stream; verified in part by test/position-recall.test.ts "SR-065 (MANDATORY)" (reindex, all three query modes, and a real session capture leave the stream's bytes unchanged) and the capture tests' "no positions file" assertions; TODO(flow-eval): a structural check that the stream's append operation has no production caller (today only test fixtures call it); mapping-pending: true`
 
 ---
 
@@ -1856,14 +1813,16 @@ SRs (SR-100+) have no parent.
 | SCN-003 | annotate, quiet, no re-rank | SR-008, SR-009, SR-010 | — | correctness-real-v1 | correctness |
 | SCN-004 | log events, weekly count | SR-011, SR-012 | INV-4 | correctness-real-v1 | correctness |
 | SCN-005 | auto provenance, local-reads-only, never-blocks, additive-optional, dedupe-unchanged, inert | SR-015, SR-016, SR-017, SR-018 | INV-1, INV-2 | correctness-real-v1, security-adv-v1 | correctness, security |
-| SCN-006 | server instructions, project display, project filter, no-behavior-drift, no-user-authored-contract, single-source, per-outcome-trigger | SR-019, SR-020, SR-025, SR-026, SR-027, SR-028, SR-035 | — | correctness-real-v1 | correctness |
+| SCN-006 | server instructions, project display, project filter, no-behavior-drift, no-user-authored-contract, single-source, per-outcome-trigger, no-position-contract + total cap *(v16.0.0)* | SR-019, SR-020, SR-025, SR-026, SR-027, SR-028, SR-035, SR-056 *(re-parented v16.0.0; mapping-pending)*, SR-073 *(v16.0.0; mapping-pending)* | — | correctness-real-v1 | correctness |
 | SCN-007 | authoring contract in instructions, read-time render guidance, directive-rule deployment, verbatim storage, no retrofit, no-behavior-drift, length-budget | SR-021, SR-022, SR-023, SR-034 | INV-3, INV-6 | correctness-real-v1, correctness-adv-v1 | correctness |
-| SCN-012 | host label, classify-from-original-envelope, absent-beats-wrong, additive-optional/tolerant, not-identity, two-release rollout | SR-066, SR-067, SR-068, SR-069, SR-070 | INV-6 | (pending) | (pending) |
-| SCN-013 | no-overwrite, failed-not-captured, independent captures | SR-071, SR-072 | INV-3, INV-5 | (pending) | (pending) |
+| SCN-012 *(amended v16.0.0)* | host label (session entries), classify-from-original-envelope, absent-beats-wrong, additive-optional/tolerant, not-identity, two-release rollout | SR-066, SR-067, SR-068, SR-069 *(amended v16.0.0)*, SR-070 | INV-6 | (pending) | (pending) |
+| SCN-013 *(amended v16.0.0)* | no-overwrite, failed-not-captured, independent session capture and retirement check | SR-071 *(amended v16.0.0)*, SR-072 *(amended v16.0.0)* | INV-3, INV-5 | (pending) | (pending) |
+| SCN-015 *(v16.0.0)* | nothing stored, one notice, scope of the check (turn reply only), session line unaffected, disclosed limitation | SR-074, SR-075 | INV-3, INV-5 | mapping-pending: true — existing repo tests listed on each SR (TODO flow-eval) | (pending) |
 | — | mdbase-compatible frontmatter | SR-100 | — | schema-real-v1 | schema-conformance |
 | — | untrusted-input handling | SR-101 | INV-2 | adversarial-input-v1 | safety |
 | — | repo hygiene | SR-102 | — | repo-hygiene-v1 | safety |
 | — | docs currency at ship | SR-103 | — | docs-currency-real-v1 | docs-currency |
+| — | frozen positions stream *(v16.0.0)* | SR-105 | INV-3 | mapping-pending: true (TODO flow-eval) | (pending) |
 | — | local-first | (INV-1) | INV-1 | adversarial-network-v1 | invariant-local-first |
 | — | store immutability | (INV-2) | INV-2 | adversarial-write-v1 | invariant-store-immutable |
 | — | no hard-delete | (INV-3) | INV-3 | adversarial-delete-v1 | invariant-no-hard-delete |
@@ -1873,8 +1832,8 @@ SRs (SR-100+) have no parent.
 | SCN-008 *(v3.8.0)* | exact-hash auto-bind, deterministic, ledger shape/append, projection rebuild, reindex determinism, read-surface resolution, no vault writes | SR-036, SR-039, SR-040, SR-041, SR-042, SR-045 *(v3.9.0)* | INV-2, INV-3, INV-4, INV-6 | correctness-real-v1 (COR-R-028..032, 037) + correctness-adv-v1 (COR-A-013, 015) | correctness |
 | SCN-009 *(v3.8.0)* | zero-candidate unresolved, multi-candidate unresolved, non-silent render, confirmed-binding append, ledger append-only | SR-037, SR-038, SR-039, SR-043, SR-044 *(v3.9.0)*, SR-045 *(v3.9.0)*, SR-046 *(v3.10.0)* | INV-2, INV-3 | correctness-real-v1 (COR-R-033..037) + correctness-adv-v1 (COR-A-014, 016, 017; @0.7.0: 018/019 SR-046 confirmed-sticky, 020 SR-043 enrichment surface); ledger confinement/injection: security-adv-v1 (SEC-A-014/015) + SEC-R-006 control | correctness, security |
 | — | identity-pass reindex performance *(v3.8.0)* | SR-104 | INV-4 | performance-real-v1 (PERF-R-006, report-only — bound calibration pending at gen-1) | performance |
-| SCN-010 *(v3.12.0; amended v4.0.0, v5.0.0, v6.0.0, v7.0.0)* | grammar+kind routing (wire format pinned), separate append-only stream, event shape (ref syntax pinned), idempotence (incl. revises in identity; cross-month scope pinned), retire-appends, deterministic fold order, explicit revises (syntax pinned), topic-key report-not-enforce, stance-budget report-not-enforce, session non-interference, instruction budget, empty-stance-is-no-directive | SR-047 *(amended v6.0.0)*, SR-048 *(amended v6.0.0, v7.0.0)*, SR-049 *(amended v4.0.0, v6.0.0)*, SR-050, SR-051, SR-052 *(amended v6.0.0)*, SR-053, SR-054, SR-055, SR-056 *(amended v5.0.0)*, SR-057 *(v4.0.0)* | INV-2, INV-3, INV-5, INV-6 | mapping-pending: true — correctness-real-v1 + correctness-adv-v1 expected (TODO flow-eval) | correctness |
-| SCN-011 *(v7.0.0, effort decision-graph, Phase B)* | cross-month fold, reindex-only materialization (v9.0.0), deterministic/rebuildable fold (incremental clause dropped, v11.0.0), retire-as-terminal-marker (stub carries own stance, v8.0.0), query modes (topic/free-text/note, response envelope pinned v10.0.0), read-time attribution (revision/retirement semantics pinned, v12.0.0), dormant-computed-not-stored (retired-topic exemption, v13.0.0), topic-key inert rendering, write-path non-interference, instrumentation excluded from gate | SR-058 *(amended v9.0.0)*, SR-059 *(amended v11.0.0)*, SR-060 *(amended v8.0.0)*, SR-061 *(amended v10.0.0, v14.0.0)*, SR-062 *(amended v12.0.0)*, SR-063 *(amended v13.0.0)*, SR-064, SR-065 | INV-3, INV-4, INV-6 | mapping-pending: true — correctness-real-v1 + correctness-adv-v1 expected (TODO flow-eval) | correctness |
+| SCN-010 *(retired v16.0.0)* | — (position capture retired; archived in the v16.0.0 change record and `spec/spec.md` @ `d94a6fe`) | — (SR-047..SR-055, SR-057 retired; SR-056 re-parented to SCN-006) | — | — (its mapping-pending debt is retired with it) | — |
+| SCN-011 *(v7.0.0, effort decision-graph, Phase B; legacy read-only v16.0.0)* | cross-month fold, reindex-only materialization (v9.0.0; lag clause restated v16.0.0), deterministic/rebuildable fold (incremental clause dropped, v11.0.0), retire-as-terminal-marker (stub carries own stance, v8.0.0), query modes (topic/free-text/note, response envelope pinned v10.0.0), read-time attribution (revision/retirement semantics pinned, v12.0.0; carried in the tool description, v16.0.0), dormant-computed-not-stored (retired-topic exemption, v13.0.0), topic-key inert rendering, recall leaves records unchanged (v16.0.0), instrumentation excluded from gate, legacy retirement notice (v16.0.0) | SR-058 *(amended v9.0.0, v16.0.0)*, SR-059 *(amended v11.0.0)*, SR-060 *(amended v8.0.0)*, SR-061 *(amended v10.0.0, v14.0.0)*, SR-062 *(amended v12.0.0, v16.0.0)*, SR-063 *(amended v13.0.0)*, SR-064, SR-065 *(amended v16.0.0)*, SR-076 *(v16.0.0)* | INV-3, INV-4, INV-6 | mapping-pending: true — correctness-real-v1 + correctness-adv-v1 expected (TODO flow-eval) | correctness |
 
 ---
 
@@ -1939,7 +1898,19 @@ own test suite (94 tests) rather than the eval harness.
 SR-047..057 entered entirely `mapping-pending: true` — evals/ is owned by flow-eval
 and untouched by this spec round. Interim: none; Phase A has not yet been dispatched
 (constitution escalation trigger 4 — a light → standard weight-class review — is
-required first and is not satisfied by this spec ratification).
+required first and is not satisfied by this spec ratification). *(v16.0.0: retired.
+SCN-010 and SR-047..SR-055/SR-057 are removed, and their mapping-pending debt goes
+with them; SR-056 survives, re-parented to SCN-006, and is still pending.)*
+
+*(v16.0.0, position retirement)* SCN-015, SR-073..SR-076 and SR-105 enter
+`mapping-pending: true`, as do the amended SR-056, SR-058, SR-062, SR-065, SR-069,
+SR-071 and SR-072 (evals/ owned by flow-eval; this spec does not edit it). Interim:
+the repo's own test suite on branch `feat/retire-positions` guards most of this
+behavior. Each new SR's derivation comment names the tests that verify it and the
+tests still missing: a count of the retirement notice and a turn-reply-only proof
+(SR-074); a field-by-field control-turn comparison (SR-075); the tool's retired
+title and description (SR-076); and a structural no-production-writer check for the
+positions stream (SR-105).
 
 ---
 
@@ -1975,6 +1946,11 @@ required first and is not satisfied by this spec ratification).
   fires at the end of *every* assistant turn and around clear/compact — not only at
   session termination (v3.0.0; confirmed by post-ship observation). This is why
   capture must be idempotent per distinct directive, not merely once-per-session.
+- **Turn reply** — the assistant text the capture hook attributes to the current turn:
+  the Stop event's own assistant-message field where the host sends one (Claude, Grok,
+  Codex), or, for hosts that send none (Antigravity, Copilot CLI), the current turn's
+  assistant text read from the host's transcript. Never the session's accumulated
+  transcript as a whole. *(v16.0.0)*
 - **Workspace provenance** — the automatically derived record of *where* a session
   happened: the working directory, a project name extracted from it (never
   user-supplied — that would break ambient capture), and the repository remote
@@ -2017,7 +1993,9 @@ required first and is not satisfied by this spec ratification).
   infers nothing — INV-6): formed (`assert`), changed (`revise`), re-endorsed
   (`reaffirm`), or withdrawn from listings (`retire`). A position is a projection
   over its events — rebuildable and disposable, the same rule as SQLite — never a
-  stored mutable object. *(v3.12.0)*
+  stored mutable object. *(v3.12.0)* *(v16.0.0: capture is retired — no new
+  positions are recorded; existing ones stay readable through the legacy
+  `librarian-positions` tool.)*
 - **Position event** — one append-only entry in the positions stream: event id,
   directive kind, topic key, stance byte-verbatim, timestamp, workspace provenance,
   refs by versioned identity, and an optional `revises: <event-id>`. Every lifecycle
@@ -2027,13 +2005,14 @@ required first and is not satisfied by this spec ratification).
   `_librarian/positions/<YYYY-MM>.md` (mdbase-compatible frontmatter, constitution
   preference 2), deliberately separate from `session-record@1` so the session schema,
   dedupe identity, and read-time grouping stay untouched. Never rewritten, reordered,
-  or compacted. *(v3.12.0)*
-- **Topic key** — the free-form kebab-case key a client chooses to name a position's
-  topic. Client-chosen, never server-enforced or normalized (departures are reported,
-  not corrected — SR-053); grouping and fold order over a topic key are read-time
-  concerns. *(v3.12.0)*
+  or compacted. *(v3.12.0)* *(v16.0.0: frozen — no production code path writes to it
+  at all, SR-105.)*
+- **Topic key** — the free-form kebab-case key a client chose to name a position's
+  topic. Client-chosen, never server-enforced or normalized (departures were
+  reported, not corrected, by the retired capture path); grouping and fold order
+  over a topic key are read-time concerns. *(v3.12.0; v16.0.0)*
 - **Live position / dormant** — "live" is a topic's current stance, computed by
-  folding its position events in append order (SR-051, SR-059); "dormant" is a
+  folding its position events in append order (SR-059); "dormant" is a
   read-time display attribute only (e.g., not reaffirmed or referenced within some
   window), never a stored field or decay score, and never persisted. Distinct from
   "retired," which is an explicit `retire` event, not an absence of recent activity.

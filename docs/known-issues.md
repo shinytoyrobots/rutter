@@ -74,14 +74,6 @@ This page lists problems that have been seen or are likely. For how rutter behav
 
 **What to do:** set `LIBRARIAN_VAULT_PATH`, then check that `/mcp` or `rutter-memory recent` shows your notes.
 
-### A new position is not recalled at once
-
-**What you see:** a position (a stance you formed or changed, recorded as its own entry) you just captured is not found.
-
-**Why:** positions are recalled from the index, which updates when a server starts or you reindex.
-
-**What to do:** restart the client, or reindex.
-
 ### References show what the session listed
 
 **What you see:** a reference that matches a note whose text has since changed.

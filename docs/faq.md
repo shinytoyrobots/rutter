@@ -19,7 +19,7 @@ If two clients point at different folders, each has its own memory. Nothing merg
 Shared, in the notes folder under `_librarian/`:
 
 - `sessions/<UTC date>.md`: one line per captured session
-- `positions/<YYYY-MM>.md`: stances you have formed or changed
+- `positions/<YYYY-MM>.md`: stances you formed or changed, recorded before position capture stopped (read-only history)
 - `stateful-use.jsonl`: a log of when recall and enriched search were used (timestamps only)
 
 Per client:
@@ -125,7 +125,7 @@ Check in this order:
 1. The model wrote the summary line. The hook captures only what the model wrote.
 2. The hook ran. Look for today's file in `_librarian/sessions/`.
 3. Both clients use the same notes folder.
-4. For a position, restart the server or reindex. Positions are recalled from the index.
+4. Positions (stances you formed or changed) are no longer recorded. Older ones are still recalled from the index; restart the server or reindex if one is missing.
 
 [If something goes wrong](./getting-started.md#if-something-goes-wrong) has the full checklist.
 
@@ -158,7 +158,6 @@ The entries that used to be on this page, each linking to its new home:
 - [Some labels are missing](./known-issues.md#some-labels-are-missing): now on the Known issues page.
 - [There is no pause or uninstall command](./known-issues.md#there-is-no-pause-or-uninstall-command): now on the Known issues page.
 - [The default notes folder is the author's](./known-issues.md#the-default-notes-folder-is-the-authors): now on the Known issues page.
-- [A new position is not recalled at once](./known-issues.md#a-new-position-is-not-recalled-at-once): now on the Known issues page.
 - [References show what the session listed](./known-issues.md#references-show-what-the-session-listed): now on the Known issues page.
 - [Some clients are not covered](./known-issues.md#some-clients-are-not-covered): now on the Known issues page.
 - [Not tested](./known-issues.md#not-tested): now on the Known issues page.

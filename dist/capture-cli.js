@@ -4,9 +4,7 @@ import path from "node:path";
 import { config } from "./config.js";
 import { captureSession, overSummaryWordCeiling, summaryWordCount } from "./capture.js";
 import { parseSessionDirective } from "./directive.js";
-import { capturePosition, overStanceWordCeiling, stanceWordCount } from "./position.js";
 import { classifyClient, parseExplicitIdentity } from "./client.js";
-import { parsePositionDirective, findEmptyStancePositionDirective } from "./position-directive.js";
 async function main() {
     const input = await readStdin();
     const parsed = safeParse(input);
@@ -27,10 +25,8 @@ async function main() {
         }
         return transcriptText;
     };
-    // The two captures are independent: a failure or an unexpected throw in one must
-    // never skip the other (a corrupt session day file must not cost a position).
     guarded("session", () => runSessionCapture(payload, getTranscriptText, client));
-    guarded("position", () => runPositionCapture(payload, getTranscriptText, client));
+    guarded("position", () => noteRetiredPosition(payload));
 }
 /**
  * Which transcript reader runs, and which label the records get -- two separate
@@ -200,122 +196,22 @@ function assistantMessage(payload) {
     return null;
 }
 // ---------------------------------------------------------------------------
-// Position capture (SCN-010, decision-graph Phase A) -- wholly additive.
+// Position capture is retired (docs/position-retirement-2026-11.md).
 // ---------------------------------------------------------------------------
-function runPositionCapture(payload, getTranscriptText, client) {
-    const text = positionDirectiveSourceText(payload, getTranscriptText);
-    if (text === null)
-        return; // neither a direct `position` field nor a transcript to scan -- nothing possible
-    const directive = parsePositionDirective(text);
-    if (!directive) {
-        // gen-4/var-1-graft Fix 1 (SR-057, ported from gen-3/var-1-convention): the
-        // ONE "no directive" reason that gets a diagnostic is a well-formed
-        // kind+topic-key whose stance is empty/whitespace-only. Every other reason
-        // (no comment at all -- the common no-op turn -- bad kind, missing
-        // topic-key/colon) stays silent, per decision-ledger.md D3's already-
-        // settled reading; this fix does not reopen it.
-        const empty = findEmptyStancePositionDirective(text);
-        if (empty) {
-            console.error(`[librarian-capture] position directive (${empty.kind} ${empty.topicKey}) has an empty or ` +
-                `whitespace-only stance; treated as no directive (SR-057) -- nothing captured.`);
-        }
-        return;
-    }
-    const result = capturePosition({
-        kind: directive.kind,
-        topicKey: directive.topicKey,
-        rawStance: directive.rawStance,
-        sessionId: payload.session_id ?? payload.sessionId,
-        cwd: payload.cwd,
-        client,
-    });
-    if (result.failed) {
-        reportFailure("position event", result.failed);
-    }
-    else if (result.captured) {
-        const project = result.event?.workspace ? ` [${result.event.workspace.project}]` : "";
-        console.error(`[librarian-capture] captured 1 position event (${directive.kind} ${directive.topicKey})${project} into ${result.month} positions stream${vaultNote()}.`);
-        if (result.rejectedRefs.length) {
-            console.error(`[librarian-capture] rejected unresolvable position refs: ${result.rejectedRefs.join(", ")}`);
-        }
-        // SR-053: report-don't-enforce for a topic key that departs from kebab-case.
-        if (directive.topicKeyNonKebab) {
-            console.error(`[librarian-capture] topic key "${directive.topicKey}" is not kebab-case; stored verbatim, never rejected or rewritten.`);
-        }
-        // SR-054: report-don't-enforce for an over-budget stance (same numbers as SR-021).
-        if (overStanceWordCeiling(directive.rawStance)) {
-            console.error(`[librarian-capture] stance is ${stanceWordCount(directive.rawStance)} words; ` +
-                `the style contract asks for about ${config.summaryWordTarget} and no more than ` +
-                `${config.summaryWordCeiling}. Stored verbatim as written.`);
-        }
-    }
-    else if (result.deduped) {
-        console.error("[librarian-capture] position directive unchanged for this session; already recorded, nothing appended.");
-    }
-}
+const POSITION_TAG = /<!--\s*librarian-position\b/;
 /**
- * Direct payload wins (mirrors `resolveDirective`'s escape hatch); then the
- * transcript extract IF it is position-shaped; then the Grok Stop event's
- * `lastAssistantMessage`; then the transcript extract again as the "there was a
- * source" fallback; else `null` (no possible source at all). This is the
- * position-side analogue of `resolveDirective`'s substitution, but a different
- * code shape because this function returns raw text for the caller to parse,
- * not a parsed directive -- so it must itself detect "the transcript is not
- * position-shaped" (via `isPositionShaped`) before substituting, rather than
- * fall through on a null parse. It deliberately does NOT concatenate the
- * transcript with `lastAssistantMessage`: `parsePositionDirective` keeps the
- * LAST match, so concatenation could let a trailing template eat a real
- * directive (the session-side `PLACEHOLDER_SUMMARY` hazard has a position
- * analogue; see docs/grok-stop-adapter.md "Placeholder last-wins").
- *
- * Whichever single source is returned, both `parsePositionDirective` and
- * `findEmptyStancePositionDirective` run against that SAME text in the caller,
- * so a malformed match (bad kind, missing topic-key, empty stance) is diagnosed
- * once, from one source, never misrouted into session-summary handling (the
- * 2026-08-12 panel's "malformed-kind handling" gap; see decision-ledger.md D3).
+ * A `librarian-position` comment or a direct `position` field can still arrive from
+ * rules files installed before the retirement or from a model that remembers the old
+ * grammar. Nothing is stored. One stderr line says so (INV-5), checked against the
+ * Stop event's own assistant message and never the whole transcript, so a session that
+ * merely discusses the tag does not trigger it. The session line in the same turn is
+ * captured as normal.
  */
-function positionDirectiveSourceText(payload, getTranscriptText) {
-    if (typeof payload.position === "string") {
-        return `<!-- librarian-position POSITION ${payload.position} -->`;
-    }
-    // (1) Claude production path: a real transcript that actually carries a
-    //     position-shaped comment wins, exactly as `resolveDirective` prefers a
-    //     transcript session directive. "Position-shaped" is the union the caller
-    //     already acts on -- a parseable directive OR the one empty-stance case
-    //     that earns an SR-057 diagnostic -- so precedence and diagnostics both
-    //     stay on the transcript when it holds the comment.
-    if (payload.transcript_path) {
-        const fromTranscript = getTranscriptText();
-        if (isPositionShaped(fromTranscript))
-            return fromTranscript;
-    }
-    // (2) Grok Stop fallback: the transcript extract held no position comment
-    //     (on Grok it is `updates.jsonl`, which never does); scan the assistant
-    //     text instead. Subset invariant applies, as for the session path.
+function noteRetiredPosition(payload) {
     const message = assistantMessage(payload);
-    if (message !== null) {
-        return message;
+    if (typeof payload.position === "string" || (message !== null && POSITION_TAG.test(message))) {
+        console.error("[librarian-capture] position capture is retired; the position line was not stored.");
     }
-    // (3) A transcript path but no `lastAssistantMessage`: preserve today's
-    //     "there was a source" behavior -- return the extract so the caller runs
-    //     its parse/diagnose over it and stays silent, rather than reporting no
-    //     possible source at all.
-    if (payload.transcript_path) {
-        return getTranscriptText();
-    }
-    return null; // (4) no direct field, no transcript, no assistant text
-}
-/**
- * True when `text` carries a `librarian-position` comment the caller would act
- * on -- either a fully parseable directive OR the single empty-stance shape
- * that gets an SR-057 diagnostic. Mirrors exactly the two functions
- * `runPositionCapture` runs, so "the transcript is position-shaped" here means
- * precisely "the transcript would produce a capture or a diagnostic there,"
- * never a heuristic. `getTranscriptText` is memoized, so re-parsing the same
- * text in the caller is a cheap repeat, not a second file read.
- */
-function isPositionShaped(text) {
-    return parsePositionDirective(text) !== null || findEmptyStancePositionDirective(text) !== null;
 }
 // ---------------------------------------------------------------------------
 // Shared stdin/transcript plumbing (unchanged from pre-Phase-A).

@@ -2,8 +2,8 @@
 
 *One memory. Multiple agents. Yours.*
 
-rutter keeps a record of what you decided, which notes the session cited, and how your thinking
-changed (a stance you formed or changed is called a *position*). Once it is registered in each
+rutter keeps a record of what you decided, which notes the session cited, and the reasons you
+gave. Once it is registered in each
 client and pointed at the same notes folder, each can recall the same records. They are stored as
 plain Markdown in a folder you own.
 

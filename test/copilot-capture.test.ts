@@ -79,13 +79,13 @@ const sessions = (): { summary: string; client?: string }[] =>
 const events = (): { topic_key: string; stance: string }[] =>
   (matter(readPositions(month())).data as { events: { topic_key: string; stance: string }[] }).events;
 
-test("CP-1: camelCase payload -- session and position directives in the turn's assistant message are captured and labeled", () => {
+test("CP-1: camelCase payload -- the session directive is captured and labeled; the position directive is not stored", () => {
   const t = transcript("cp-1.jsonl", [user("do it", "I1"), asst(`Done.\n${SESSION("Copilot session captured.")}\n${POSITION("cp-hook", "wait for the marker.")}`, "I1"), turnEnd(), hookStart(1)]);
   fire(stop("S-1", t, 1));
   assert.equal(sessions().length, 1);
   assert.equal(sessions()[0]!.summary, "Copilot session captured.");
   assert.equal(sessions()[0]!.client, "copilot");
-  assert.equal(events()[0]!.topic_key, "cp-hook");
+  assert.equal(positionsExist(month()), false);
 });
 
 test("CP-2: a directive template echoed in the user message is never captured", () => {

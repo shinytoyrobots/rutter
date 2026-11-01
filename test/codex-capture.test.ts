@@ -69,18 +69,17 @@ test("CODEX-1: a session directive is captured from last_assistant_message, with
   assert.equal(positionsExist(month()), false);
 });
 
-test("CODEX-2: a position directive is captured from last_assistant_message", () => {
-  fire({ session_id: "S-codex-2", last_assistant_message: `Reasoned. ${POSITION("codex-hook", "use the event message first.")}` });
-  assert.equal(events().length, 1);
-  assert.equal(events()[0]!.topic_key, "codex-hook");
-  assert.equal(events()[0]!.stance, "use the event message first.");
+test("CODEX-2: a position directive is not stored; one stderr line says capture is retired", () => {
+  const { stderr } = fire({ session_id: "S-codex-2", last_assistant_message: `Reasoned. ${POSITION("codex-hook", "use the event message first.")}` });
+  assert.match(stderr, /position capture is retired/);
+  assert.equal(positionsExist(month()), false);
   assert.equal(sessionExists(day()), false);
 });
 
-test("CODEX-3: both directives in one message are captured independently", () => {
+test("CODEX-3: with both directives in one message, the session line is captured and the position is not", () => {
   fire({ session_id: "S-codex-3", last_assistant_message: `${SESSION("Both kinds.")}\n${POSITION("both-kinds", "each stream stands alone.")}` });
   assert.equal(sessions()[0]!.summary, "Both kinds.");
-  assert.equal(events()[0]!.topic_key, "both-kinds");
+  assert.equal(positionsExist(month()), false);
 });
 
 test("CODEX-4: missing, null, non-string, empty, or directive-free messages capture nothing", () => {
@@ -94,9 +93,9 @@ test("CODEX-4: missing, null, non-string, empty, or directive-free messages capt
   assert.equal(positionsExist(month()), false, "no position stream");
 });
 
-test("CODEX-4b: an empty-stance position directive keeps its SR-057 diagnostic and captures nothing", () => {
+test("CODEX-4b: a malformed position directive gets the retirement notice and captures nothing", () => {
   const { stderr } = fire({ session_id: "S-codex-4b", last_assistant_message: "<!-- librarian-position POSITION assert empty-one:   -->" });
-  assert.match(stderr, /empty or whitespace-only stance/);
+  assert.match(stderr, /position capture is retired/);
   assert.equal(positionsExist(month()), false);
 });
 
@@ -104,10 +103,9 @@ test("CODEX-5: replaying an unchanged directive is a no-op; a later-turn directi
   const first = { session_id: "S-codex-5", last_assistant_message: `A. ${SESSION("Turn one.")} ${POSITION("replay", "same stance.")}` };
   fire(first);
   const sessionBytes = readSession(day());
-  const positionBytes = readPositions(month());
   for (let i = 0; i < 3; i++) fire(first);
   assert.equal(readSession(day()), sessionBytes, "session record byte-identical after replay");
-  assert.equal(readPositions(month()), positionBytes, "position stream byte-identical after replay");
+  assert.equal(positionsExist(month()), false, "no position stream, ever");
 
   fire({ session_id: "S-codex-5", last_assistant_message: `B. ${SESSION("Turn two.")}` });
   assert.deepEqual(sessions().map((s) => s.summary), ["Turn one.", "Turn two."]);

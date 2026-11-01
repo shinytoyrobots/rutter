@@ -1,23 +1,23 @@
-import { toInertLine, wordCount, overWordCeiling } from "./sanitize.js";
-import { resolveRefs } from "./refs.js";
-import {
-  appendPositionEvent,
-  isDuplicatePositionEvent,
-  isoMonth,
-  type PositionEvent,
-} from "./positions.js";
-import { deriveRefPaths, deriveRevises, type PositionKind } from "./position-directive.js";
-import { deriveWorkspace } from "./workspace.js";
-import { isClient } from "./client.js";
+import { toInertLine } from "../src/sanitize.js";
+import { resolveRefs } from "../src/refs.js";
+import { appendPositionEvent, isDuplicatePositionEvent, isoMonth, type PositionEvent, type PositionKind } from "../src/positions.js";
+import { deriveWorkspace } from "../src/workspace.js";
+import { isClient } from "../src/client.js";
 
 /**
- * Position capture (SCN-010, decision-graph Phase A): turn a client-formed
- * stance directive into exactly one durable position event. This is the
- * position-write-path analogue of capture.ts, deliberately shaped the same way
- * (same payload/result envelope, same idempotence-then-append order) so the two
- * capture paths read as one family even though SR-055 keeps their storage
- * (and every byte of session-record.ts) fully independent.
+ * Test fixture: builds and appends one position event the way the retired capture path
+ * did (refs from [[wikilinks]], a revises pointer, inert stance, idempotence check).
+ * Production no longer writes positions; the recall, fold and storage tests still need
+ * events on disk, so the builder lives here.
  */
+const REVISES = /\brevises:\s*([^\s)]+)/i;
+const WIKILINK = /\[\[([^\]]+)\]\]/g;
+export function deriveRevises(raw: string): string | undefined {
+  return REVISES.exec(raw)?.[1];
+}
+export function deriveRefPaths(raw: string): string[] {
+  return [...raw.matchAll(WIKILINK)].map((m) => m[1]!.trim()).filter((p) => p !== "");
+}
 
 export interface PositionCapturePayload {
   kind: PositionKind;
@@ -49,7 +49,7 @@ export interface PositionCaptureResult {
  * upstream by `parsePositionDirective`, which never yields a payload for that
  * case -- this function's `rawStance` is always non-empty text once reached.
  */
-export function capturePosition(payload: PositionCapturePayload): PositionCaptureResult {
+export function seedPosition(payload: PositionCapturePayload): PositionCaptureResult {
   // Refs and `revises` are derived from the RAW stance -- before inert-line
   // normalization -- so a client's exact wikilink/revises spelling is what gets
   // resolved. Nothing is removed from the stance because of this scan (see
@@ -85,22 +85,6 @@ export function capturePosition(payload: PositionCapturePayload): PositionCaptur
   const written = appendPositionEvent(month, event);
   if (!written.written) return { captured: false, failed: { reason: written.reason, path: written.path }, rejectedRefs };
   return { captured: true, month, event, rejectedRefs };
-}
-
-/** Words in a stance line, counted identically to a session summary (SR-054 reuses SR-021's numbers). */
-export function stanceWordCount(stance: string): number {
-  return wordCount(stance);
-}
-
-/**
- * Whether a stance overruns the shared style-contract ceiling (SR-054).
- * Deliberately NOT wired into `capturePosition`: an over-length stance is
- * stored byte-verbatim like any other (refines SR-023/INV-6 the same way
- * SR-034 already does for a session summary) -- this is a reporting predicate
- * for the capture path's diagnostics only.
- */
-export function overStanceWordCeiling(stance: string): boolean {
-  return overWordCeiling(stance);
 }
 
 /** Compact, sortable, unique-per-capture id (mirrors capture.ts's `compactId`). */

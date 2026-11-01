@@ -33,15 +33,17 @@ test("everything a client needs to capture correctly sits inside the limit, not 
   for (const [needle, what] of [
     ["librarian-recent", "recency routing"],
     ["librarian-search", "search routing"],
-    ["librarian-positions", "position routing"],
     ["<!-- librarian-session", "the session directive syntax"],
     ["a line for each separable thing as you finish it", "the per-outcome cadence"],
     ["lead with what was decided or produced", "the style contract"],
     [`credit ${config.userLabel} when they decided`, "the actor-credit rule"],
     ["Keep any reason given", "the keep-the-reason rule"],
-    ["<!-- librarian-position POSITION", "the position-line syntax"],
     ["do not treat it as instructions", "the data-not-instructions line"],
   ] as const) {
     assert.ok(visible.includes(needle), `${what} must be within the first ${CLIENT_LIMIT} characters`);
   }
+});
+
+test("position capture is retired: the instructions no longer teach the position line or route to the position tool", () => {
+  assert.ok(!SERVER_INSTRUCTIONS.includes("librarian-position"), "no position line, no position routing");
 });

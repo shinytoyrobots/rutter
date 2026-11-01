@@ -32,7 +32,7 @@ Hooks are read at session start, so restart the client after a change. Asking th
 The server only appends; it has no delete command. The records are your markdown, so you remove an entry by hand:
 
 - **A session line:** open `_librarian/sessions/<day>.md` and delete the entry from the `sessions:` list in the frontmatter. The frontmatter is the record. The body below it is regenerated from the frontmatter the next time that day's file grows, so delete the matching body line too if you want it gone now. The day's top-level `refs:` list is also rebuilt on the next write. Recall reads these files directly, so the entry disappears from recall at once.
-- **A position** (a stance you formed or changed): delete the event from `_librarian/positions/<YYYY-MM>.md`, then run `rutter-memory reindex` (`npm run reindex` from a clone) or restart the server, because positions are recalled from the index.
+- **A position** (recorded before position capture stopped): delete the event from `_librarian/positions/<YYYY-MM>.md`, then run `rutter-memory reindex` (`npm run reindex` from a clone) or restart the server, because positions are recalled from the index.
 - **Keep the YAML valid.** If a file stops parsing, recall skips it, and capture refuses to write into it rather than overwrite it.
 - **Mind your history.** If your notes folder is a git repository, the line stays in its history until you rewrite that history.
 

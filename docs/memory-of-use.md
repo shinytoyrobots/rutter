@@ -60,8 +60,8 @@ Session memory lives in your notes folder, as plain, human-readable, git-committ
     deleted.
   - A capture with no session id, such as a hand-piped `npm run capture` test, always appends.
 
-  Position lines follow the same pattern with their own key; see
-  [Positions](#positions-capturing-a-stance).
+  Position lines (a second, rarer kind of line, about a stance you formed or changed) are no longer
+  captured; see [Positions](#positions-capture-has-stopped).
 
 ### Which workspace an entry came from
 
@@ -151,8 +151,8 @@ All six hosts fire the same hook after each turn and store the same records, in 
 folder. That shared folder is how a decision captured in one tool is recalled in another. Each
 record carries a `client` label naming the host that wrote it (see [Which client wrote
 it](#which-client-wrote-it)). The hosts differ in what text the hook reads. On every host the rule
-from [The directive](#the-directive) holds: each firing keeps the last session directive and the
-last position in the text it reads, and two directives in that text collapse to the last.
+from [The directive](#the-directive) holds: each firing keeps the last session directive in the
+text it reads, and two directives in that text collapse to the last.
 
 - **Claude Code** reads the whole transcript. Each firing still keeps only the last directive in
   it. A line that is no longer last survives only if an earlier firing already captured it, so two
@@ -236,8 +236,8 @@ that, when the line is stored. Emit a directive like this whenever a session is 
 - `summary` is the one curated line. Required.
 - `refs` is an optional list of paths, relative to your notes folder, of notes the session touched.
 - Each hook firing keeps only the last directive in the text it reads. So emit each line as its
-  outcome lands, and each outcome gets its own firing. Each firing also keeps at most one position
-  (see [Positions](#positions-capturing-a-stance)), the last in the text it reads.
+  outcome lands, and each outcome gets its own firing. A position line in the text is not stored
+  (see [Positions](#positions-capture-has-stopped)).
 - If the hook finds no directive, or the summary is empty, nothing is captured and no empty file is
   created.
 - A summary still wrapped in `<angle brackets>` is treated as an **unfilled template** and captured
@@ -356,8 +356,7 @@ npm run recent -- --project rutter    # just one project
 
 You do not have to tell your client when to use rutter. The server's MCP instructions route
 recency questions to `librarian-recent`, prior-engagement and content questions to
-`librarian-search` (then `librarian-get-note` to read a note in full), and position questions to
-`librarian-positions`. They also tell the client how to write session and position lines.
+`librarian-search` (then `librarian-get-note` to read a note in full), and tell the client how to write session lines.
 
 The reading-back half travels in the tool descriptions. `librarian-recent` asks the client to
 report recalled summaries in plain language (see [Old entries stay
@@ -481,45 +480,34 @@ alone.
 
 ---
 
-## Positions: capturing a stance
+## Positions: capture has stopped
 
-Alongside the session summary, your client can leave a second kind of line: a **position
-directive**. It emits one only when a session forms, changes, reaffirms, or retires a stance on a
-topic, which should happen in far fewer sessions than not. For scale, session summaries ran at
-about 19 lines a day in the author's own use when this was written.
+Rutter used to ask your client for a second, rarer line, a **position directive**, whenever a
+session formed, changed, reaffirmed or retired a stance on a topic. It no longer does. The
+instructions no longer teach the line, and the capture hook stores none. If an old rules file or a
+model that remembers the grammar still emits one, the hook prints one line on its diagnostic output (stderr)
+saying the position line was not stored, and stores nothing; the session line in the same turn is captured as normal.
 
-```text
-<!-- librarian-position POSITION assert my-topic: I think X because of the meeting notes. -->
-```
+Why: the author trialed new wording for 14 days that makes each session line say when you made the
+call and keep your reason. The author marked a sample of 18 lines that credited them, without seeing
+which session each came from, and 15 were real decisions (83%). In the same window only one position
+line was written, against four in the 14 days before. That is one person's usage, so read it as a
+signal and not a measurement of how others work. Earlier, 11 of 17 belief questions failed mainly
+because the record did not say who had decided; session lines now carry that. Those questions have not
+been rerun since the change. The evidence is in
+[position-retirement-2026-11.md](./position-retirement-2026-11.md).
 
-- `assert | revise | reaffirm | retire` is the directive's kind, and it alone selects what the
-  event does. The stance prose is not classified or interpreted. Two strings inside it are read,
-  as described in the stance bullet below: a `[[wikilink]]` and `revises: <event-id>`.
-- `<topic-key>` is free-form and client-chosen, kebab-case by convention but never enforced. An
-  off-convention key is reported on stderr and stored as written.
-- `<stance>` is the rest of the line. It is not rewritten for style; it gets the same one-line
-  normalization and 2,000-character cut as a session summary (see [the style
-  contract](#the-style-contract)). A `[[wikilink]]` anywhere in the stance is captured as a
-  versioned reference exactly like a session ref. The text `revises: <event-id>` anywhere in the
-  stance records that this event replaces that earlier one. Neither is stripped out of the stored
-  stance.
-- Position events are appended to a **wholly separate stream**,
-  `<notes folder>/_librarian/positions/<YYYY-MM>.md`, never to a session record. Emitting one position, or
-  many, changes nothing about how session summaries are captured, stored, or read. The reverse
-  holds too.
-- The duplicate rule has the same shape as a session summary's. A position is skipped when one
-  already recorded in any month has the same session id, kind, topic key, normalized stance,
-  sorted reference paths, and `revises` value. So an unchanged directive re-fired by the same
-  session appends nothing, and a capture with no session id always appends.
+Streams already in `<notes folder>/_librarian/positions/<YYYY-MM>.md` stay exactly as they are
+(append-only history) and are still read by `librarian-positions`.
 
-Recall is a separate path with its own guarantees. See the next section.
+Recall of those older positions is below.
 
 ---
 
 ## Positions: recalling a stance
 
 `librarian-positions` answers *"what do I think about X, and how did that change?"* from the stream
-that position capture writes. It is read-only. It reads a **derived table** in the index, rebuilt
+that position capture wrote before it stopped. It is read-only. It reads a **derived table** in the index, rebuilt
 from the position files at each reindex, never the files themselves.
 
 **Ask one of three ways.** They are three different questions, so pass exactly one argument at a
@@ -566,8 +554,9 @@ reindex, the same way as the identity tables in [Note identity](#note-identity).
 when you call `npm run reindex`, or when the server starts and finds something changed. The tables
 are never patched incrementally. Two consequences, both deliberate:
 
-- A position captured since your last reindex is **not** recalled until the next one runs. That
-  happens by itself the next time the server starts. It is a disclosed lag, not a silent gap.
+- Reindex rebuilds the position tables from the existing streams, and the server does that on its own
+  at start-up. Since no new positions are recorded, the answer only changes if a stream file is edited
+  by hand.
 - Because recall never touches the capture path, capture cannot be disturbed by it. Session
   records, their bytes, and the position write path are unchanged by a reindex rebuilding those
   tables or by any query you make.
@@ -610,8 +599,7 @@ section puts the boundary in one place.
 
 - The hook only lifts a line the model wrote. A client that skips the directive leaves nothing to
   capture. An empty summary, or one still wrapped in `<angle brackets>`, captures nothing.
-- Each firing keeps one session summary and one position: the last of each in the text the hook
-  reads.
+- Each firing keeps one session summary: the last in the text the hook reads.
 - Codex reads the final reply only, so a directive in earlier commentary is lost.
 - Grok clips its final message at 32,768 characters, so a long turn can drop a trailing directive.
 - Antigravity captures nothing from a turn that ended in an error, and needs the rule file, or its

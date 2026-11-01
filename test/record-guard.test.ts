@@ -8,7 +8,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import { captureSession } from "../src/capture.js";
-import { capturePosition } from "../src/position.js";
+import { seedPosition as capturePosition } from "./position-seed.js";
 import {
   appendSession,
   readRecord,
@@ -92,19 +92,17 @@ test("a forced write error is reported as failed, never as captured", { skip: pr
   }
 });
 
-test("the two captures are independent: a corrupt session day does not cost the position", () => {
+test("a corrupt session day is reported, and the retired position field still writes nothing", () => {
   plant(sessionsDir, `${new Date().toISOString().slice(0, 10)}.md`, "garbage, not frontmatter\n");
-  const stderr = fire({ sessionId: "S-ind-1", summary: "session side", position: "assert indep-topic: The position still lands." });
+  const stderr = fire({ sessionId: "S-ind-1", summary: "session side", position: "assert indep-topic: Not stored." });
   assert.match(stderr, /FAILED to write session entry/);
-  assert.match(stderr, /captured 1 position event/);
-  const month = new Date().toISOString().slice(0, 7);
-  assert.match(readPositions(month), /The position still lands\./);
+  assert.match(stderr, /position capture is retired/);
+  assert.equal(fs.existsSync(path.join(positionsDir, `${new Date().toISOString().slice(0, 7)}.md`)), false);
 });
 
-test("the mirror: a corrupt position month does not cost the session entry", () => {
+test("a corrupt position month no longer affects session capture", () => {
   plant(positionsDir, `${new Date().toISOString().slice(0, 7)}.md`, "garbage, not frontmatter\n");
-  const stderr = fire({ sessionId: "S-ind-2", summary: "session side survives", position: "assert indep-topic-2: Lost to the corrupt month." });
-  assert.match(stderr, /FAILED to write position event/);
+  const stderr = fire({ sessionId: "S-ind-2", summary: "session side survives", position: "assert indep-topic-2: Not stored." });
   assert.match(stderr, /captured 1 entry/);
   assert.match(readSession(new Date().toISOString().slice(0, 10)), /session side survives/);
 });
