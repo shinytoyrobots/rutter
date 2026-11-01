@@ -150,8 +150,8 @@ All six hosts fire the same hook after each turn and store the same records, in 
 folder. That shared folder is how a decision captured in one tool is recalled in another. Each
 record carries a `client` label naming the host that wrote it (see [Which client wrote
 it](#which-client-wrote-it)). The hosts differ in what text the hook reads. On every host the rule
-from [The directive](#the-directive) holds: each firing keeps the last session directive and the
-last position in the text it reads, and two directives in that text collapse to the last.
+from [The directive](#the-directive) holds: each firing keeps the last session directive in the
+text it reads, and two directives in that text collapse to the last.
 
 - **Claude Code** reads the whole transcript. Each firing still keeps only the last directive in
   it. A line that is no longer last survives only if an earlier firing already captured it, so two
@@ -503,7 +503,7 @@ Recall of those older positions is below.
 ## Positions: recalling a stance
 
 `librarian-positions` answers *"what do I think about X, and how did that change?"* from the stream
-that position capture writes. It is read-only. It reads a **derived table** in the index, rebuilt
+that position capture wrote before it stopped. It is read-only. It reads a **derived table** in the index, rebuilt
 from the position files at each reindex, never the files themselves.
 
 **Ask one of three ways.** They are three different questions, so pass exactly one argument at a
@@ -595,8 +595,7 @@ section puts the boundary in one place.
 
 - The hook only lifts a line the model wrote. A client that skips the directive leaves nothing to
   capture. An empty summary, or one still wrapped in `<angle brackets>`, captures nothing.
-- Each firing keeps one session summary and one position: the last of each in the text the hook
-  reads.
+- Each firing keeps one session summary: the last in the text the hook reads.
 - Codex reads the final reply only, so a directive in earlier commentary is lost.
 - Grok clips its final message at 32,768 characters, so a long turn can drop a trailing directive.
 - Antigravity captures nothing from a turn that ended in an error, and needs the rule file, or its
