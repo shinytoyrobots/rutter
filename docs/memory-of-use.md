@@ -60,7 +60,8 @@ Session memory lives in your notes folder, as plain, human-readable, git-committ
     deleted.
   - A capture with no session id, such as a hand-piped `npm run capture` test, always appends.
 
-  Position lines are no longer captured; see [Positions](#positions-capture-has-stopped).
+  Position lines (a second, rarer kind of line, about a stance you formed or changed) are no longer
+  captured; see [Positions](#positions-capture-has-stopped).
 
 ### Which workspace an entry came from
 
@@ -484,13 +485,16 @@ alone.
 Rutter used to ask your client for a second, rarer line, a **position directive**, whenever a
 session formed, changed, reaffirmed or retired a stance on a topic. It no longer does. The
 instructions no longer teach the line, and the capture hook stores none. If an old rules file or a
-model that remembers the grammar still emits one, the hook writes one stderr line saying the position
-line was not stored, and stores nothing; the session line in the same turn is captured as normal.
+model that remembers the grammar still emits one, the hook prints one line on its diagnostic output (stderr)
+saying the position line was not stored, and stores nothing; the session line in the same turn is captured as normal.
 
-Why: in a 14-day trial of the actor-credit wording, session lines credited you for decisions you
-made 83% of the time (15 of 18 marked lines), and only one position line was written in 13 days
-against four in the 14 days before. Session lines now carry who decided what and why, which was the
-gap position capture was meant to fill. The evidence is in
+Why: the author trialed new wording for 14 days that makes each session line say when you made the
+call and keep your reason. The author marked a sample of 18 lines that credited them, without seeing
+which session each came from, and 15 were real decisions (83%). In the same window only one position
+line was written, against four in the 14 days before. That is one person's usage, so read it as a
+signal and not a measurement of how others work. Earlier, 11 of 17 belief questions failed mainly
+because the record did not say who had decided; session lines now carry that. Those questions have not
+been rerun since the change. The evidence is in
 [position-retirement-2026-11.md](./position-retirement-2026-11.md).
 
 Streams already in `<notes folder>/_librarian/positions/<YYYY-MM>.md` stay exactly as they are

@@ -19,7 +19,7 @@ If two clients point at different folders, each has its own memory. Nothing merg
 Shared, in the notes folder under `_librarian/`:
 
 - `sessions/<UTC date>.md`: one line per captured session
-- `positions/<YYYY-MM>.md`: stances recorded before position capture stopped (read-only history)
+- `positions/<YYYY-MM>.md`: stances you formed or changed, recorded before position capture stopped (read-only history)
 - `stateful-use.jsonl`: a log of when recall and enriched search were used (timestamps only)
 
 Per client:
@@ -125,7 +125,7 @@ Check in this order:
 1. The model wrote the summary line. The hook captures only what the model wrote.
 2. The hook ran. Look for today's file in `_librarian/sessions/`.
 3. Both clients use the same notes folder.
-4. Positions are no longer recorded. Older ones are still recalled from the index; restart the server or reindex if they are missing.
+4. Positions (stances you formed or changed) are no longer recorded. Older ones are still recalled from the index; restart the server or reindex if one is missing.
 
 [If something goes wrong](./getting-started.md#if-something-goes-wrong) has the full checklist.
 

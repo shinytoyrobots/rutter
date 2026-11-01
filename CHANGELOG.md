@@ -6,13 +6,16 @@ outside this repository.
 
 ## Unreleased
 
-- **Position capture has stopped; the positions tool goes in v1.0.0.** Rutter no longer asks your client for a separate position line, and the
-  capture hook stores none: a `librarian-position` comment now gets one stderr line saying capture has stopped,
-  and the session line in the same turn is captured as normal. Session lines already credit you when you decided
-  something and keep your reason (83% of the sampled credited lines in the 14-day trial were real decisions), which
-  covers the questions positions were meant to answer. Positions already recorded stay in
-  `_librarian/positions/` and `librarian-positions` still reads them, marked retired, until it is removed in v1.0.0. Restart your client, or
-  re-run the installer for clients that keep a copy of the instructions, to drop the old line from them. See
+- **Position capture has stopped; the positions tool goes in v1.0.0.** Rutter no longer asks your client for
+  a separate line about a stance you formed or changed (a *position*), and the capture hook stores none. If an
+  old rules file still produces one, the hook prints a note on its diagnostic output and stores nothing; the
+  session line in the same turn is captured as normal. Session lines already say when you made the call and
+  keep your reason. In a 14-day trial on the author's own use, 15 of 18 sampled lines that credited the author
+  were real decisions (83%), and only one position line was written, against four in the 14 days before. That
+  is one person's usage, and the earlier belief questions have not been rerun to confirm that session lines
+  cover what positions did. Positions already recorded stay in `_librarian/positions/`, and
+  `librarian-positions` still reads them until v1.0.0 removes it. Restart your client, or re-run the
+  installer for clients that keep a copy of the instructions, to drop the old line from them. See
   [the position-capture note](./docs/position-retirement-2026-11.md).
 
 ## v0.9.0 — 2026-10-20
