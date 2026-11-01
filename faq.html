@@ -73,7 +73,7 @@
 <p>Shared, in the notes folder under <code>_librarian/</code>:</p>
 <ul>
 <li><code>sessions/&lt;UTC date&gt;.md</code>: one line per captured session</li>
-<li><code>positions/&lt;YYYY-MM&gt;.md</code>: stances you have formed or changed</li>
+<li><code>positions/&lt;YYYY-MM&gt;.md</code>: stances you formed or changed, recorded before position capture stopped (read-only history)</li>
 <li><code>stateful-use.jsonl</code>: a log of when recall and enriched search were used (timestamps only)</li>
 </ul>
 <p>Per client:</p>
@@ -176,7 +176,7 @@
 <li>The model wrote the summary line. The hook captures only what the model wrote.</li>
 <li>The hook ran. Look for today&#39;s file in <code>_librarian/sessions/</code>.</li>
 <li>Both clients use the same notes folder.</li>
-<li>For a position, restart the server or reindex. Positions are recalled from the index.</li>
+<li>Positions (stances you formed or changed) are no longer recorded. Older ones are still recalled from the index; restart the server or reindex if one is missing.</li>
 </ol>
 <p><a href="getting-started.html#if-something-goes-wrong">If something goes wrong</a> has the full checklist.</p>
 <h3 id="can-i-run-two-clients-at-once">Can I run two clients at once?</h3>
@@ -199,7 +199,6 @@
 <li id="some-labels-are-missing"><a href="known-issues.html#some-labels-are-missing">Some labels are missing</a>: now on the Known issues page.</li>
 <li id="there-is-no-pause-or-uninstall-command"><a href="known-issues.html#there-is-no-pause-or-uninstall-command">There is no pause or uninstall command</a>: now on the Known issues page.</li>
 <li id="the-default-notes-folder-is-the-authors"><a href="known-issues.html#the-default-notes-folder-is-the-authors">The default notes folder is the author&#39;s</a>: now on the Known issues page.</li>
-<li id="a-new-position-is-not-recalled-at-once"><a href="known-issues.html#a-new-position-is-not-recalled-at-once">A new position is not recalled at once</a>: now on the Known issues page.</li>
 <li id="references-show-what-the-session-listed"><a href="known-issues.html#references-show-what-the-session-listed">References show what the session listed</a>: now on the Known issues page.</li>
 <li id="some-clients-are-not-covered"><a href="known-issues.html#some-clients-are-not-covered">Some clients are not covered</a>: now on the Known issues page.</li>
 <li id="not-tested"><a href="known-issues.html#not-tested">Not tested</a>: now on the Known issues page.</li>
@@ -219,7 +218,7 @@
 <li><a href="design.html">Why is it built this way?</a>: the design, and what each choice costs</li>
 <li><a href="known-issues.html">Known issues</a></li>
 </ul>
-<p class="ref-line"><code>docs/faq.md@sha256:02449c2be44c · built from main@93001d0</code> · <time class="date" datetime="2026-10-19">19 October 2026</time> · <a href="sources.json">source hashes</a></p>
+<p class="ref-line"><code>docs/faq.md@sha256:c8fcadbe323f · built from main@0e0da08</code> · <time class="date" datetime="2026-11-01">1 November 2026</time> · <a href="sources.json">source hashes</a></p>
 <p class="to-dir"><a href="#doc-directory">Docs navigation</a></p>
 </article>
 </div>

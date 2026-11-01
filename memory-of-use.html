@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>How it works: memory-of-use — rutter</title>
-<meta name="description" content="Memory-of-use is the record of how you used your notes. Capture, recall, enrichment, note identity, positions, what rutter can and cannot establish, and the usage gate, in full.">
+<meta name="description" content="Memory-of-use is the record of how you used your notes. Capture, recall, enrichment, note identity, old positions, what rutter can and cannot establish, and the usage gate, in full.">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -69,7 +69,7 @@
 <li><a href="#recalling-recent-work">Recalling recent work</a></li>
 <li><a href="#search-enrichment">Search enrichment</a></li>
 <li><a href="#note-identity">Note identity</a></li>
-<li><a href="#positions-capturing-a-stance">Positions: capturing a stance</a></li>
+<li><a href="#positions-capture-has-stopped">Positions: capture has stopped</a></li>
 <li><a href="#positions-recalling-a-stance">Positions: recalling a stance</a></li>
 <li><a href="#what-rutter-can-and-cannot-establish">What rutter can and cannot establish</a></li>
 <li><a href="#measuring-whether-it-gets-used">Measuring whether it gets used</a></li>
@@ -134,8 +134,8 @@ leaves the file byte-identical. What follows from the rule:</p>
 deleted.</li>
 <li>A capture with no session id, such as a hand-piped <code>npm run capture</code> test, always appends.</li>
 </ul>
-<p>Position lines follow the same pattern with their own key; see
-<a href="#positions-capturing-a-stance">Positions</a>.</p>
+<p>Position lines (a second, rarer kind of line, about a stance you formed or changed) are no longer
+captured; see <a href="#positions-capture-has-stopped">Positions</a>.</p>
 </li>
 </ul>
 <h3 id="which-workspace-an-entry-came-from">Which workspace an entry came from</h3>
@@ -212,8 +212,8 @@ failure can never break your session.</p>
 folder. That shared folder is how a decision captured in one tool is recalled in another. Each
 record carries a <code>client</code> label naming the host that wrote it (see <a href="#which-client-wrote-it">Which client wrote
 it</a>). The hosts differ in what text the hook reads. On every host the rule
-from <a href="#the-directive">The directive</a> holds: each firing keeps the last session directive and the
-last position in the text it reads, and two directives in that text collapse to the last.</p>
+from <a href="#the-directive">The directive</a> holds: each firing keeps the last session directive in the
+text it reads, and two directives in that text collapse to the last.</p>
 <ul>
 <li><strong>Claude Code</strong> reads the whole transcript. Each firing still keeps only the last directive in
 it. A line that is no longer last survives only if an earlier firing already captured it, so two
@@ -292,8 +292,8 @@ that, when the line is stored. Emit a directive like this whenever a session is 
 <li><code>summary</code> is the one curated line. Required.</li>
 <li><code>refs</code> is an optional list of paths, relative to your notes folder, of notes the session touched.</li>
 <li>Each hook firing keeps only the last directive in the text it reads. So emit each line as its
-outcome lands, and each outcome gets its own firing. Each firing also keeps at most one position
-(see <a href="#positions-capturing-a-stance">Positions</a>), the last in the text it reads.</li>
+outcome lands, and each outcome gets its own firing. A position line in the text is not stored
+(see <a href="#positions-capture-has-stopped">Positions</a>).</li>
 <li>If the hook finds no directive, or the summary is empty, nothing is captured and no empty file is
 created.</li>
 <li>A summary still wrapped in <code>&lt;angle brackets&gt;</code> is treated as an <strong>unfilled template</strong> and captured
@@ -391,8 +391,7 @@ npm run recent -- --project rutter    # just one project
 <h3 id="how-your-client-knows-to-ask">How your client knows to ask</h3>
 <p>You do not have to tell your client when to use rutter. The server&#39;s MCP instructions route
 recency questions to <code>librarian-recent</code>, prior-engagement and content questions to
-<code>librarian-search</code> (then <code>librarian-get-note</code> to read a note in full), and position questions to
-<code>librarian-positions</code>. They also tell the client how to write session and position lines.</p>
+<code>librarian-search</code> (then <code>librarian-get-note</code> to read a note in full), and tell the client how to write session lines.</p>
 <p>The reading-back half travels in the tool descriptions. <code>librarian-recent</code> asks the client to
 report recalled summaries in plain language (see <a href="#old-entries-stay-dense-the-answer-does-not-have-to">Old entries stay
 dense</a>), and
@@ -494,39 +493,27 @@ removed. The identity tables in the SQLite index are, like the rest of the index
 disposable: delete <code>data/librarian.db</code> and reindex, and they rebuild from your notes and the ledger
 alone.</p>
 <hr>
-<h2 id="positions-capturing-a-stance">Positions: capturing a stance</h2>
-<p>Alongside the session summary, your client can leave a second kind of line: a <strong>position
-directive</strong>. It emits one only when a session forms, changes, reaffirms, or retires a stance on a
-topic, which should happen in far fewer sessions than not. For scale, session summaries ran at
-about 19 lines a day in the author&#39;s own use when this was written.</p>
-<pre><code class="language-text">&lt;!-- librarian-position POSITION assert my-topic: I think X because of the meeting notes. --&gt;
-</code></pre>
-<ul>
-<li><code>assert | revise | reaffirm | retire</code> is the directive&#39;s kind, and it alone selects what the
-event does. The stance prose is not classified or interpreted. Two strings inside it are read,
-as described in the stance bullet below: a <code>[[wikilink]]</code> and <code>revises: &lt;event-id&gt;</code>.</li>
-<li><code>&lt;topic-key&gt;</code> is free-form and client-chosen, kebab-case by convention but never enforced. An
-off-convention key is reported on stderr and stored as written.</li>
-<li><code>&lt;stance&gt;</code> is the rest of the line. It is not rewritten for style; it gets the same one-line
-normalization and 2,000-character cut as a session summary (see <a href="#the-style-contract">the style
-contract</a>). A <code>[[wikilink]]</code> anywhere in the stance is captured as a
-versioned reference exactly like a session ref. The text <code>revises: &lt;event-id&gt;</code> anywhere in the
-stance records that this event replaces that earlier one. Neither is stripped out of the stored
-stance.</li>
-<li>Position events are appended to a <strong>wholly separate stream</strong>,
-<code>&lt;notes folder&gt;/_librarian/positions/&lt;YYYY-MM&gt;.md</code>, never to a session record. Emitting one position, or
-many, changes nothing about how session summaries are captured, stored, or read. The reverse
-holds too.</li>
-<li>The duplicate rule has the same shape as a session summary&#39;s. A position is skipped when one
-already recorded in any month has the same session id, kind, topic key, normalized stance,
-sorted reference paths, and <code>revises</code> value. So an unchanged directive re-fired by the same
-session appends nothing, and a capture with no session id always appends.</li>
-</ul>
-<p>Recall is a separate path with its own guarantees. See the next section.</p>
+<h2 id="positions-capture-has-stopped">Positions: capture has stopped</h2>
+<p>Rutter used to ask your client for a second, rarer line, a <strong>position directive</strong>, whenever a
+session formed, changed, reaffirmed or retired a stance on a topic. It no longer does. The
+instructions no longer teach the line, and the capture hook stores none. If an old rules file or a
+model that remembers the grammar still emits one, the hook prints one line on its diagnostic output (stderr)
+saying the position line was not stored, and stores nothing; the session line in the same turn is captured as normal.</p>
+<p>Why: the author trialed new wording for 14 days that makes each session line say when you made the
+call and keep your reason. The author marked a sample of 18 lines that credited them, without seeing
+which session each came from, and 15 were real decisions (83%). In the same window only one position
+line was written, against four in the 14 days before. That is one person&#39;s usage, so read it as a
+signal and not a measurement of how others work. Earlier, 11 of 17 belief questions failed mainly
+because the record did not say who had decided; session lines now carry that. Those questions have not
+been rerun since the change. The evidence is in
+<a href="https://github.com/shinytoyrobots/rutter/blob/main/docs/position-retirement-2026-11.md">position-retirement-2026-11.md</a>.</p>
+<p>Streams already in <code>&lt;notes folder&gt;/_librarian/positions/&lt;YYYY-MM&gt;.md</code> stay exactly as they are
+(append-only history) and are still read by <code>librarian-positions</code>.</p>
+<p>Recall of those older positions is below.</p>
 <hr>
 <h2 id="positions-recalling-a-stance">Positions: recalling a stance</h2>
 <p><code>librarian-positions</code> answers <em>&quot;what do I think about X, and how did that change?&quot;</em> from the stream
-that position capture writes. It is read-only. It reads a <strong>derived table</strong> in the index, rebuilt
+that position capture wrote before it stopped. It is read-only. It reads a <strong>derived table</strong> in the index, rebuilt
 from the position files at each reindex, never the files themselves.</p>
 <p><strong>Ask one of three ways.</strong> They are three different questions, so pass exactly one argument at a
 time:</p>
@@ -568,8 +555,9 @@ reindex, the same way as the identity tables in <a href="#note-identity">Note id
 when you call <code>npm run reindex</code>, or when the server starts and finds something changed. The tables
 are never patched incrementally. Two consequences, both deliberate:</p>
 <ul>
-<li>A position captured since your last reindex is <strong>not</strong> recalled until the next one runs. That
-happens by itself the next time the server starts. It is a disclosed lag, not a silent gap.</li>
+<li>Reindex rebuilds the position tables from the existing streams, and the server does that on its own
+at start-up. Since no new positions are recorded, the answer only changes if a stream file is edited
+by hand.</li>
 <li>Because recall never touches the capture path, capture cannot be disturbed by it. Session
 records, their bytes, and the position write path are unchanged by a reindex rebuilding those
 tables or by any query you make.</li>
@@ -608,8 +596,7 @@ compare. rutter does not report it yet.</li>
 <ul>
 <li>The hook only lifts a line the model wrote. A client that skips the directive leaves nothing to
 capture. An empty summary, or one still wrapped in <code>&lt;angle brackets&gt;</code>, captures nothing.</li>
-<li>Each firing keeps one session summary and one position: the last of each in the text the hook
-reads.</li>
+<li>Each firing keeps one session summary: the last in the text the hook reads.</li>
 <li>Codex reads the final reply only, so a directive in earlier commentary is lost.</li>
 <li>Grok clips its final message at 32,768 characters, so a long turn can drop a trailing directive.</li>
 <li>Antigravity captures nothing from a turn that ended in an error, and needs the rule file, or its
@@ -678,7 +665,7 @@ server instructions alone, is left to manual review of the log. The log captures
 with a timestamp so that review is possible. The project is prepared to conclude that the
 stateful behavior does not get reached for.</p>
 </div>
-<p class="ref-line"><code>docs/memory-of-use.md@sha256:93a1a2922326 · built from main@93001d0</code> · <time class="date" datetime="2026-10-19">19 October 2026</time> · <a href="sources.json">source hashes</a></p>
+<p class="ref-line"><code>docs/memory-of-use.md@sha256:7208a87e36d0 · built from main@0e0da08</code> · <time class="date" datetime="2026-11-01">1 November 2026</time> · <a href="sources.json">source hashes</a></p>
 <p class="to-dir"><a href="#doc-directory">Docs navigation</a></p>
 </article>
 </div>

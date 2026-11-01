@@ -88,7 +88,7 @@
 <p>The server only appends; it has no delete command. The records are your markdown, so you remove an entry by hand:</p>
 <ul>
 <li><strong>A session line:</strong> open <code>_librarian/sessions/&lt;day&gt;.md</code> and delete the entry from the <code>sessions:</code> list in the frontmatter. The frontmatter is the record. The body below it is regenerated from the frontmatter the next time that day&#39;s file grows, so delete the matching body line too if you want it gone now. The day&#39;s top-level <code>refs:</code> list is also rebuilt on the next write. Recall reads these files directly, so the entry disappears from recall at once.</li>
-<li><strong>A position</strong> (a stance you formed or changed): delete the event from <code>_librarian/positions/&lt;YYYY-MM&gt;.md</code>, then run <code>rutter-memory reindex</code> (<code>npm run reindex</code> from a clone) or restart the server, because positions are recalled from the index.</li>
+<li><strong>A position</strong> (recorded before position capture stopped): delete the event from <code>_librarian/positions/&lt;YYYY-MM&gt;.md</code>, then run <code>rutter-memory reindex</code> (<code>npm run reindex</code> from a clone) or restart the server, because positions are recalled from the index.</li>
 <li><strong>Keep the YAML valid.</strong> If a file stops parsing, recall skips it, and capture refuses to write into it rather than overwrite it.</li>
 <li><strong>Mind your history.</strong> If your notes folder is a git repository, the line stays in its history until you rewrite that history.</li>
 </ul>
@@ -96,7 +96,7 @@
 <h2 id="what-leaves-your-machine">What leaves your machine</h2>
 <p>rutter&#39;s server and hook make no network calls and run no model. Your records and index stay in your notes folder and the index file.</p>
 <p>That does not settle what your AI client sends. Whatever rutter&#39;s tools return becomes part of the client&#39;s context: search snippets, a full note from <code>librarian-get-note</code>, recalled summaries, and positions. The client sends its context to its model provider under the client&#39;s own terms. rutter cannot see or change that, and makes no promise about how a provider handles it. Point rutter at a folder you are content for your client to read.</p>
-<p class="ref-line"><code>docs/manage-and-privacy.md@sha256:85c3c6c66670 · built from main@93001d0</code> · <time class="date" datetime="2026-10-19">19 October 2026</time> · <a href="sources.json">source hashes</a></p>
+<p class="ref-line"><code>docs/manage-and-privacy.md@sha256:615a4463a15b · built from main@0e0da08</code> · <time class="date" datetime="2026-11-01">1 November 2026</time> · <a href="sources.json">source hashes</a></p>
 <p class="to-dir"><a href="#doc-directory">Docs navigation</a></p>
 </article>
 </div>

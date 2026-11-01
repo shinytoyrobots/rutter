@@ -12,7 +12,7 @@
 - [Get started](https://ruttermemory.com/getting-started.html): a setup path for each client (the Claude Code plugin, or npm as rutter-memory), from install to first recall
 - [Docs](https://ruttermemory.com/docs.html): every page, in reading order
 - [Why is it built this way?](https://ruttermemory.com/design.html): the design, and what each choice costs
-- [How it works](https://ruttermemory.com/memory-of-use.html): memory-of-use, the record of how you used your notes: capture, recall, enrichment, note identity, positions
+- [How it works](https://ruttermemory.com/memory-of-use.html): memory-of-use, the record of how you used your notes: capture, recall, enrichment, note identity, old positions
 - [FAQ](https://ruttermemory.com/faq.html): how several clients share one memory, adding a client to a working setup, double capture, and missing records
 - [From source](https://ruttermemory.com/from-source.html): set up Claude Code from a clone, for contributors
 - [Pause, remove, and privacy](https://ruttermemory.com/manage-and-privacy.html): notice, pause, or remove capture, and what leaves your machine
