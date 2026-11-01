@@ -75,7 +75,7 @@ you: see [A dead reference is a person's call](#a-dead-reference-is-a-persons-ca
 
 **Recall, in Codex.** Last, in Codex, started in a directory outside the notes folder, the question
 was *"What did I decide about my newsletter's publishing cadence, when, and which notes did that
-decision cite?"* Codex called `librarian-recent` and `librarian-positions` (a tool being removed in v1.0.0; the session records alone now carry who decided what) and answered:
+decision cite?"* Codex called `librarian-recent` and `librarian-positions` (a tool v1.0.0 has since removed; the session records alone now carry who decided what) and answered:
 
 ```text
 Your recorded decision was to **publish every two weeks, with one long essay per issue, replacing the weekly roundup**—because readers wanted more depth and tended to skim the roundup.
@@ -177,9 +177,6 @@ standard way an AI client connects to an outside source of data:
 - `librarian-get-note` — one note's full content, by path.
 - `librarian-recent` — *"what was I working on lately?"* Sessions newest-first, with dates, project
   and references. Filterable by project, day window, or count.
-- `librarian-positions` — *read-only; v1.0.0 removes it.* It recalls stances recorded before position
-  capture stopped in v0.10.0. Nothing new is recorded; session lines now say when you made the call and
-  keep your reason.
 
 The Stop hook runs in Claude Code, Grok, Codex, Copilot CLI, Antigravity, and Muse Code. The tools work with any MCP client. The
 server also sends its own usage guidance to every client that connects. Antigravity saves that
@@ -343,7 +340,7 @@ log counts how often that behavior actually gets reached for, and the project is
 conclude that it isn't. So far the log reads one person's usage. The first reading, in August 2026,
 [came back a pass](./gate-verdict-2026-08.md), and the gate keeps running. The larger design for
 tracking how your beliefs change over time was part-built: position capture and recall shipped in
-August 2026 and capture stopped in November 2026. A 14-day trial found session lines that name who decided
+August 2026, capture stopped in November 2026, and v1.0.0 removed the recall tool. A 14-day trial found session lines that name who decided
 something and why were doing much of that job; the belief questions have not been rerun to confirm it. The rest of that design (drift visibility and a
 backfill) is not built and is out of scope unless the decision is reversed.
 

@@ -3,9 +3,8 @@ import { z } from "zod";
 import { config } from "./config.js";
 import { openDb } from "./db.js";
 import { getNote } from "./search.js";
-import { runSearch, runRecent, runPositions } from "./app.js";
+import { runSearch, runRecent } from "./app.js";
 import { resolveRef } from "./identity.js";
-import { renderNoMatches, renderTopicList, renderTopicNotFound, renderTopicView, } from "./position-render.js";
 import { ownership, foreignVaultMessage } from "./vault-owner.js";
 /**
  * MCP server-level instructions (SR-020 / SCN-006): the librarian's own guidance
@@ -182,75 +181,7 @@ export function createServer(opts = {}) {
             content: [{ type: "text", text: sessions.map((s) => formatRecentSession(s, db)).join("\n\n") }],
         };
     }));
-    server.registerTool("librarian-positions", {
-        title: "Recall a recorded position (retired)",
-        description: `Recall a stance ${config.userLabel} recorded on a topic (SCN-011). Position capture is retired: no new positions are recorded, and this tool reads only those already recorded; session records (librarian-search, librarian-recent) now carry who decided what. Query one of three ways: 'topic' for an exact topic key (one result or an explicit not-found), 'query' for free text matched against recorded stances (all terms must match), or 'note' for the positions that reference a note by path. Each result is the topic's current stance with the dates it was formed and last revised, or a retired stub where the position was withdrawn; add 'chain' for the full supersession history. Read-only, and answered from the last reindex. When you give back a stance this tool returned, say whose it is and when: it is ${config.userLabel}'s own recorded position, formed on the date shown and, where a revision date is shown, last revised then -- a reaffirmation re-endorses a stance without changing it, so it never moves that date. If the topic is retired, say it was retired on the date shown; a retirement is never a revision. Never restate one of these as your own present-tense conclusion without that framing -- it is what ${config.userLabel} recorded, not what you have just worked out.`,
-        inputSchema: {
-            topic: z.string().optional().describe("Exact topic key. Returns one topic or an explicit not-found."),
-            query: z.string().optional().describe("Free text matched against recorded stances (all terms must match). Returns a list."),
-            note: z
-                .string()
-                .optional()
-                .describe("Vault-relative note path; returns the positions whose refs include that note. Returns a list."),
-            chain: z
-                .boolean()
-                .optional()
-                .describe("Include the full supersession chain for each matched topic (default false: the live position only)."),
-        },
-        annotations: { readOnlyHint: true },
-    }, guarded(async ({ topic, query, note, chain }) => {
-        const selected = selectPositionQuery({ topic, query, note });
-        if (!selected.ok)
-            return text(selected.message);
-        // One stateful-use event per invocation, under librarian-positions' own
-        // kind and excluded from the SCN-004 gate (constitution prohibition 9);
-        // reads the materialized projection only, never the write path (SR-058).
-        const result = runPositions(selected.query, { chain }, db);
-        if (result.shape === "single") {
-            // SR-061: a topic key is unique in the fold by construction, so this mode
-            // answers with ONE topic or an explicit miss -- never a list. The miss is
-            // a normal result carrying one text block naming the key, worded exactly
-            // as librarian-get-note's "Note not found: <path>" already is.
-            return text(result.topic ? renderTopicView(result.topic) : renderTopicNotFound(result.topicKey));
-        }
-        if (result.topics.length === 0)
-            return text(noPositionMatches(selected.query));
-        return text(renderTopicList(result.topics));
-    }));
     return server;
-}
-/** Empty-list wording that names which of the two list modes matched nothing. */
-function noPositionMatches(query) {
-    switch (query.mode) {
-        case "text":
-            return renderNoMatches("the text", query.text);
-        case "note":
-            return renderNoMatches("a reference to", query.notePath);
-        case "topic":
-            // Unreachable: topic-key queries answer through the single-result branch.
-            return renderTopicNotFound(query.topicKey);
-    }
-}
-/** One text content block -- the response shape every tool in this server uses. */
-function text(body) {
-    return { content: [{ type: "text", text: body }] };
-}
-function selectPositionQuery(args) {
-    const given = [];
-    if (args.topic !== undefined)
-        given.push({ mode: "topic", topicKey: args.topic });
-    if (args.query !== undefined)
-        given.push({ mode: "text", text: args.query });
-    if (args.note !== undefined)
-        given.push({ mode: "note", notePath: args.note });
-    if (given.length === 1)
-        return { ok: true, query: given[0] };
-    return {
-        ok: false,
-        message: given.length === 0
-            ? "Give librarian-positions exactly one of: topic (an exact topic key), query (free text over recorded stances), or note (a vault-relative note path)."
-            : "Give librarian-positions exactly one of topic, query or note -- they are three different questions, so combining them has no single answer.",
-    };
 }
 /**
  * One search hit, with additive annotations appended only when present:

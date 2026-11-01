@@ -4,6 +4,18 @@ Notable changes to rutter, newest first. Detailed per-ship records — grounds,
 disclosed gaps, and what is being watched — are kept by the maintainer
 outside this repository.
 
+## v1.0.0 — 2026-11-01
+
+- **The positions tool is removed.** `librarian-positions` and the code behind it (the recall query, the
+  fold and its index tables) are gone. A client that still calls it gets the standard "tool not found" error.
+  Session lines already carry who decided what and why, and are what `librarian-search` and `librarian-recent`
+  return. Positions already recorded stay in `_librarian/positions/` as your own history: rutter no longer reads
+  them, never changes them, and drops the old position tables from its index the next time it reindexes. Old
+  `librarian-positions` lines in `stateful-use.jsonl` stay and are ignored. If an old rules file still produces a
+  position line, the capture hook still prints its note and stores nothing; that note has no end date. A client
+  that cached the old instructions keeps mentioning the tool until you restart it, or re-run the installer for
+  clients that keep a copy. The installer prints a one-line reminder.
+
 ## v0.10.0 — 2026-11-01
 
 - **Position capture has stopped; the positions tool goes in v1.0.0.** Rutter no longer asks your client for

@@ -198,7 +198,7 @@ function assistantMessage(payload) {
 // ---------------------------------------------------------------------------
 // Position capture is retired (docs/position-retirement-2026-11.md).
 // ---------------------------------------------------------------------------
-const POSITION_TAG = /<!--\s*librarian-position\b/;
+const POSITION_TAG = /<!--\s*librarian-position(?![\w-])/;
 /**
  * A `librarian-position` comment or a direct `position` field can still arrive from
  * rules files installed before the retirement or from a model that remembers the old

@@ -245,7 +245,7 @@ direction, not scheduled, until someone decides to build it.
 
 **Position capture stopped 2026-11-01 (v0.10.0)** (Branch D, `docs/position-retirement-2026-11.md`): record quality now rests on the actor-credit session line alone.
 
-**Release path (Robin, 2026-11-01).** v0.10.0 stops capture: `librarian-positions` stays read-only and marked retired, spec v16.0.0, docs updated here and the `gh-pages` site refreshed in a follow-up PR (`npm run site-drift` shows what is stale). Then `/flow-panel` reads the amended spec slice (SCN-011, SCN-015, SR-056, SR-073..076, SR-105). Then v1.0.0 removes `librarian-positions` and the recall code, and retires SCN-011.
+**Release path (Robin, 2026-11-01).** v0.10.0 stopped capture. The `/flow-panel` round on the amended spec slice produced spec v17.0.0. v1.0.0 removes `librarian-positions`, the recall, fold and render code and the position index tables, and retires SCN-011. The `gh-pages` site follows in a separate PR (`npm run site-drift` shows what is stale).
 
 **Redefined 2026-10-26.** With unprompted recall retired, "discursive" means answers told as
 a history when asked, not a voice. Three parts:

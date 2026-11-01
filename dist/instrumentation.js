@@ -14,8 +14,9 @@ import { appendLine } from "./fs-safe.js";
  * logged, visible, and simply not counted until somebody adds it here on
  * purpose.
  *
- * `librarian-positions` (SCN-011) is therefore logged under its own kind and
- * absent from this list.
+ * Older logs still hold `librarian-positions` lines from releases before v1.0.0. They
+ * stay in the file (INV-3), appear in no list here, and every reader skips them
+ * without error and without counting them (SR-012).
  */
 export const GATE_KINDS = ["librarian-recent", "search-signal"];
 /** Does this event count toward the SCN-004 gate metric? (prohibition 9) */
