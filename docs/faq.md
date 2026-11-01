@@ -19,7 +19,7 @@ If two clients point at different folders, each has its own memory. Nothing merg
 Shared, in the notes folder under `_librarian/`:
 
 - `sessions/<UTC date>.md`: one line per captured session
-- `positions/<YYYY-MM>.md`: stances recorded before position capture was retired (read-only history)
+- `positions/<YYYY-MM>.md`: stances recorded before position capture stopped (read-only history)
 - `stateful-use.jsonl`: a log of when recall and enriched search were used (timestamps only)
 
 Per client:

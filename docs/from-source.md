@@ -138,7 +138,7 @@ Any other MCP client works too: register `node "$PWD/dist/stdio.js"` as a stdio 
 /mcp
 ```
 
-You should see `rutter` listed with four tools: `librarian-search`, `librarian-get-note`, `librarian-recent`, and `librarian-positions` (retired: it only reads old records, and goes in v1.0.0).
+You should see `rutter` listed with four tools: `librarian-search`, `librarian-get-note`, `librarian-recent`, and `librarian-positions` (read-only: it only reads old records, and goes in v1.0.0).
 
 ## M6 — Install the Stop hook
 

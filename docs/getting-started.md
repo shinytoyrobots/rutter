@@ -65,7 +65,7 @@ Choose your notes folder when asked, then run `/reload-plugins`. If you install 
 /mcp
 ```
 
-You should see `rutter` listed with four tools: `librarian-search`, `librarian-get-note`, `librarian-recent`, and `librarian-positions` (retired: it only reads old records, and goes in v1.0.0).
+You should see `rutter` listed with four tools: `librarian-search`, `librarian-get-note`, `librarian-recent`, and `librarian-positions` (read-only: it only reads old records, and goes in v1.0.0).
 
 **3. Do one small real task.** Open a project directory you work in and make one decision or one small change. A "hello" leaves nothing worth recalling. As the work finishes, your client leaves a one-line summary on its own. You never write it yourself.
 

@@ -6,14 +6,14 @@ outside this repository.
 
 ## Unreleased
 
-- **Position capture is retired.** Rutter no longer asks your client for a separate position line, and the
-  capture hook stores none: a `librarian-position` comment now gets one stderr line saying capture is retired,
+- **Position capture has stopped; the positions tool goes in v1.0.0.** Rutter no longer asks your client for a separate position line, and the
+  capture hook stores none: a `librarian-position` comment now gets one stderr line saying capture has stopped,
   and the session line in the same turn is captured as normal. Session lines already credit you when you decided
   something and keep your reason (83% of the sampled credited lines in the 14-day trial were real decisions), which
   covers the questions positions were meant to answer. Positions already recorded stay in
-  `_librarian/positions/` and `librarian-positions` still reads them, marked retired. Restart your client, or
+  `_librarian/positions/` and `librarian-positions` still reads them, marked retired, until it is removed in v1.0.0. Restart your client, or
   re-run the installer for clients that keep a copy of the instructions, to drop the old line from them. See
-  [the retirement note](./docs/position-retirement-2026-11.md).
+  [the position-capture note](./docs/position-retirement-2026-11.md).
 
 ## v0.9.0 — 2026-10-20
 

@@ -60,8 +60,7 @@ Session memory lives in your notes folder, as plain, human-readable, git-committ
     deleted.
   - A capture with no session id, such as a hand-piped `npm run capture` test, always appends.
 
-  Position lines follow the same pattern with their own key; see
-  [Positions](#positions-capturing-a-stance).
+  Position lines are no longer captured; see [Positions](#positions-capture-has-stopped).
 
 ### Which workspace an entry came from
 
@@ -236,8 +235,8 @@ that, when the line is stored. Emit a directive like this whenever a session is 
 - `summary` is the one curated line. Required.
 - `refs` is an optional list of paths, relative to your notes folder, of notes the session touched.
 - Each hook firing keeps only the last directive in the text it reads. So emit each line as its
-  outcome lands, and each outcome gets its own firing. Each firing also keeps at most one position
-  (see [Positions](#positions-capturing-a-stance)), the last in the text it reads.
+  outcome lands, and each outcome gets its own firing. A position line in the text is not stored
+  (see [Positions](#positions-capture-has-stopped)).
 - If the hook finds no directive, or the summary is empty, nothing is captured and no empty file is
   created.
 - A summary still wrapped in `<angle brackets>` is treated as an **unfilled template** and captured
@@ -480,13 +479,13 @@ alone.
 
 ---
 
-## Positions: capture is retired
+## Positions: capture has stopped
 
 Rutter used to ask your client for a second, rarer line, a **position directive**, whenever a
 session formed, changed, reaffirmed or retired a stance on a topic. It no longer does. The
 instructions no longer teach the line, and the capture hook stores none. If an old rules file or a
 model that remembers the grammar still emits one, the hook writes one stderr line saying position
-capture is retired and stores nothing; the session line in the same turn is captured as normal.
+capture has stopped and stores nothing; the session line in the same turn is captured as normal.
 
 Why: in a 14-day trial of the actor-credit wording, session lines credited you for decisions you
 made 83% of the time (15 of 18 marked lines), and only one position line was written in 13 days

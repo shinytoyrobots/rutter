@@ -6,16 +6,16 @@ updated: 2026-11-01
 domain: capture
 ---
 
-# Position capture retired (Branch D)
+# Position capture stopped (Branch D)
 
-Robin decided on 2026-11-01 to retire position capture: Branch D in `docs/positions-plan.md` (2.D). This note records the evidence so the decision can be revisited.
+Robin decided on 2026-11-01 to stop position capture (v0.10.0) and remove the positions tool in v1.0.0: Branch D in `docs/positions-plan.md` (2.D). This note records the evidence so the decision can be revisited.
 
 ## What changed
 
 - The server instructions no longer teach the `librarian-position` line or route "what do I think" questions to `librarian-positions`.
 - `capture-cli` no longer writes position events. A `librarian-position` comment in the Stop event's assistant message, or a direct `position` field, gets one stderr line ("position capture is retired") and is not stored. The session line in the same turn is captured as normal.
 - `src/position.ts` and `src/position-directive.ts` are removed. The kind schema moved into `src/positions.ts`.
-- `librarian-positions` stays, read-only, until the release after the one that ships this retirement (Robin, 2026-11-01), with a retirement notice in its title and description. The existing stream in `_librarian/positions/` is never touched.
+- `librarian-positions` stays, read-only, until v1.0.0 (Robin, 2026-11-01), with a retirement notice in its title and description. The existing stream in `_librarian/positions/` is never touched.
 - A test-only builder (`test/position-seed.ts`) keeps the recall and storage tests able to put events on disk.
 
 ## Evidence
@@ -26,7 +26,7 @@ Robin decided on 2026-11-01 to retire position capture: Branch D in `docs/positi
 
 ## Not done
 
-- The 17 belief questions were **not rerun** against the post-trial setup, and the position spot check (five known beliefs) was **not run**. Robin chose to retire without them.
+- The 17 belief questions were **not rerun** against the post-trial setup, and the position spot check (five known beliefs) was **not run**. Robin chose to stop capture without them.
 - The spec (SR-047 to SR-057, SCN-010, and SCN-011's capture references) still describes position capture. It is owned by the flow spec process and needs its own change.
 
 ## What would change this
