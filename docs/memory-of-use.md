@@ -356,8 +356,7 @@ npm run recent -- --project rutter    # just one project
 
 You do not have to tell your client when to use rutter. The server's MCP instructions route
 recency questions to `librarian-recent`, prior-engagement and content questions to
-`librarian-search` (then `librarian-get-note` to read a note in full), and position questions to
-`librarian-positions`. They also tell the client how to write session and position lines.
+`librarian-search` (then `librarian-get-note` to read a note in full), and tell the client how to write session lines.
 
 The reading-back half travels in the tool descriptions. `librarian-recent` asks the client to
 report recalled summaries in plain language (see [Old entries stay
@@ -481,38 +480,24 @@ alone.
 
 ---
 
-## Positions: capturing a stance
+## Positions: capture is retired
 
-Alongside the session summary, your client can leave a second kind of line: a **position
-directive**. It emits one only when a session forms, changes, reaffirms, or retires a stance on a
-topic, which should happen in far fewer sessions than not. For scale, session summaries ran at
-about 19 lines a day in the author's own use when this was written.
+Rutter used to ask your client for a second, rarer line, a **position directive**, whenever a
+session formed, changed, reaffirmed or retired a stance on a topic. It no longer does. The
+instructions no longer teach the line, and the capture hook stores none. If an old rules file or a
+model that remembers the grammar still emits one, the hook writes one stderr line saying position
+capture is retired and stores nothing; the session line in the same turn is captured as normal.
 
-```text
-<!-- librarian-position POSITION assert my-topic: I think X because of the meeting notes. -->
-```
+Why: in a 14-day trial of the actor-credit wording, session lines credited you for decisions you
+made 83% of the time (15 of 18 marked lines), and only one position line was written in 13 days
+against four in the 14 days before. Session lines now carry who decided what and why, which was the
+gap position capture was meant to fill. The evidence is in
+[position-retirement-2026-11.md](./position-retirement-2026-11.md).
 
-- `assert | revise | reaffirm | retire` is the directive's kind, and it alone selects what the
-  event does. The stance prose is not classified or interpreted. Two strings inside it are read,
-  as described in the stance bullet below: a `[[wikilink]]` and `revises: <event-id>`.
-- `<topic-key>` is free-form and client-chosen, kebab-case by convention but never enforced. An
-  off-convention key is reported on stderr and stored as written.
-- `<stance>` is the rest of the line. It is not rewritten for style; it gets the same one-line
-  normalization and 2,000-character cut as a session summary (see [the style
-  contract](#the-style-contract)). A `[[wikilink]]` anywhere in the stance is captured as a
-  versioned reference exactly like a session ref. The text `revises: <event-id>` anywhere in the
-  stance records that this event replaces that earlier one. Neither is stripped out of the stored
-  stance.
-- Position events are appended to a **wholly separate stream**,
-  `<notes folder>/_librarian/positions/<YYYY-MM>.md`, never to a session record. Emitting one position, or
-  many, changes nothing about how session summaries are captured, stored, or read. The reverse
-  holds too.
-- The duplicate rule has the same shape as a session summary's. A position is skipped when one
-  already recorded in any month has the same session id, kind, topic key, normalized stance,
-  sorted reference paths, and `revises` value. So an unchanged directive re-fired by the same
-  session appends nothing, and a capture with no session id always appends.
+Streams already in `<notes folder>/_librarian/positions/<YYYY-MM>.md` stay exactly as they are
+(append-only history) and are still read by `librarian-positions`.
 
-Recall is a separate path with its own guarantees. See the next section.
+Recall of those older positions is below.
 
 ---
 
@@ -566,8 +551,9 @@ reindex, the same way as the identity tables in [Note identity](#note-identity).
 when you call `npm run reindex`, or when the server starts and finds something changed. The tables
 are never patched incrementally. Two consequences, both deliberate:
 
-- A position captured since your last reindex is **not** recalled until the next one runs. That
-  happens by itself the next time the server starts. It is a disclosed lag, not a silent gap.
+- Reindex rebuilds the position tables from the existing streams, and the server does that on its own
+  at start-up. Since no new positions are recorded, the answer only changes if a stream file is edited
+  by hand.
 - Because recall never touches the capture path, capture cannot be disturbed by it. Session
   records, their bytes, and the position write path are unchanged by a reindex rebuilding those
   tables or by any query you make.

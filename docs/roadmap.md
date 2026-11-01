@@ -243,6 +243,10 @@ is real and acted on. A personality on a write-only record is a costume.
 (read-value, decided qualitatively). This clears the gate; Phase 5 is still a
 direction, not scheduled, until someone decides to build it.
 
+**Position capture retired 2026-11-01** (Branch D, `docs/position-retirement-2026-11.md`): record quality now rests on the actor-credit session line alone.
+
+**Release path (Robin, 2026-11-01).** v0.10.0 ships the retirement: capture stops, `librarian-positions` stays read-only and marked retired, spec v16.0.0, docs updated here and the `gh-pages` site refreshed in a follow-up PR (`npm run site-drift` shows what is stale). Then `/flow-panel` reads the amended spec slice (SCN-011, SCN-015, SR-056, SR-073..076, SR-105). Then v1.0.0 removes `librarian-positions` and the recall code, and retires SCN-011.
+
 **Redefined 2026-10-26.** With unprompted recall retired, "discursive" means answers told as
 a history when asked, not a voice. Three parts:
 

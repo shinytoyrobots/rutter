@@ -75,7 +75,7 @@ you: see [A dead reference is a person's call](#a-dead-reference-is-a-persons-ca
 
 **Recall, in Codex.** Last, in Codex, started in a directory outside the notes folder, the question
 was *"What did I decide about my newsletter's publishing cadence, when, and which notes did that
-decision cite?"* Codex called `librarian-recent` and `librarian-positions` and answered:
+decision cite?"* Codex called `librarian-recent` and `librarian-positions` (a tool since retired; the session records alone now carry who decided what) and answered:
 
 ```text
 Your recorded decision was to **publish every two weeks, with one long essay per issue, replacing the weekly roundup**—because readers wanted more depth and tended to skim the roundup.
@@ -136,8 +136,7 @@ Protocol) server. Any MCP client can read the memory. Writing needs a hook that 
 and a payload rutter knows how to read. Six clients have a working hook today: Claude Code, Grok,
 Codex, GitHub Copilot CLI, the Antigravity command-line tool (`agy`), and Muse Code.
 
-A session summary captured in any of them is available to all of them straight away. Positions
-appear after the next reindex. The memory belongs to the folder and to you. A tool you add later
+A session summary captured in any of them is available to all of them straight away. The memory belongs to the folder and to you. A tool you add later
 reads the same records.
 
 "Shared" means one person's tools sharing one memory. It does not mean shared between people. The
@@ -178,12 +177,9 @@ standard way an AI client connects to an outside source of data:
 - `librarian-get-note` — one note's full content, by path.
 - `librarian-recent` — *"what was I working on lately?"* Sessions newest-first, with dates, project
   and references. Filterable by project, day window, or count.
-- `librarian-positions` — *"what do I think about X, and did that change?"* One topic by its exact
-  key, or a list found by free text over recorded stances, or by a note the positions reference.
-  Each answer carries the date the stance was formed and the date it was last revised, so a client
-  reports it as your recorded position and not as its own conclusion. Answered from the last
-  reindex, so a position captured since then appears after the next one — which the server runs
-  itself the next time it starts.
+- `librarian-positions` — *retired.* It still reads the stances recorded before position capture was
+  retired in v0.10.0, and it will be removed in v1.0.0. Nothing new is recorded; session lines
+  now say when you made the call and keep your reason.
 
 The Stop hook runs in Claude Code, Grok, Codex, Copilot CLI, Antigravity, and Muse Code. The tools work with any MCP client. The
 server also sends its own usage guidance to every client that connects. Antigravity saves that
@@ -199,7 +195,7 @@ of truth; the index is a convenience.
 
 Everything the current spec describes has shipped. That is full-text search, ambient capture and
 the style contract, plus workspace provenance, prior-engagement annotations on search results,
-references that survive renames, instrumentation on its own use, position capture and recall, and
+references that survive renames, instrumentation on its own use, and
 a label on each record naming the host client that wrote it. The one stub is embeddings and
 semantic search. The limits are collected in [What rutter can and cannot
 establish](#what-rutter-can-and-cannot-establish), and every mechanism is described in full in
@@ -346,10 +342,10 @@ something you depend on where it was. The useful thing to take is the mechanism.
 log counts how often that behavior actually gets reached for, and the project is prepared to
 conclude that it isn't. So far the log reads one person's usage. The first reading, in August 2026,
 [came back a pass](./gate-verdict-2026-08.md), and the gate keeps running. The larger design for
-tracking how your beliefs change over time is part-built: position capture and recall shipped in
-August 2026, after logged friction asked for them. The rest of that design is not built — drift
-visibility, which would tell you the notes a position rests on have changed since it was formed,
-and an optional backfill of positions from records that predate capture. Both wait on observed use.
+tracking how your beliefs change over time was part-built: position capture and recall shipped in
+August 2026 and were retired in November 2026, because session lines that name who decided
+something and why answered the same questions. The rest of that design (drift visibility and a
+backfill) is not built and is out of scope unless the retirement is reversed.
 
 ## Try it
 
@@ -361,7 +357,7 @@ each ending in a capture check and a recall check. To work from a clone, see [fr
 ## Further reading
 
 - [`getting-started.md`](./getting-started.md) — a setup path for each client, from install to first recall.
-- [`memory-of-use.md`](./memory-of-use.md) — capture, recall, enrichment, note identity, positions,
+- [`memory-of-use.md`](./memory-of-use.md) — capture, recall, enrichment, note identity, retired positions,
   the trust boundary, and the usage gate, in full mechanical detail.
 - [`known-issues.md`](./known-issues.md) — what is confirmed broken or untested.
 - [`roadmap.md`](./roadmap.md) — current sequencing, and what is deliberately not being built.

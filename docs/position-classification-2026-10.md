@@ -2,7 +2,7 @@
 type: report
 status: in-progress
 created: 2026-10-20
-updated: 2026-10-20
+updated: 2026-11-01
 domain: capture
 ---
 
@@ -85,3 +85,12 @@ Wording, in the style paragraph: "...(terms the vault uses are fine); credit the
 | E | 13 of 19 (68%) | 46 of 70 | 26 | 17 |
 
 E credits the user for the decisions C did and clears the 60% bar, with about half C's request-type noise and the most decision-type credits of any variant. The misses under the strict rule: #1 tagline (credited as "at the user's request"), #14 version ("as the user suggested"), #10 standalone path for every client (not recorded), #12 voice guides, #17 dotfiles, #18 decision-vs-position (credited as "at the user's request"). The relayed-review lines read "Robin's review finding, accepted", consistent with Robin's tacit-approval ruling.
+
+## 2.E actor-credit trial result (read 2026-11-01, day 13)
+
+Window from 2026-10-20T13:46Z, when v0.9.0 reached Robin's install (about 55 of that day's 68 lines predate it). 218 trial lines against the 286-line baseline (2026-10-06 to 2026-10-19).
+
+- **Primary: passed.** Of 18 credited lines Robin marked blind, 15 were real decisions and 3 were requests ("at Robin's request", "Robin asked for…", "Robin confirmed…"): 83% against a 70% bar. About 16 credited lines in total (keyword count, a floor), above the minimum of 10. Robin marked a sample, not every credited line.
+- **Guardrail: passed on volume, length and reasons.** Lines per active day 19.8 against 23.8 (down 17%, limit 25%). Median 40 words against 38. Lines over 60 words 2.3% against 0.3% (limit 5%). Lines keeping a stated reason, blind sample of 20 each: 15 of 20 (trial) against 17 of 20 (baseline).
+- **Guardrail: positions not run.** One position line in the window against four in the baseline. The five-case spot check was skipped; Robin retired position capture instead (see `docs/position-retirement-2026-11.md`).
+- **Next-attempt examples** (credit for asking): "at Robin's request" (appendix slides removed), "Robin asked for" (LinkedIn About), "Robin confirmed" (control plane).
