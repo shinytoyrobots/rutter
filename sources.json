@@ -1,16 +1,16 @@
 {
   "comment": "Content hashes of the repo docs this site was built from \u2014 the site's own ref line. Run `npm run site-drift` on main to compare; drift here means the published site has gone stale against its sources, which is exactly the failure this project exists to make visible.",
-  "builtFrom": "0e0da08",
+  "builtFrom": "2e52a16",
   "generated": "2026-11-01",
   "sources": {
     "docs/index.md": "sha256:5a9fb958c7e9d6936977549755d9a0867e63915c8a18f39c7ebceedd0616b338",
-    "docs/overview.md": "sha256:055b4647950190e06b597e6884035962f8d697d53b81b6c9757c871a1f450da0",
-    "docs/getting-started.md": "sha256:ced950c8bff255045efd7a28ad5256e162da96c13fd5634b369b1e8d730532b5",
-    "docs/faq.md": "sha256:c8fcadbe323fbdf864922af5062b5674187d8548f710e4032d2554b09a45d847",
-    "docs/memory-of-use.md": "sha256:7208a87e36d033d7b02851e8b26b9c103d95608eb4b3b33b702d6807e2cbe03d",
-    "docs/from-source.md": "sha256:9a3f2756a80e9754b49ab723c86ec3e589d2d6f3bc2a0eaa8158506d370cccc2",
-    "docs/manage-and-privacy.md": "sha256:615a4463a15b08a99a5089485f98b6f9a21d76608d549df257b2113a310dcd47",
+    "docs/overview.md": "sha256:cd2b9074b6fc1bed3db2d70b4e387dd405fbabf083bcc5be78ee28a8d4bd16fa",
+    "docs/getting-started.md": "sha256:b8d766901111c9ef5cfd71b71cd6745c19f6cca6102adaa01c519ae24ea411c2",
+    "docs/faq.md": "sha256:f9fe6ebf71efa5c9d88deceb32fd1e673fe2a5b7368f4d3cc0ea8c1649115ef1",
+    "docs/memory-of-use.md": "sha256:25cdeac4f34c5ef0563b98a251c1b1c59145fb37a4fcea5e5191aca24de8576b",
+    "docs/from-source.md": "sha256:04d26be52f870f450b28c462def613810c033d5d649bcbba1e024bcc47e8dfea",
+    "docs/manage-and-privacy.md": "sha256:86995d1224f4510db3ce96d2fb37e8719d9d295c5274060a1a77a82945e2db0d",
     "docs/known-issues.md": "sha256:3a7c80782bc58f9c0a95517d19e7e08b351001bf75022e26addc0fae0c539e3a",
-    "docs/docs.md": "sha256:93e595b401bc406ff56c3d335fb695faee2325c4bc1836ec34119203cdaa71c9"
+    "docs/docs.md": "sha256:97b45a61cb0e36810b83421f33b99bc57a5ccf7145c9ed6f42fa18c9ddb23576"
   }
 }

@@ -73,7 +73,7 @@
 <p>Shared, in the notes folder under <code>_librarian/</code>:</p>
 <ul>
 <li><code>sessions/&lt;UTC date&gt;.md</code>: one line per captured session</li>
-<li><code>positions/&lt;YYYY-MM&gt;.md</code>: stances you formed or changed, recorded before position capture stopped (read-only history)</li>
+<li><code>positions/&lt;YYYY-MM&gt;.md</code>: stances you formed or changed, recorded before position capture stopped (your own history; rutter no longer reads it)</li>
 <li><code>stateful-use.jsonl</code>: a log of when recall and enriched search were used (timestamps only)</li>
 </ul>
 <p>Per client:</p>
@@ -176,7 +176,7 @@
 <li>The model wrote the summary line. The hook captures only what the model wrote.</li>
 <li>The hook ran. Look for today&#39;s file in <code>_librarian/sessions/</code>.</li>
 <li>Both clients use the same notes folder.</li>
-<li>Positions (stances you formed or changed) are no longer recorded. Older ones are still recalled from the index; restart the server or reindex if one is missing.</li>
+<li>Positions (stances you formed or changed) are no longer recorded, and v1.0.0 removed the tool that recalled them. Session lines carry who decided what.</li>
 </ol>
 <p><a href="getting-started.html#if-something-goes-wrong">If something goes wrong</a> has the full checklist.</p>
 <h3 id="can-i-run-two-clients-at-once">Can I run two clients at once?</h3>
