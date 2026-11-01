@@ -4,7 +4,7 @@ Notable changes to rutter, newest first. Detailed per-ship records — grounds,
 disclosed gaps, and what is being watched — are kept by the maintainer
 outside this repository.
 
-## Unreleased
+## v0.10.0 — 2026-11-01
 
 - **Position capture has stopped; the positions tool goes in v1.0.0.** Rutter no longer asks your client for
   a separate line about a stance you formed or changed (a *position*), and the capture hook stores none. If an
