@@ -1305,7 +1305,7 @@ SRs (SR-100+) have no parent.
   over an arbitrary date range, sufficient to evaluate the ≥3×/week-for-2-weeks gate.
   Historical `librarian-positions` lines in `stateful-use.jsonl` remain in the log, and
   every reader of the log shall skip them without error and without counting them.
-  *(ubiquitous)* `# ← SCN-004; amended v17.0.0 (historical lines from the removed tool; TODO(flow-eval): no test reads a log containing one; mapping-pending: true)`
+  *(ubiquitous)* `# ← SCN-004; amended v17.0.0 (historical lines from the removed tool; verified by test/positions-removed.test.ts (SR-012); TODO(flow-eval): harness mapping; mapping-pending: true)`
 - **SR-013** — If a capture invocation carries a session id and directive content
   identical (after inert-line normalization) to an entry already recorded for that
   session, then the system shall append nothing and leave the session record
@@ -1525,7 +1525,7 @@ SRs (SR-100+) have no parent.
   position capture is retired and the position line was not stored; the check shall
   read only the direct field and the turn reply, never the session's accumulated
   transcript. *(unwanted-behavior)*
-  `# ← SCN-015; added v16.0.0 (position retirement); amended v17.0.0 (trigger defined, F7; matches the shipped pattern /<!--\s*librarian-position\b/ in src/capture-cli.ts, which a "librarian-positions" token does not match); verified by test/codex-capture.test.ts (CODEX-2, CODEX-4b), test/antigravity-capture.test.ts (AGY-6), test/record-guard.test.ts (direct field); TODO(flow-eval): no test counts the notice lines (tests match, not count) or proves that a mention outside the turn reply gets no notice; mapping-pending: true`
+  `# ← SCN-015; added v16.0.0 (position retirement); amended v17.0.0 (trigger defined, F7; matches the shipped pattern /<!--\s*librarian-position(?![\w-])/ in src/capture-cli.ts, which a "librarian-positions" token does not match); verified by test/codex-capture.test.ts (CODEX-2, CODEX-4b, CODEX-4c: unterminated comment counts, prose mention and a `librarian-positions` token do not), test/antigravity-capture.test.ts (AGY-6), test/record-guard.test.ts (direct field); TODO(flow-eval): no test counts the notice lines (tests match, not count) or proves that a mention outside the turn reply gets no notice; harness mapping; mapping-pending: true`
 - **SR-075** — When a capture invocation carries both a session directive and a
   position line, the system shall capture the session directive exactly as it would
   if the position line were absent: the stored entry shall be identical in every
@@ -1563,15 +1563,15 @@ SRs (SR-100+) have no parent.
   `_librarian/positions/`, and reindex shall neither read those files nor keep any
   position table (a table left by an earlier build is dropped at the next reindex);
   the files stay on disk as the user's own history. *(ubiquitous)*
-  `# added v16.0.0 (position retirement); restated v17.0.0 (F2); refines INV-3 / constitution prohibition 3; no scenario parent; capture side verified by the "no positions file" assertions in test/codex-capture.test.ts, test/antigravity-capture.test.ts and test/record-guard.test.ts; TODO(flow-eval): no surviving test for the reindex side (no read, tables dropped) — its former verifier, test/position-recall.test.ts "SR-065 (MANDATORY)", is deleted with the tool; mapping-pending: true`
+  `# added v16.0.0 (position retirement); restated v17.0.0 (F2); refines INV-3 / constitution prohibition 3; no scenario parent; capture side verified by the "no positions file" assertions in test/codex-capture.test.ts, test/antigravity-capture.test.ts and test/record-guard.test.ts; reindex side verified by test/positions-removed.test.ts (SR-105) and test/startup-index.test.ts (position streams are not an index input); TODO(flow-eval): harness mapping; mapping-pending: true`
 - **SR-106** — Reindexing and every tool query shall leave each `session-record@1`
   file byte-for-byte unchanged and shall not change SCN-001/SCN-002 behavior.
   *(ubiquitous)*
-  `# added v17.0.0; carries forward the general part of retired SR-065 (re-parented as SR-056 was at v16.0.0); refines INV-3; TODO(flow-eval): no surviving test — its former verifier, test/position-recall.test.ts "SR-065 (MANDATORY)", is deleted with the tool; mapping-pending: true`
+  `# added v17.0.0; carries forward the general part of retired SR-065 (re-parented as SR-056 was at v16.0.0); refines INV-3; verified by test/positions-removed.test.ts (SR-106); TODO(flow-eval): harness mapping; mapping-pending: true`
 - **SR-107** — The server shall register no tool named `librarian-positions`, and a
   call to that name shall get the same standard unknown-tool error the MCP SDK gives
   any unregistered tool, with no stub handler. *(ubiquitous)*
-  `# added v17.0.0 (F1, Robin 2026-11-01); no scenario parent; TODO(flow-eval): no test yet (none in the repo calls an unregistered tool); mapping-pending: true`
+  `# added v17.0.0 (F1, Robin 2026-11-01); no scenario parent; verified by test/positions-removed.test.ts (SR-107, compares the call against another unregistered name); TODO(flow-eval): harness mapping; mapping-pending: true`
 
 ---
 
@@ -1692,6 +1692,11 @@ SR-012, SR-066, SR-074 and SR-105. Missing tests: session records unchanged by
 reindex and queries (SR-106), the unknown-tool error for `librarian-positions`
 (SR-107), reindex ignoring the positions files and dropping old tables (SR-105), and a
 log containing historical `librarian-positions` lines (SR-012).
+
+*(v17.0.0, shipped as product v1.0.0)* Those four tests now exist: `test/positions-removed.test.ts`
+covers SR-012, SR-105, SR-106 and SR-107, `test/startup-index.test.ts` covers the SR-105 reindex
+input, and CODEX-4c covers the SR-074 trigger. `mapping-pending` stays true for all of them
+until flow-eval maps them into a harness, which is not in this repository.
 
 ---
 
