@@ -484,8 +484,8 @@ alone.
 Rutter used to ask your client for a second, rarer line, a **position directive**, whenever a
 session formed, changed, reaffirmed or retired a stance on a topic. It no longer does. The
 instructions no longer teach the line, and the capture hook stores none. If an old rules file or a
-model that remembers the grammar still emits one, the hook writes one stderr line saying position
-capture has stopped and stores nothing; the session line in the same turn is captured as normal.
+model that remembers the grammar still emits one, the hook writes one stderr line saying the position
+line was not stored, and stores nothing; the session line in the same turn is captured as normal.
 
 Why: in a 14-day trial of the actor-credit wording, session lines credited you for decisions you
 made 83% of the time (15 of 18 marked lines), and only one position line was written in 13 days
