@@ -5,7 +5,7 @@ effort:
   - s1-5-ambient-capture   # converged
   - decision-graph         # active (v3.8.0 Phase 0 shipped; v3.12.0 Phase A drafted; v4.0.0 panel amendments; v5.0.0 SR-056 baseline correction; v6.0.0 wire-format ratification; v7.0.0 Phase B drafted; v8.0.0 retired-stub content pinned; v9.0.0 fold timing pinned; v10.0.0 response envelope pinned; v11.0.0 incremental-clause dropped; v12.0.0 attribution semantics pinned; v13.0.0 dormancy/retirement exemption pinned; v14.0.0 not-found shape + match scope pinned; v16.0.0 Phase A position capture retired, Phase B kept as a legacy read-only surface; v17.0.0 Phase B retired, librarian-positions removed)
 last-amended: 2026-11-01
-mapping-pending: true      # SR-012/SR-074/SR-105 (amended v17.0.0) + SR-106/SR-107 (v17.0.0) + SCN-015/SR-073..SR-075 (v16.0.0, position retirement) + SR-056 (re-parented to SCN-006 at v16.0.0) + SCN-012/SCN-013/SR-066..SR-072 (v15.0.0, client label) + SR-104 (bound pending gen-1 calibration) — entirely unmapped, evals/ owned by flow-eval
+mapping-pending: true      # SR-073/SR-075 (v16.0.0, position retirement; SCN-015 itself and SR-074, SR-012, SR-105..SR-107 mapped at harness suite 0.12.0) + SR-056 (re-parented to SCN-006 at v16.0.0) + SCN-012/SCN-013/SR-066..SR-072 (v15.0.0, client label) + SR-104 (bound pending gen-1 calibration) — entirely unmapped, evals/ owned by flow-eval
 # NOTE: the per-version snapshots named in the 'History:' pointers below (spec/history/) and the
 #   panel records and proposed amendments in spec/.staging/ are kept locally and are not part of
 #   the published repository; earlier commits still contain them.
@@ -1305,7 +1305,7 @@ SRs (SR-100+) have no parent.
   over an arbitrary date range, sufficient to evaluate the ≥3×/week-for-2-weeks gate.
   Historical `librarian-positions` lines in `stateful-use.jsonl` remain in the log, and
   every reader of the log shall skip them without error and without counting them.
-  *(ubiquitous)* `# ← SCN-004; amended v17.0.0 (historical lines from the removed tool; verified by test/positions-removed.test.ts (SR-012); TODO(flow-eval): harness mapping; mapping-pending: true)`
+  *(ubiquitous)* `# ← SCN-004; amended v17.0.0 (historical lines from the removed tool; verified by test/positions-removed.test.ts (SR-012); mapped to COR-R-065 (harness 0.12.0); mapping-pending: false)`
 - **SR-013** — If a capture invocation carries a session id and directive content
   identical (after inert-line normalization) to an entry already recorded for that
   session, then the system shall append nothing and leave the session record
@@ -1525,7 +1525,7 @@ SRs (SR-100+) have no parent.
   position capture is retired and the position line was not stored; the check shall
   read only the direct field and the turn reply, never the session's accumulated
   transcript. *(unwanted-behavior)*
-  `# ← SCN-015; added v16.0.0 (position retirement); amended v17.0.0 (trigger defined, F7; matches the shipped pattern /<!--\s*librarian-position(?![\w-])/ in src/capture-cli.ts, which a "librarian-positions" token does not match); verified by test/codex-capture.test.ts (CODEX-2, CODEX-4b, CODEX-4c: unterminated comment counts, prose mention and a `librarian-positions` token do not), test/antigravity-capture.test.ts (AGY-6), test/record-guard.test.ts (direct field); TODO(flow-eval): no test counts the notice lines (tests match, not count) or proves that a mention outside the turn reply gets no notice; harness mapping; mapping-pending: true`
+  `# ← SCN-015; added v16.0.0 (position retirement); amended v17.0.0 (trigger defined, F7; matches the shipped pattern /<!--\s*librarian-position(?![\w-])/ in src/capture-cli.ts, which a "librarian-positions" token does not match); verified by test/codex-capture.test.ts (CODEX-2, CODEX-4b, CODEX-4c: unterminated comment counts, prose mention and a `librarian-positions` token do not), test/antigravity-capture.test.ts (AGY-6), test/record-guard.test.ts (direct field); TODO(flow-eval): no test counts the notice lines (tests match, not count) or proves that a mention outside the turn reply gets no notice; mapped to COR-R-066 (harness 0.12.0) except the count and outside-reply gaps; mapping-pending: false`
 - **SR-075** — When a capture invocation carries both a session directive and a
   position line, the system shall capture the session directive exactly as it would
   if the position line were absent: the stored entry shall be identical in every
@@ -1563,15 +1563,15 @@ SRs (SR-100+) have no parent.
   `_librarian/positions/`, and reindex shall neither read those files nor keep any
   position table (a table left by an earlier build is dropped at the next reindex);
   the files stay on disk as the user's own history. *(ubiquitous)*
-  `# added v16.0.0 (position retirement); restated v17.0.0 (F2); refines INV-3 / constitution prohibition 3; no scenario parent; capture side verified by the "no positions file" assertions in test/codex-capture.test.ts, test/antigravity-capture.test.ts and test/record-guard.test.ts; reindex side verified by test/positions-removed.test.ts (SR-105) and test/startup-index.test.ts (position streams are not an index input); TODO(flow-eval): harness mapping; mapping-pending: true`
+  `# added v16.0.0 (position retirement); restated v17.0.0 (F2); refines INV-3 / constitution prohibition 3; no scenario parent; capture side verified by the "no positions file" assertions in test/codex-capture.test.ts, test/antigravity-capture.test.ts and test/record-guard.test.ts; reindex side verified by test/positions-removed.test.ts (SR-105) and test/startup-index.test.ts (position streams are not an index input); mapped to COR-R-067 (harness 0.12.0); mapping-pending: false`
 - **SR-106** — Reindexing and every tool query shall leave each `session-record@1`
   file byte-for-byte unchanged and shall not change SCN-001/SCN-002 behavior.
   *(ubiquitous)*
-  `# added v17.0.0; carries forward the general part of retired SR-065 (re-parented as SR-056 was at v16.0.0); refines INV-3; verified by test/positions-removed.test.ts (SR-106); TODO(flow-eval): harness mapping; mapping-pending: true`
+  `# added v17.0.0; carries forward the general part of retired SR-065 (re-parented as SR-056 was at v16.0.0); refines INV-3; verified by test/positions-removed.test.ts (SR-106); mapped to COR-R-068 (harness 0.12.0); mapping-pending: false`
 - **SR-107** — The server shall register no tool named `librarian-positions`, and a
   call to that name shall get the same standard unknown-tool error the MCP SDK gives
   any unregistered tool, with no stub handler. *(ubiquitous)*
-  `# added v17.0.0 (F1, Robin 2026-11-01); no scenario parent; verified by test/positions-removed.test.ts (SR-107, compares the call against another unregistered name); TODO(flow-eval): harness mapping; mapping-pending: true`
+  `# added v17.0.0 (F1, Robin 2026-11-01); no scenario parent; verified by test/positions-removed.test.ts (SR-107, compares the call against another unregistered name); mapped to COR-R-069 (harness 0.12.0); mapping-pending: false`
 
 ---
 
@@ -1582,20 +1582,20 @@ SRs (SR-100+) have no parent.
 | SCN-001 | capture, idempotence, revision, storage, versioned ref, empty no-op, unfilled template, incremental authoring | SR-001, SR-002, SR-003, SR-004, SR-013, SR-014, SR-024, SR-029, SR-033 | INV-2, INV-3 | correctness-real-v1 | correctness |
 | SCN-002 | order, provenance, window, empty-state, grouped, count-caps-sessions, detail, never-merged | SR-005, SR-006, SR-007, SR-030, SR-031, SR-032 | INV-6 | correctness-real-v1 | correctness |
 | SCN-003 | annotate, quiet, no re-rank | SR-008, SR-009, SR-010 | — | correctness-real-v1 | correctness |
-| SCN-004 | log events, weekly count, historical lines tolerated *(v17.0.0)* | SR-011, SR-012 *(amended v17.0.0; mapping-pending)* | INV-4 | correctness-real-v1 | correctness |
+| SCN-004 | log events, weekly count, historical lines tolerated *(v17.0.0)* | SR-011, SR-012 *(amended v17.0.0)* | INV-4 | correctness-real-v1 | correctness (COR-R-065) |
 | SCN-005 | auto provenance, local-reads-only, never-blocks, additive-optional, dedupe-unchanged, inert | SR-015, SR-016, SR-017, SR-018 | INV-1, INV-2 | correctness-real-v1, security-adv-v1 | correctness, security |
 | SCN-006 | server instructions, project display, project filter, no-behavior-drift, no-user-authored-contract, single-source, per-outcome-trigger, no-position-contract + total cap *(v16.0.0)* | SR-019, SR-020, SR-025, SR-026, SR-027, SR-028, SR-035, SR-056 *(re-parented v16.0.0; mapping-pending)*, SR-073 *(v16.0.0; mapping-pending)* | — | correctness-real-v1 | correctness |
 | SCN-007 | authoring contract in instructions, read-time render guidance, directive-rule deployment, verbatim storage, no retrofit, no-behavior-drift, length-budget | SR-021, SR-022, SR-023, SR-034 | INV-3, INV-6 | correctness-real-v1, correctness-adv-v1 | correctness |
 | SCN-012 *(amended v16.0.0, v17.0.0)* | host label (session entries), classify-from-original-envelope, absent-beats-wrong, additive-optional/tolerant, not-identity, two-release rollout | SR-066 *(amended v17.0.0)*, SR-067, SR-068, SR-069 *(amended v16.0.0)*, SR-070 | INV-6 | (pending) | (pending) |
 | SCN-013 *(amended v16.0.0)* | no-overwrite, failed-not-captured, independent session capture and retirement check | SR-071 *(amended v16.0.0)*, SR-072 *(amended v16.0.0)* | INV-3, INV-5 | (pending) | (pending) |
-| SCN-015 *(v16.0.0; no sunset, v17.0.0)* | nothing stored, one notice, scope of the check (turn reply only), session line unaffected, disclosed limitation | SR-074 *(amended v17.0.0)*, SR-075 | INV-3, INV-5 | mapping-pending: true — existing repo tests listed on each SR (TODO flow-eval) | (pending) |
+| SCN-015 *(v16.0.0; no sunset, v17.0.0)* | nothing stored, one notice, scope of the check (turn reply only), session line unaffected, disclosed limitation | SR-074 *(amended v17.0.0)*, SR-075 | INV-3, INV-5 | correctness-real-v1 (COR-R-066 covers SR-074; SR-073, SR-075 pending) | correctness |
 | — | mdbase-compatible frontmatter | SR-100 | — | schema-real-v1 | schema-conformance |
 | — | untrusted-input handling | SR-101 | INV-2 | adversarial-input-v1 | safety |
 | — | repo hygiene | SR-102 | — | repo-hygiene-v1 | safety |
 | — | docs currency at ship | SR-103 | — | docs-currency-real-v1 | docs-currency |
-| — | frozen positions stream, not read by reindex *(v16.0.0; restated v17.0.0)* | SR-105 | INV-3 | mapping-pending: true (TODO flow-eval) | (pending) |
-| — | indexing and queries leave session records unchanged *(v17.0.0, from SR-065)* | SR-106 | INV-3 | mapping-pending: true (TODO flow-eval) | (pending) |
-| — | removed tool gets the standard unknown-tool error *(v17.0.0)* | SR-107 | — | mapping-pending: true (TODO flow-eval) | (pending) |
+| — | frozen positions stream, not read by reindex *(v16.0.0; restated v17.0.0)* | SR-105 | INV-3 | correctness-real-v1 | correctness (COR-R-067) |
+| — | indexing and queries leave session records unchanged *(v17.0.0, from SR-065)* | SR-106 | INV-3 | correctness-real-v1 | correctness (COR-R-068) |
+| — | removed tool gets the standard unknown-tool error *(v17.0.0)* | SR-107 | — | correctness-real-v1 | correctness (COR-R-069) |
 | — | local-first | (INV-1) | INV-1 | adversarial-network-v1 | invariant-local-first |
 | — | store immutability | (INV-2) | INV-2 | adversarial-write-v1 | invariant-store-immutable |
 | — | no hard-delete | (INV-3) | INV-3 | adversarial-delete-v1 | invariant-no-hard-delete |
@@ -1695,8 +1695,10 @@ log containing historical `librarian-positions` lines (SR-012).
 
 *(v17.0.0, shipped as product v1.0.0)* Those four tests now exist: `test/positions-removed.test.ts`
 covers SR-012, SR-105, SR-106 and SR-107, `test/startup-index.test.ts` covers the SR-105 reindex
-input, and CODEX-4c covers the SR-074 trigger. `mapping-pending` stays true for all of them
-until flow-eval maps them into a harness, which is not in this repository.
+input, and CODEX-4c covers the SR-074 trigger. The harness (kept locally, not in this repository) was restored and mapped at suite 0.12.0:
+COR-R-065 (SR-012), COR-R-066 (SR-074, SCN-015), COR-R-067 (SR-105), COR-R-068 (SR-106) and
+COR-R-069 (SR-107); SCN-011's tasks are marked retired. SR-073 and SR-075 are still unmapped,
+and SCN-010 is not yet retired in the harness.
 
 ---
 
