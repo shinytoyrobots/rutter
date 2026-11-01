@@ -6,7 +6,6 @@ import { config } from "./config.js";
 import { atomicWrite } from "./fs-safe.js";
 import { RefSchema } from "./refs.js";
 import { WorkspaceSchema } from "./workspace.js";
-import { PositionKindSchema } from "./position-directive.js";
 /**
  * The on-disk format of a position-event stream and the operations over it
  * (SCN-010, decision-graph Phase A). Deliberately mirrors session-record.ts's
@@ -21,6 +20,9 @@ import { PositionKindSchema } from "./position-directive.js";
  * only place SR-050's append-only guarantee (INV-3: a `retire` is a new event,
  * never a rewrite) is enforced.
  */
+/** The four event kinds a position stream holds. Capture is retired; the kinds stay because old streams still carry them. */
+export const POSITION_KINDS = ["assert", "revise", "reaffirm", "retire"];
+export const PositionKindSchema = z.enum(POSITION_KINDS);
 export const COLLECTION = "librarian.positions";
 /**
  * gen-4/var-1-graft Fix 3 (chavruta stability-bias condition for shipping this
@@ -210,7 +212,8 @@ export function serializeStream(stream) {
 }
 function renderBody(stream) {
     const lines = stream.events.map((e) => {
-        const time = e.time.slice(11, 19);
+        // A stream spans a month, so each line carries its date, not just the time.
+        const time = `${e.time.slice(0, 10)} ${e.time.slice(11, 19)}`;
         const provenance = e.refs.map((r) => `${r.path}@${r.hash.slice(0, 14)}`).join(", ");
         const project = e.workspace ? ` [${e.workspace.project}]` : "";
         const revises = e.revises ? ` (revises: ${e.revises})` : "";

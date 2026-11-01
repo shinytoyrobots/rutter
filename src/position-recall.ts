@@ -1,7 +1,7 @@
 import { config } from "./config.js";
 import { normalizeRefPath, type VersionedRef } from "./refs.js";
 import type { DB } from "./db.js";
-import type { PositionKind } from "./position-directive.js";
+import type { PositionKind } from "./positions.js";
 
 /**
  * `librarian-positions`' read model (SCN-011, SR-060..SR-063): the three query

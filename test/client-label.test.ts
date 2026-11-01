@@ -1,4 +1,4 @@
-import { resetLibrarian, vaultRoot, readSession, readPositions } from "./setup.js";
+import { resetLibrarian, vaultRoot, readSession } from "./setup.js";
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -8,14 +8,13 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { classifyClient, parseExplicitIdentity, CLIENTS, type PayloadShape } from "../src/client.js";
 import { captureSession } from "../src/capture.js";
-import { capturePosition } from "../src/position.js";
+import { seedPosition as capturePosition } from "./position-seed.js";
 import { readAllRecords } from "../src/session-record.js";
 
 beforeEach(resetLibrarian);
 
 const cli = fileURLToPath(new URL("../src/capture-cli.ts", import.meta.url));
 const TODAY = () => new Date().toISOString().slice(0, 10);
-const THIS_MONTH = () => new Date().toISOString().slice(0, 7);
 
 const none: PayloadShape = { direct: false, agy: false, grok: false, copilot: false };
 const agy: PayloadShape = { direct: false, agy: true, grok: false, copilot: false };
@@ -153,12 +152,11 @@ function fire(payload: object, options: FireOptions = {}): string {
 }
 
 const DIRECTIVE = (s: string) =>
-  `done.\n<!-- librarian-session {"summary":"${s}"} -->\n<!-- librarian-position POSITION assert ${s.replace(/\s/g, "-")}: stance for ${s} -->`;
+  `done.\n<!-- librarian-session {"summary":"${s}"} -->`;
 
-function labelsNow(): { session: (string | undefined)[]; position: (string | undefined)[] } {
+function labelsNow(): (string | undefined)[] {
   const session = (matter(readSession(TODAY())).data.sessions ?? []) as { client?: string }[];
-  const position = (matter(readPositions(THIS_MONTH())).data.events ?? []) as { client?: string }[];
-  return { session: session.map((s) => s.client), position: position.map((e) => e.client) };
+  return session.map((s) => s.client);
 }
 
 function agyEnvelope(id: string, text: string): object {
@@ -190,49 +188,49 @@ test("CLI copilot: the camelCase shape labels with or without an identity; snake
   fire(copilotEnvelope("cp-1", DIRECTIVE("copilot one")));
   fire(copilotEnvelope("cp-2", DIRECTIVE("copilot two")), { args: ["--client", "copilot"] });
   fire(copilotEnvelope("cp-3", DIRECTIVE("copilot three"), true), { args: ["--client", "copilot"] });
-  assert.deepEqual(labelsNow(), { session: ["copilot", "copilot", "copilot"], position: ["copilot", "copilot", "copilot"] });
+  assert.deepEqual(labelsNow(), ["copilot", "copilot", "copilot"]);
 });
 
 test("CLI: a conflicting identity on a Copilot envelope still reads through the Copilot reader, with no label", () => {
   fire(copilotEnvelope("cp-4", DIRECTIVE("copilot conflict claude")), { args: ["--client", "claude"] });
   fire(copilotEnvelope("cp-5", DIRECTIVE("copilot conflict codex")), { args: ["--client", "codex"] });
-  assert.deepEqual(labelsNow(), { session: [undefined, undefined], position: [undefined, undefined] });
+  assert.deepEqual(labelsNow(), [undefined, undefined]);
 });
 
 test("CLI claude: --client claude on a Claude transcript labels both records", () => {
   const t = path.join(vaultRoot, "claude.jsonl");
   fs.writeFileSync(t, JSON.stringify({ message: { content: DIRECTIVE("claude turn") } }), "utf8");
   fire({ transcript_path: t, session_id: "S-claude", cwd: vaultRoot }, { args: ["--client", "claude"] });
-  assert.deepEqual(labelsNow(), { session: ["claude"], position: ["claude"] });
+  assert.deepEqual(labelsNow(), ["claude"]);
 });
 
 test("CLI grok: a camelCase lastAssistantMessage is grok even through the Claude plugin's identity", () => {
   const t = path.join(vaultRoot, "updates.jsonl");
   fs.writeFileSync(t, JSON.stringify({ type: "session/update" }), "utf8");
   fire({ transcript_path: t, session_id: "S-grok", lastAssistantMessage: DIRECTIVE("grok turn") }, { args: ["--client=claude"] });
-  assert.deepEqual(labelsNow(), { session: ["grok"], position: ["grok"] });
+  assert.deepEqual(labelsNow(), ["grok"]);
 });
 
 test("CLI codex: explicit-only; with no identity the entry is unlabeled, never guessed", () => {
   fire({ session_id: "S-codex-1", last_assistant_message: DIRECTIVE("codex one") }, { args: ["--client", "codex"] });
   fire({ session_id: "S-codex-2", last_assistant_message: DIRECTIVE("codex two") });
-  assert.deepEqual(labelsNow(), { session: ["codex", undefined], position: ["codex", undefined] });
+  assert.deepEqual(labelsNow(), ["codex", undefined]);
 });
 
 test("CLI agy: classification survives normalization, with or without an explicit identity", () => {
   fire(agyEnvelope("agy-1", DIRECTIVE("agy one")));
   fire(agyEnvelope("agy-2", DIRECTIVE("agy two")), { args: ["--client", "agy"] });
-  assert.deepEqual(labelsNow(), { session: ["agy", "agy"], position: ["agy", "agy"] });
+  assert.deepEqual(labelsNow(), ["agy", "agy"]);
 });
 
 test("CLI: codex identity on an Antigravity envelope is a conflict, so no label (the record is still captured)", () => {
   fire(agyEnvelope("agy-3", DIRECTIVE("conflict turn")), { args: ["--client", "codex"] });
-  assert.deepEqual(labelsNow(), { session: [undefined], position: [undefined] });
+  assert.deepEqual(labelsNow(), [undefined]);
 });
 
 test("CLI: a direct payload gets no label whatever the identity", () => {
-  fire({ sessionId: "S-direct", summary: "direct one", position: "assert direct-topic: direct stance" }, { args: ["--client", "claude"] });
-  assert.deepEqual(labelsNow(), { session: [undefined], position: [undefined] });
+  fire({ sessionId: "S-direct", summary: "direct one" }, { args: ["--client", "claude"] });
+  assert.deepEqual(labelsNow(), [undefined]);
 });
 
 test("CLI: RUTTER_CLIENT works as the identity, an unrecognized one labels nothing, and disagreeing sources label nothing", () => {
@@ -240,7 +238,7 @@ test("CLI: RUTTER_CLIENT works as the identity, an unrecognized one labels nothi
   fire({ session_id: "S-env-2", last_assistant_message: DIRECTIVE("env two") }, { vars: { RUTTER_CLIENT: "gemini" } });
   fire({ session_id: "S-env-3", last_assistant_message: DIRECTIVE("env three") }, { vars: { RUTTER_CLIENT: "claude" }, args: ["--client", "codex"] });
   fire({ session_id: "S-env-4", last_assistant_message: DIRECTIVE("env four") }, { vars: { RUTTER_CLIENT: "" } });
-  assert.deepEqual(labelsNow().session, ["codex", undefined, undefined, undefined]);
+  assert.deepEqual(labelsNow(), ["codex", undefined, undefined, undefined]);
 });
 
 test("CLI: an Antigravity turn that ends in an error captures nothing and so labels nothing", () => {

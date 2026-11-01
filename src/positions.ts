@@ -7,7 +7,6 @@ import { atomicWrite } from "./fs-safe.js";
 import { RefSchema, type VersionedRef } from "./refs.js";
 import { WorkspaceSchema } from "./workspace.js";
 import type { AppendResult } from "./session-record.js";
-import { PositionKindSchema } from "./position-directive.js";
 
 /**
  * The on-disk format of a position-event stream and the operations over it
@@ -23,6 +22,11 @@ import { PositionKindSchema } from "./position-directive.js";
  * only place SR-050's append-only guarantee (INV-3: a `retire` is a new event,
  * never a rewrite) is enforced.
  */
+
+/** The four event kinds a position stream holds. Capture is retired; the kinds stay because old streams still carry them. */
+export const POSITION_KINDS = ["assert", "revise", "reaffirm", "retire"] as const;
+export const PositionKindSchema = z.enum(POSITION_KINDS);
+export type PositionKind = z.infer<typeof PositionKindSchema>;
 
 export const COLLECTION = "librarian.positions";
 /**

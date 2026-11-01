@@ -66,7 +66,7 @@ const sessions = (): { summary: string; workspace?: { project: string } }[] =>
 const events = (): { topic_key: string; stance: string }[] =>
   (matter(readPositions(month())).data as { events: { topic_key: string; stance: string }[] }).events;
 
-test("AGY-1: session and position directives in PLANNER_RESPONSE are captured, with workspacePaths[0] provenance", () => {
+test("AGY-1: the session directive in PLANNER_RESPONSE is captured, with workspacePaths[0] provenance; the position directive is not stored", () => {
   const repo = path.join(vaultRoot, "agy-repo", "my-librarian");
   fs.mkdirSync(path.join(repo, ".git"), { recursive: true });
   fs.writeFileSync(path.join(repo, ".git", "config"), '[remote "origin"]\n\turl = https://example.invalid/my-librarian.git\n', "utf8");
@@ -75,7 +75,7 @@ test("AGY-1: session and position directives in PLANNER_RESPONSE are captured, w
   assert.equal(sessions().length, 1);
   assert.equal(sessions()[0]!.summary, "Agy session captured.");
   assert.equal(sessions()[0]!.workspace!.project, "my-librarian");
-  assert.equal(events()[0]!.topic_key, "agy-hook");
+  assert.equal(positionsExist(month()), false);
 });
 
 test("AGY-2: only PLANNER_RESPONSE counts -- USER_INPUT echoes and tool results are ignored", () => {
@@ -106,24 +106,19 @@ test("AGY-4: multi-turn -- scope is the current turn; a directive-free turn capt
 
   fire(stop("C-4", snap1));
   const s1 = readSession(day());
-  const p1 = readPositions(month());
   fire(stop("C-4", snap1)); // replay turn 1
   assert.equal(readSession(day()), s1, "session byte-identical after replaying turn 1");
-  assert.equal(readPositions(month()), p1, "positions byte-identical after replaying turn 1");
 
   fire(stop("C-4", snap2)); // the older directive must NOT be re-read from the accumulated file
   assert.equal(readSession(day()), s1, "directive-free turn 2 captures nothing");
-  assert.equal(readPositions(month()), p1);
 
   fire(stop("C-4", snap3));
   assert.deepEqual(sessions().map((s) => s.summary), ["Turn one.", "Turn three."]);
-  assert.equal(events().length, 2);
+  assert.equal(positionsExist(month()), false);
   const s3 = readSession(day());
-  const p3 = readPositions(month());
   fire(stop("C-4", snap3));
   fire(stop("C-4", snap2)); // an older snapshot replayed late still captures nothing new
   assert.equal(readSession(day()), s3);
-  assert.equal(readPositions(month()), p3);
 });
 
 test("AGY-5: a non-empty error, a missing or unrecognized transcript, and a directive-free turn capture nothing", () => {
@@ -139,10 +134,10 @@ test("AGY-5: a non-empty error, a missing or unrecognized transcript, and a dire
   assert.equal(positionsExist(month()), false);
 });
 
-test("AGY-6: an empty-stance position directive keeps its SR-057 diagnostic", () => {
+test("AGY-6: a malformed position directive gets the retirement notice and captures nothing", () => {
   const t = transcript("agy-6.jsonl", [user("x"), planner("<!-- librarian-position POSITION assert empty-one:   -->")]);
   const { stderr } = fire(stop("C-6", t));
-  assert.match(stderr, /empty or whitespace-only stance/);
+  assert.match(stderr, /position capture is retired/);
   assert.equal(positionsExist(month()), false);
 });
 

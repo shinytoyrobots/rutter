@@ -194,7 +194,7 @@ t("antigravity: creates ~/.gemini/config/hooks.json keyed by name, with Stop tim
   const rule = fs.readFileSync(agyRule(sb.home), "utf8");
   assert.match(rule, /^---\ntrigger: always_on\n---\n/, "always_on frontmatter (required, or agy silently discards the rule)");
   assert.match(rule, /librarian-session/, "carries the capture contract from the server's own text");
-  assert.match(rule, /librarian-position/);
+  assert.doesNotMatch(rule, /librarian-position/, "position capture is retired; the rules file does not teach it");
   assert.doesNotMatch(rule, /Consult these tools/, "capture contract only, not the read-tool guidance");
   assert.match(res.stderr, /"LIBRARIAN_VAULT_PATH"/, "prints the MCP env snippet");
   assert.equal(fs.existsSync(path.join(sb.home, ".claude", "settings.json")), false, "Claude config untouched");

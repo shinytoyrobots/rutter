@@ -12,7 +12,7 @@ import { config } from "../src/config.js";
 import { openDb, type DB } from "../src/db.js";
 import { reindex } from "../src/indexer.js";
 import { recent } from "../src/recent.js";
-import { capturePosition } from "../src/position.js";
+import { seedPosition as capturePosition } from "./position-seed.js";
 import { PositionEventSchema, readAllPositionStreams } from "../src/positions.js";
 import { materializePositionFold, foldPositions } from "../src/position-fold.js";
 import { recallPositions, type TopicView } from "../src/position-recall.js";
@@ -20,7 +20,7 @@ import { renderTopicView, renderTopicList, renderTopicNotFound } from "../src/po
 import { runPositions } from "../src/app.js";
 import { readEvents, weeklyCounts, recordStatefulUse, isoWeekLabel, GATE_KINDS } from "../src/instrumentation.js";
 import { createServer, SERVER_INSTRUCTIONS } from "../src/server.js";
-import type { PositionKind } from "../src/position-directive.js";
+import type { PositionKind } from "../src/positions.js";
 
 /**
  * SCN-011 (decision-graph Phase B): a live position and its supersession chain
@@ -143,7 +143,7 @@ test("SR-058 (structural): the fold has exactly one call site, and it is reindex
   assert.deepEqual(callers, ["indexer.ts"], "reindex is the fold's only trigger (SR-058)");
 
   // And the write path knows nothing about the projection at all.
-  for (const writer of ["position.ts", "positions.ts", "capture-cli.ts", "capture.ts"]) {
+  for (const writer of ["positions.ts", "capture-cli.ts", "capture.ts"]) {
     const code = fs.readFileSync(path.join(srcDir, writer), "utf8");
     assert.equal(
       /position-fold|position_events|position_refs/.test(code),
@@ -408,7 +408,6 @@ test("SR-062: a retired topic states its retirement date, labelled a retirement 
 test("SR-062: the librarian-positions description teaches the attribution and forbids restating a recorded stance as the client's own conclusion", async () => {
   // The instructions have a 2,033-character budget the capture contract needs, so this
   // read-time guidance travels with the tool that produces the stance instead.
-  assert.match(SERVER_INSTRUCTIONS, /librarian-positions/, "the tool is named in the routing guidance");
   const server = createServer();
   const client = new Client({ name: "test-client", version: "0.0.0" });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
@@ -637,13 +636,17 @@ test("SR-065 (MANDATORY): the fold running and librarian-positions being queried
   const month = new Date().toISOString().slice(0, 7);
   const dayFile = path.join(sessionsDir, `${day}.md`);
 
-  // 1. Write both kinds through the REAL Stop hook, as Phase A's SR-055 test does.
-  const payload = JSON.stringify({
-    summary: "An ordinary session summary.",
-    sessionId: "S-noninterference",
-    position: "assert non-interference: Phase B must not disturb Phase A.",
-  });
+  // 1. Write a session through the REAL Stop hook; position capture is retired, so the
+  //    position event is seeded directly into the stream.
+  const payload = JSON.stringify({ summary: "An ordinary session summary.", sessionId: "S-noninterference" });
   fire(payload);
+  capturePosition({
+    kind: "assert",
+    topicKey: "non-interference",
+    rawStance: "Phase B must not disturb Phase A.",
+    sessionId: "S-noninterference",
+    now: new Date(),
+  });
   const before = {
     session: fs.readFileSync(dayFile, "utf8"),
     positions: readPositions(month),
@@ -666,18 +669,10 @@ test("SR-065 (MANDATORY): the fold running and librarian-positions being queried
     "SCN-001/SCN-002's observable behavior is unchanged"
   );
 
-  // 4. The write path's own guarantees still hold WITH the fold present:
-  //    re-firing the identical directives is still an idempotent no-op...
+  // 4. Re-firing the identical session directive is still an idempotent no-op.
   fire(payload);
   assert.equal(fs.readFileSync(dayFile, "utf8"), before.session, "SR-013 session idempotence intact");
-  assert.equal(readPositions(month), before.positions, "SR-049 position idempotence intact");
-
-  // ...and a genuinely new position still APPENDS, preserving every earlier event.
-  fire(JSON.stringify({ sessionId: "S-noninterference-2", position: "revise non-interference: Still true, second event." }));
-  const stream = matter(readPositions(month)).data as { schema: string; events: { kind: string; stance: string }[] };
-  assert.equal(stream.schema, "position-event@1-provisional", "the provisional schema id is untouched (dissent-2026-08-13-0004 M1)");
-  assert.equal(stream.events.length, 2, "append-only: the new event joins the old one");
-  assert.equal(stream.events[0]!.stance, "Phase B must not disturb Phase A.", "and the earlier event is byte-unchanged");
+  assert.equal(readPositions(month), before.positions, "the stream is untouched by session capture");
 });
 
 test("dissent-2026-08-13-0004 condition 4: Phase B adds no field to PositionEventSchema", () => {
