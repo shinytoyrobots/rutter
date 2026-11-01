@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>How it works: memory-of-use — rutter</title>
-<meta name="description" content="Memory-of-use is the record of how you used your notes. Capture, recall, enrichment, note identity, old positions, what rutter can and cannot establish, and the usage gate, in full.">
+<meta name="description" content="Memory-of-use is the record of how you used your notes. Capture, recall, enrichment, note identity, what rutter can and cannot establish, and the usage gate, in full.">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -69,8 +69,7 @@
 <li><a href="#recalling-recent-work">Recalling recent work</a></li>
 <li><a href="#search-enrichment">Search enrichment</a></li>
 <li><a href="#note-identity">Note identity</a></li>
-<li><a href="#positions-capture-has-stopped">Positions: capture has stopped</a></li>
-<li><a href="#positions-recalling-a-stance">Positions: recalling a stance</a></li>
+<li><a href="#positions-capture-has-stopped">Positions: capture has stopped, and the tool is gone</a></li>
 <li><a href="#what-rutter-can-and-cannot-establish">What rutter can and cannot establish</a></li>
 <li><a href="#measuring-whether-it-gets-used">Measuring whether it gets used</a></li>
 </ul>
@@ -395,7 +394,7 @@ recency questions to <code>librarian-recent</code>, prior-engagement and content
 <p>The reading-back half travels in the tool descriptions. <code>librarian-recent</code> asks the client to
 report recalled summaries in plain language (see <a href="#old-entries-stay-dense-the-answer-does-not-have-to">Old entries stay
 dense</a>), and
-<code>librarian-positions</code> asks it to attribute a stance to you rather than adopt it. Neither is
+the session records it returns say who made each call. Neither is
 enforced by the server. Both reach every client that connects.</p>
 <p>This matters because guidance in a project&#39;s <code>CLAUDE.md</code> only helps in that project. Instructions
 that ship with the server travel to every client and every directory it is connected from: one
@@ -493,7 +492,7 @@ removed. The identity tables in the SQLite index are, like the rest of the index
 disposable: delete <code>data/librarian.db</code> and reindex, and they rebuild from your notes and the ledger
 alone.</p>
 <hr>
-<h2 id="positions-capture-has-stopped">Positions: capture has stopped</h2>
+<h2 id="positions-capture-has-stopped">Positions: capture has stopped, and the tool is gone</h2>
 <p>Rutter used to ask your client for a second, rarer line, a <strong>position directive</strong>, whenever a
 session formed, changed, reaffirmed or retired a stance on a topic. It no longer does. The
 instructions no longer teach the line, and the capture hook stores none. If an old rules file or a
@@ -508,63 +507,10 @@ because the record did not say who had decided; session lines now carry that. Th
 been rerun since the change. The evidence is in
 <a href="https://github.com/shinytoyrobots/rutter/blob/main/docs/position-retirement-2026-11.md">position-retirement-2026-11.md</a>.</p>
 <p>Streams already in <code>&lt;notes folder&gt;/_librarian/positions/&lt;YYYY-MM&gt;.md</code> stay exactly as they are
-(append-only history) and are still read by <code>librarian-positions</code>.</p>
-<p>Recall of those older positions is below.</p>
-<hr>
-<h2 id="positions-recalling-a-stance">Positions: recalling a stance</h2>
-<p><code>librarian-positions</code> answers <em>&quot;what do I think about X, and how did that change?&quot;</em> from the stream
-that position capture wrote before it stopped. It is read-only. It reads a <strong>derived table</strong> in the index, rebuilt
-from the position files at each reindex, never the files themselves.</p>
-<p><strong>Ask one of three ways.</strong> They are three different questions, so pass exactly one argument at a
-time:</p>
-<ul>
-<li><code>topic</code> is an exact topic key. A topic key is unique, so this returns <strong>one</strong> topic or an
-explicit not-found (<code>Position not found: &lt;key&gt;</code>), never a list. The miss is an ordinary answer,
-worded like <code>librarian-get-note</code>&#39;s own.</li>
-<li><code>query</code> is free text matched against your recorded stances, all terms required, as
-<code>librarian-search</code> does for notes. It returns a list.</li>
-<li><code>note</code> is a note path, relative to your notes folder. It returns the positions whose references include that
-note, in <strong>any</strong> recorded version of it. It returns a list.</li>
-</ul>
-<p>Free-text and note matching scan a topic&#39;s <strong>entire history</strong>, not just its current stance. A topic
-surfaces if any event in its chain matches, however long since superseded. What comes back is still
-the <em>current</em> stance, so what you searched and what you get are separate knobs. Add <code>chain: true</code>
-for the topic&#39;s full history: every event that replaced or reaffirmed an earlier one, oldest first.</p>
-<p><strong>Every answer says whose it is and when.</strong> A recalled stance always carries the date it was
-<strong>formed</strong> (its original <code>assert</code>) and, where there is one, the date it was last <strong>revised</strong>. A
-<code>reaffirm</code> re-endorses a stance without changing it, so it never moves the revision date. It shows
-up in the chain instead. The <code>librarian-positions</code> tool description tells any connected client to
-report all of this as <em>your</em> recorded position, rather than restating it as its own present-tense
-conclusion.</p>
-<p><strong>A retired position is a stub, not a deletion.</strong> Where the most recent event for a topic is a
-<code>retire</code>, the answer is that retire event&#39;s own text, typically the reason you withdrew the stance,
-with <code>retired &lt;date&gt;</code> stated as a retirement, never as a revision. Nothing is removed from the
-history to produce it. Every earlier event is still there under <code>chain: true</code>. A position asserted
-<em>again</em> after a retirement is simply live again. A retirement is terminal only while it is the last
-thing recorded.</p>
-<p><strong>Dormant is computed, never stored.</strong> A live position that nothing has touched for 180 days is
-marked dormant. That number is a starting guess, not a
-calibrated figure: positions are rare, and no real stream was old enough to calibrate against when
-it was set. Dormancy is worked out on every read from the events&#39; own timestamps. Nothing about
-dormancy is written to disk or to the index, so the rule can change without a migration or a
-rebuild. A retired position is never marked dormant. Withdrawing a stance on purpose is not the
-same fact as letting one go quiet.</p>
-<p><strong>Reindex is the only trigger.</strong> The three index tables that hold positions (<code>position_events</code>,
-<code>position_refs</code>, <code>positions</code>) are rebuilt wholesale from <code>_librarian/positions/*.md</code> at every
-reindex, the same way as the identity tables in <a href="#note-identity">Note identity</a>. A reindex runs
-when you call <code>npm run reindex</code>, or when the server starts and finds something changed. The tables
-are never patched incrementally. Two consequences, both deliberate:</p>
-<ul>
-<li>Reindex rebuilds the position tables from the existing streams, and the server does that on its own
-at start-up. Since no new positions are recorded, the answer only changes if a stream file is edited
-by hand.</li>
-<li>Because recall never touches the capture path, capture cannot be disturbed by it. Session
-records, their bytes, and the position write path are unchanged by a reindex rebuilding those
-tables or by any query you make.</li>
-</ul>
-<p>Calling <code>librarian-positions</code> is logged to <code>_librarian/stateful-use.jsonl</code> under its own kind, and
-does <strong>not</strong> count toward the usage gate (see <a href="#measuring-whether-it-gets-used">Measuring whether it gets
-used</a>).</p>
+as your own history. Since v1.0.0 rutter does not read them, change them or add to them, and the
+<code>librarian-positions</code> tool that used to recall them is removed. A client that still calls it gets the
+standard &quot;tool not found&quot; error. A reindex drops the old position tables from the index. Old
+<code>librarian-positions</code> lines in <code>_librarian/stateful-use.jsonl</code> stay in the file and are ignored.</p>
 <hr>
 <h2 id="what-rutter-can-and-cannot-establish">What rutter can and cannot establish</h2>
 <p>A reference is evidence of what a session recorded. It is not proof of what the session read. This
@@ -645,10 +591,8 @@ no human question behind it.</p>
 prior-engagement signal, rutter appends one timestamped event to a local, append-only log
 (<code>_librarian/stateful-use.jsonl</code>). A single search counts as exactly one event no matter how many
 signals it surfaced.</p>
-<p><code>librarian-positions</code> writes to the same log under its own kind, and is <strong>excluded from the
-count</strong>. The gate measures whether session memory pulls you toward using it, and counting
-position queries, a feature added later, would answer a different question. The calls are still logged, so
-you can inspect them. They just do not move the gate figure.</p>
+<p>Calls to the removed <code>librarian-positions</code> tool were logged under their own kind and never
+counted. Those old lines stay in the file; readers skip them without error and without counting them.</p>
 <p>Read the per-ISO-week count to evaluate the gate:</p>
 <pre><code class="language-bash">npm run gate                       # counts across all history
 npm run gate 2026-07-13 2026-07-26 # counts within a date range

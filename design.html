@@ -115,7 +115,7 @@ rename is resolved only when the line is displayed. What the unresolved referenc
 you: see <a href="#a-dead-reference-is-a-persons-call">A dead reference is a person&#39;s call</a>.</p>
 <p><strong>Recall, in Codex.</strong> Last, in Codex, started in a directory outside the notes folder, the question
 was <em>&quot;What did I decide about my newsletter&#39;s publishing cadence, when, and which notes did that
-decision cite?&quot;</em> Codex called <code>librarian-recent</code> and <code>librarian-positions</code> (a tool being removed in v1.0.0; the session records alone now carry who decided what) and answered:</p>
+decision cite?&quot;</em> Codex called <code>librarian-recent</code> and <code>librarian-positions</code> (a tool v1.0.0 has since removed; the session records alone now carry who decided what) and answered:</p>
 <pre><code class="language-text">Your recorded decision was to **publish every two weeks, with one long essay per issue, replacing the weekly roundup**—because readers wanted more depth and tended to skim the roundup.
 
 It was recorded on **October 9, 2026**, with no revisions. That decision’s session cited:
@@ -195,9 +195,6 @@ quiet prior-engagement note. The annotation is additive only. It never re-ranks 
 <li><code>librarian-get-note</code> — one note&#39;s full content, by path.</li>
 <li><code>librarian-recent</code> — <em>&quot;what was I working on lately?&quot;</em> Sessions newest-first, with dates, project
 and references. Filterable by project, day window, or count.</li>
-<li><code>librarian-positions</code> — <em>read-only; v1.0.0 removes it.</em> It recalls stances recorded before position
-capture stopped in v0.10.0. Nothing new is recorded; session lines now say when you made the call and
-keep your reason.</li>
 </ul>
 <p>The Stop hook runs in Claude Code, Grok, Codex, Copilot CLI, Antigravity, and Muse Code. The tools work with any MCP client. The
 server also sends its own usage guidance to every client that connects. Antigravity saves that
@@ -328,7 +325,7 @@ log counts how often that behavior actually gets reached for, and the project is
 conclude that it isn&#39;t. So far the log reads one person&#39;s usage. The first reading, in August 2026,
 <a href="https://github.com/shinytoyrobots/rutter/blob/main/docs/gate-verdict-2026-08.md">came back a pass</a>, and the gate keeps running. The larger design for
 tracking how your beliefs change over time was part-built: position capture and recall shipped in
-August 2026 and capture stopped in November 2026. A 14-day trial found session lines that name who decided
+August 2026, capture stopped in November 2026, and v1.0.0 removed the recall tool. A 14-day trial found session lines that name who decided
 something and why were doing much of that job; the belief questions have not been rerun to confirm it. The rest of that design (drift visibility and a
 backfill) is not built and is out of scope unless the decision is reversed.</p>
 <h2 id="try-it">Try it</h2>
@@ -339,7 +336,7 @@ each ending in a capture check and a recall check. To work from a clone, see <a 
 <h2 id="further-reading">Further reading</h2>
 <ul>
 <li><a href="getting-started.html"><code>getting-started.md</code></a> — a setup path for each client, from install to first recall.</li>
-<li><a href="memory-of-use.html"><code>memory-of-use.md</code></a> — capture, recall, enrichment, note identity, old positions,
+<li><a href="memory-of-use.html"><code>memory-of-use.md</code></a> — capture, recall, enrichment, note identity,
 the trust boundary, and the usage gate, in full mechanical detail.</li>
 <li><a href="known-issues.html"><code>known-issues.md</code></a> — what is confirmed broken or untested.</li>
 <li><a href="https://github.com/shinytoyrobots/rutter/blob/main/docs/roadmap.md"><code>roadmap.md</code></a> — current sequencing, and what is deliberately not being built.</li>

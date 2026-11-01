@@ -161,7 +161,7 @@
 <p><strong>2. Check the server.</strong> Run this in Claude Code:</p>
 <pre><code class="language-text">/mcp
 </code></pre>
-<p>You should see <code>rutter</code> listed with four tools: <code>librarian-search</code>, <code>librarian-get-note</code>, <code>librarian-recent</code>, and <code>librarian-positions</code> (read-only: it recalls stances recorded before v0.10.0, and v1.0.0 removes it).</p>
+<p>You should see <code>rutter</code> listed with three tools: <code>librarian-search</code>, <code>librarian-get-note</code> and <code>librarian-recent</code>.</p>
 <p><strong>3. Do one small real task.</strong> Open a project directory you work in and make one decision or one small change. A &quot;hello&quot; leaves nothing worth recalling. As the work finishes, your client leaves a one-line summary on its own. You never write it yourself.</p>
 <p><strong>4. Confirm it was captured.</strong> A file for today&#39;s UTC day should now exist in your notes folder:</p>
 <pre><code class="language-bash">ls "/path/to/your/notes/_librarian/sessions/"
@@ -317,7 +317,7 @@
 }
 </code></pre>
 <p>The version in <code>args</code> decides which release runs. Pin to the release you want; <code>0.8.2</code> is the current release at the time of writing. Without it, <code>npx</code> may fetch a newer release when the client starts, so an upgrade can arrive without you choosing it. <a href="#upgrading">Upgrading</a> covers moving to a new version. The first start downloads the package and builds the index, so it takes a few seconds longer than later starts.</p>
-<p>If the client cannot start the server, it was probably launched without Node on its <code>PATH</code>, which happens when it starts from the Dock or another app rather than a shell. Add a <code>PATH</code> entry to <code>env</code> that includes the folder <code>dirname &quot;$(which node)&quot;</code> prints. Check it the same way as any server: the client should list four tools, <code>librarian-search</code>, <code>librarian-get-note</code>, <code>librarian-recent</code>, and <code>librarian-positions</code>.</p>
+<p>If the client cannot start the server, it was probably launched without Node on its <code>PATH</code>, which happens when it starts from the Dock or another app rather than a shell. Add a <code>PATH</code> entry to <code>env</code> that includes the folder <code>dirname &quot;$(which node)&quot;</code> prints. Check it the same way as any server: the client should list three tools, <code>librarian-search</code>, <code>librarian-get-note</code> and <code>librarian-recent</code>.</p>
 <p>This route captures nothing. Capture needs a hook, and a hook registered from the <code>npx</code> cache would stop working without warning when the cache is cleared. For capture, use the <a href="#codex-path">Codex</a>, <a href="#copilot-cli-path">Copilot CLI</a>, <a href="#antigravity-path">Antigravity</a>, or <a href="#muse-code-path">Muse Code</a> path, which install globally.</p>
 <h2 id="upgrading">Upgrading</h2>
 <p><strong>The Claude Code plugin</strong> updates through <code>/plugin</code>. The rest of this section does not apply to it.</p>
