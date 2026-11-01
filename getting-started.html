@@ -161,7 +161,7 @@
 <p><strong>2. Check the server.</strong> Run this in Claude Code:</p>
 <pre><code class="language-text">/mcp
 </code></pre>
-<p>You should see <code>rutter</code> listed with four tools: <code>librarian-search</code>, <code>librarian-get-note</code>, <code>librarian-recent</code>, and <code>librarian-positions</code>.</p>
+<p>You should see <code>rutter</code> listed with four tools: <code>librarian-search</code>, <code>librarian-get-note</code>, <code>librarian-recent</code>, and <code>librarian-positions</code> (read-only: it recalls stances recorded before v0.10.0, and v1.0.0 removes it).</p>
 <p><strong>3. Do one small real task.</strong> Open a project directory you work in and make one decision or one small change. A &quot;hello&quot; leaves nothing worth recalling. As the work finishes, your client leaves a one-line summary on its own. You never write it yourself.</p>
 <p><strong>4. Confirm it was captured.</strong> A file for today&#39;s UTC day should now exist in your notes folder:</p>
 <pre><code class="language-bash">ls "/path/to/your/notes/_librarian/sessions/"

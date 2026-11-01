@@ -134,7 +134,7 @@ claude mcp add rutter --scope user -- node "$PWD/dist/stdio.js"
 <p><strong>Verify.</strong> In Claude Code, start a fresh session and run this:</p>
 <pre><code class="language-text">/mcp
 </code></pre>
-<p>You should see <code>rutter</code> listed with four tools: <code>librarian-search</code>, <code>librarian-get-note</code>, <code>librarian-recent</code>, and <code>librarian-positions</code>.</p>
+<p>You should see <code>rutter</code> listed with four tools: <code>librarian-search</code>, <code>librarian-get-note</code>, <code>librarian-recent</code>, and <code>librarian-positions</code> (read-only: it recalls stances recorded before v0.10.0, and v1.0.0 removes it).</p>
 <h2 id="m6--install-the-stop-hook">M6 — Install the Stop hook</h2>
 <p>The hook is the one piece that cannot ship inside the server: MCP has no way to install a client hook.</p>
 <pre><code class="language-bash">npm run install-hook
