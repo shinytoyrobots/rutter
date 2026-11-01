@@ -99,6 +99,14 @@ test("CODEX-4b: a malformed position directive gets the retirement notice and ca
   assert.equal(positionsExist(month()), false);
 });
 
+test("CODEX-4c (SR-074): an unterminated comment counts; prose mentions and other tags do not", () => {
+  const notice = /position capture is retired/;
+  assert.match(fire({ session_id: "S-4c-1", last_assistant_message: "<!-- librarian-position POSITION assert x: y" }).stderr, notice);
+  assert.doesNotMatch(fire({ session_id: "S-4c-2", last_assistant_message: "The librarian-position line is retired." }).stderr, notice);
+  assert.doesNotMatch(fire({ session_id: "S-4c-3", last_assistant_message: "<!-- librarian-positions are gone -->" }).stderr, notice);
+  assert.equal(positionsExist(month()), false);
+});
+
 test("CODEX-5: replaying an unchanged directive is a no-op; a later-turn directive appends under the same session", () => {
   const first = { session_id: "S-codex-5", last_assistant_message: `A. ${SESSION("Turn one.")} ${POSITION("replay", "same stance.")}` };
   fire(first);

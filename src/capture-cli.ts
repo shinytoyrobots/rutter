@@ -291,7 +291,7 @@ function assistantMessage(payload: StopPayload): string | null {
 // Position capture is retired (docs/position-retirement-2026-11.md).
 // ---------------------------------------------------------------------------
 
-const POSITION_TAG = /<!--\s*librarian-position\b/;
+const POSITION_TAG = /<!--\s*librarian-position(?![\w-])/;
 
 /**
  * A `librarian-position` comment or a direct `position` field can still arrive from
