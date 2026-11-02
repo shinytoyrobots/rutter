@@ -30,7 +30,7 @@
         <li><a href="index.html">Home</a></li>
         <li><a href="getting-started.html">Get started</a></li>
         <li><a href="docs.html" aria-current="true">Docs</a></li>
-        <li><a href="https://github.com/shinytoyrobots/rutter?utm_source=ruttermemory.com">GitHub</a></li>
+        <li><a href="https://github.com/shinytoyrobots/rutter">GitHub</a></li>
       </ul>
     </nav>
   </div>
@@ -108,7 +108,7 @@
 <td><strong><a href="https://docs.github.com/en/copilot/concepts/agents/copilot-memory?utm_source=ruttermemory.com">GitHub Copilot Memory</a></strong></td>
 <td>GitHub cloud account (per repository)</td>
 <td>Built-in agent captures repo conventions during coding and review</td>
-<td>Entries expire after 28 days unless re-verified</td>
+<td>Entries expire after 90 days by default unless re-verified</td>
 <td>Cites code lines and checks them against the branch on read</td>
 <td>Your team lives in GitHub and wants short-lived repo facts shared across Copilot tasks</td>
 </tr>
@@ -170,7 +170,7 @@
 </tr>
 <tr>
 <td><strong><a href="https://github.com/Ian-stetsenko/lore-protocol?utm_source=ruttermemory.com">Lore</a></strong> / <strong><a href="https://entire.io?utm_source=ruttermemory.com">Entire CLI</a></strong></td>
-<td>Git commit trailers (<code>Lore</code>) or a shadow branch (<code>Entire</code>)</td>
+<td>Git commit trailers (<code>Lore</code>) or separate git refs (<code>Entire</code>)</td>
 <td>Prompt rule writes commit trailers (<code>Lore</code>), or CLI checkpoints commits (<code>Entire</code>)</td>
 <td>Commit history; each record pinned to a commit</td>
 <td>Pinned to the git commit hash</td>
@@ -192,8 +192,8 @@
 <p>Claude Code, Copilot, and Codex all ship built-in memory.</p>
 <ul>
 <li><strong>Claude Code</strong> offers <code>CLAUDE.md</code> (rules you write by hand) and <strong><a href="https://code.claude.com/docs/en/memory?utm_source=ruttermemory.com">Auto Memory</a></strong> (<code>MEMORY.md</code> plus topic files under <code>~/.claude/projects/</code>). Its background <strong>Auto Dream</strong> pass periodically reviews those files, merges overlapping entries, and removes what looks outdated.</li>
-<li><strong><a href="https://docs.github.com/en/copilot/concepts/agents/copilot-memory?utm_source=ruttermemory.com">GitHub Copilot Memory</a></strong> stores repository conventions in your GitHub account. Each entry cites specific code lines, checks those lines against the current branch before using the memory, and expires after 28 days of inactivity.</li>
-<li><strong>OpenAI Codex</strong> stores user memories in your OpenAI account and reads project <code>AGENTS.md</code> files from disk.</li>
+<li><strong><a href="https://docs.github.com/en/copilot/concepts/agents/copilot-memory?utm_source=ruttermemory.com">GitHub Copilot Memory</a></strong> stores repository conventions in your GitHub account. Each entry cites specific code lines, checks those lines against the current branch before using the memory, and expires after 90 days by default (organization owners can change this).</li>
+<li><strong>OpenAI Codex</strong> stores memories locally under its Codex home directory (<code>~/.codex</code> by default) and reads project <code>AGENTS.md</code> files from disk.</li>
 </ul>
 <p>Built-in memory is convenient because there is nothing to install. Two limits show up when you work across multiple tools or over long horizons. First, the memory stays inside one vendor&#39;s tool. What Claude Code learns on Monday is invisible to Codex or Grok on Tuesday. Second, consolidation flattens history. Once Auto Dream merges two entries, you only see what the summary says today. The sequence of decisions that led there — and the date you changed your mind — is gone.</p>
 <p><code>rutter</code> keeps the memory in your notes folder so all six supported clients share one log. Every dated entry stays intact.</p>
@@ -243,12 +243,12 @@
 <p>Another group of tools ties AI session history directly to git commits:</p>
 <ul>
 <li><strong><a href="https://github.com/Ian-stetsenko/lore-protocol?utm_source=ruttermemory.com">Lore</a></strong> (<code>lore-protocol</code>) is rutter&#39;s closest cousin on capture mechanics. Lore instructs the active coding agent to write structured git commit trailers (<code>Directive:</code>, <code>Rejected:</code>, <code>Constraint:</code>, <code>Confidence:</code>) when it commits code. That takes no separate LLM call, runs while context is loaded, and pins the record to the commit hash.</li>
-<li><strong><a href="https://entire.io?utm_source=ruttermemory.com">Entire CLI</a></strong> (<code>entire.io</code>) and <strong><a href="https://usegitai.com?utm_source=ruttermemory.com">git-ai</a></strong> record session checkpoints, prompts, and line-level AI authorship metadata on git commits or shadow branches (<code>entire/checkpoints/v1</code>).</li>
+<li><strong><a href="https://entire.io?utm_source=ruttermemory.com">Entire CLI</a></strong> (<code>entire.io</code>) and <strong><a href="https://usegitai.com?utm_source=ruttermemory.com">git-ai</a></strong> record session checkpoints, prompts, and line-level AI authorship metadata on git commits or separate git refs (<code>refs/entire/checkpoints/…</code>).</li>
 </ul>
 <p>When your work is software engineering and every meaningful decision lands in a <code>git commit</code>, commit-bound provenance is a strong fit. The git commit tree already hashes the entire repository. Those tools stop working when a session produces no code commit. Think of an hour spent evaluating strategy memos, editing an essay, or researching competitors in a notes folder. <code>rutter</code> captures at the end of the turn, whether or not you ever run <code>git commit</code>.</p>
 
 <h2 id="tools-that-summarize-session-activity-claude-mem-and-mcp-memory-service">Tools that summarize session activity: claude-mem and mcp-memory-service</h2>
-<p>Tools such as <strong><a href="https://claude-mem.ai?utm_source=ruttermemory.com">claude-mem</a></strong> (<code>thedotmack/claude-mem</code>) and <strong><a href="https://github.com/doobidoo/mcp-memory-service?utm_source=ruttermemory.com">mcp-memory-service</a></strong> aim to capture everything the agent did.</p>
+<p>Tools such as <strong><a href="https://claude-mem.ai?utm_source=ruttermemory.com">claude-mem</a></strong> (<code>thedotmack/claude-mem</code>) and <strong><a href="https://mcpmemory.services?utm_source=ruttermemory.com">mcp-memory-service</a></strong> aim to capture everything the agent did.</p>
 <p><code>claude-mem</code> attaches hooks to five lifecycle events (<code>SessionStart</code>, <code>UserPromptSubmit</code>, <code>PostToolUse</code>, <code>Stop</code>, <code>SessionEnd</code>). Whenever the agent runs a command or edits a file, a background worker calls the Claude Agent SDK to compress that action. It stores those structured observations in SQLite (<code>~/.claude-mem/claude-mem.db</code>) and a Chroma vector index.</p>
 <p>That approach captures fine-grained operational telemetry automatically, with three differences from <code>rutter</code>:</p>
 <ol>
@@ -286,7 +286,7 @@
 <li><a href="known-issues.html">Known issues</a>: what is confirmed broken or untested.</li>
 </ul>
 
-<p class="ref-line"><code>docs/comparisons.md@sha256:556b46bef260 · built from docs/comparisons-language@5d2d93f</code> · <time class="date" datetime="2026-11-02">November 2, 2026</time> · <a href="sources.json">source hashes</a></p>
+<p class="ref-line"><code>docs/comparisons.md@sha256:d54d353b20f2 · built from docs/comparisons-language@047fb91</code> · <time class="date" datetime="2026-11-02">November 2, 2026</time> · <a href="sources.json">source hashes</a></p>
 <p class="to-dir"><a href="#doc-directory">Docs navigation</a></p>
 </article>
 </div>
@@ -295,7 +295,7 @@
 
 <footer class="site">
   <div class="footer-inner">
-    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter?utm_source=ruttermemory.com">Source on GitHub</a>.</p>
+    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source on GitHub</a>.</p>
     <nav class="footer-more" aria-label="More from the author">
       <ul>
         <li><a href="https://robin-cannon.com">robin-cannon.com</a></li>
