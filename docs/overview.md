@@ -354,6 +354,7 @@ each ending in a capture check and a recall check. To work from a clone, see [fr
 ## Further reading
 
 - [`getting-started.md`](./getting-started.md) — a setup path for each client, from install to first recall.
+- [`comparisons.md`](./comparisons.md) — how rutter compares with built-in memory, Kage, Funes, Recall, ADR servers, Obsidian servers, and git-commit provenance.
 - [`memory-of-use.md`](./memory-of-use.md) — capture, recall, enrichment, note identity, old positions,
   the trust boundary, and the usage gate, in full mechanical detail.
 - [`known-issues.md`](./known-issues.md) — what is confirmed broken or untested.

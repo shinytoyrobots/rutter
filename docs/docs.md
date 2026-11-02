@@ -3,6 +3,7 @@
 Every page of the rutter docs, in the order most readers want them. To install rutter and reach a first recall, start at [Get started](./getting-started.md).
 
 - [Why is it built this way?](./overview.md): the argument for the design, a worked example, and what each choice costs.
+- [How rutter compares](./comparisons.md): built-in memory, Markdown vaults, decision logs, and git provenance — what each tool keeps, and when to pick something else.
 - [How it works](./memory-of-use.md): memory-of-use is the record of how you used your notes. This page covers capture, recall, and note identity in full mechanical detail.
 - [FAQ](./faq.md): how several clients share one memory, adding a client to a working setup, double capture, and missing records.
 - [From source](./from-source.md): set up Claude Code from a clone of the repository. For contributors.
