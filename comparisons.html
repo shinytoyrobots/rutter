@@ -91,7 +91,7 @@
 <tr>
 <td><strong>rutter</strong></td>
 <td><code>_librarian/sessions/&lt;date&gt;.md</code> inside your notes folder</td>
-<td>Turn-end hook lifts one HTML comment written by the active session (no extra LLM calls)</td>
+<td>Turn-end hook lifts one HTML comment written by the active session (no extra large language model (LLM) calls)</td>
 <td>Append-only dated lines; earlier decisions stay beside later ones</td>
 <td>Server hashes cited notes at capture; follows unedited renames; marks missing refs <code>[UNRESOLVED]</code>; same-path edits are not flagged today</td>
 <td>You keep a Markdown notes folder, use multiple AI clients, and want dated decisions tied to the notes they cited</td>
@@ -123,7 +123,7 @@
 <tr>
 <td><strong>Funes</strong> (<code>huggingface/funes</code>)</td>
 <td>Local vector dataset (<code>~/.funes/store.lance</code>)</td>
-<td>Hook ingests full session transcripts from Claude Code, Codex, pi, and Hermes (two other coding-agent clients; no LLM calls, embeds locally)</td>
+<td>Hook ingests full session transcripts from Claude Code, Codex, pi, and Hermes (no LLM calls; embeds locally)</td>
 <td>Append-only raw conversation turns; never summarized</td>
 <td>None (stores full turn text and workspace path)</td>
 <td>You want semantic and keyword search over every raw turn you ever had, without distilling decisions</td>
@@ -211,7 +211,7 @@
 <p>Kage is built for code repositories where a stale architectural note can mislead a coding agent. <code>rutter</code> is built for a personal notes folder. It lets you see what you decided in March alongside the fact that a cited note moved or vanished.</p>
 
 <h3 id="funes-huggingface-funes">Funes (<code>huggingface/funes</code>)</h3>
-<p>Built by Thomas Wolf at Hugging Face, Funes also avoids background summarization: it keeps raw turns and never distills them. Funes also works across multiple clients (Claude Code, Codex, pi, and Hermes) using hooks and an MCP server.</p>
+<p>Built by Thomas Wolf at Hugging Face, Funes avoids background summarization too: it keeps raw turns and never distills them. Funes also works across multiple clients (Claude Code, Codex, and the coding agents pi and Hermes) using hooks and an MCP server.</p>
 <p>Where they diverge is <strong>what gets stored</strong>:</p>
 <ul>
 <li><strong>Funes stores the entire raw transcript.</strong> At the end of a session, Funes parses the client&#39;s transcript and embeds every user and assistant turn locally (<code>all-MiniLM-L6-v2</code>). It writes those turns into a binary Lance dataset (<code>~/.funes/store.lance</code>) for hybrid vector and keyword search.</li>
@@ -242,17 +242,17 @@
 <h2 id="git-commit-provenance-lore-entire-and-git-ai">Git-commit provenance: Lore, Entire, and git-ai</h2>
 <p>Another group of tools ties AI session history directly to git commits:</p>
 <ul>
-<li><strong>Lore</strong> (<code>lore-protocol</code>) is rutter&#39;s closest cousin on capture mechanics. Lore instructs the active coding agent to write structured git commit trailers (<code>Directive:</code>, <code>Rejected:</code>, <code>Constraint:</code>, <code>Confidence:</code>) when it commits code. That takes zero extra tokens, runs while context is loaded, and pins the record to the commit hash.</li>
+<li><strong>Lore</strong> (<code>lore-protocol</code>) is rutter&#39;s closest cousin on capture mechanics. Lore instructs the active coding agent to write structured git commit trailers (<code>Directive:</code>, <code>Rejected:</code>, <code>Constraint:</code>, <code>Confidence:</code>) when it commits code. That takes no separate LLM call, runs while context is loaded, and pins the record to the commit hash.</li>
 <li><strong>Entire CLI</strong> (<code>entire.io</code>) and <strong>git-ai</strong> record session checkpoints, prompts, and line-level AI authorship metadata on git commits or shadow branches (<code>entire/checkpoints/v1</code>).</li>
 </ul>
 <p>When your work is software engineering and every meaningful decision lands in a <code>git commit</code>, commit-bound provenance is a strong fit. The git commit tree already hashes the entire repository. Those tools stop working when a session produces no code commit. Think of an hour spent evaluating strategy memos, editing an essay, or researching competitors in a notes folder. <code>rutter</code> captures at the end of the turn, whether or not you ever run <code>git commit</code>.</p>
 
-<h2 id="hook-driven-compression-databases-claude-mem-and-cloud-memory">Tools that summarize every action: claude-mem and cloud memory</h2>
+<h2 id="tools-that-summarize-session-activity-claude-mem-and-cloud-memory">Tools that summarize session activity: claude-mem and cloud memory</h2>
 <p>Tools such as <strong>claude-mem</strong> (<code>thedotmack/claude-mem</code>), <strong>mcp-memory-service</strong>, and cloud services like <strong>Mem0</strong> or <strong>Zep</strong> aim to capture everything the agent did.</p>
 <p><code>claude-mem</code> attaches hooks to five lifecycle events (<code>SessionStart</code>, <code>UserPromptSubmit</code>, <code>PostToolUse</code>, <code>Stop</code>, <code>SessionEnd</code>). Whenever the agent runs a command or edits a file, a background worker calls the Claude Agent SDK to compress that action. It stores those structured observations in SQLite (<code>~/.claude-mem/claude-mem.db</code>) and a Chroma vector index.</p>
 <p>That approach captures fine-grained operational telemetry automatically, with three differences from <code>rutter</code>:</p>
 <ol>
-<li><strong>Background model calls.</strong> Summarizing every tool call consumes API quota or subscription rate limits in the background. rutter&#39;s hook and server make no LLM calls.</li>
+<li><strong>Background LLM calls.</strong> Summarizing every tool call consumes API quota or subscription rate limits in the background. rutter&#39;s hook and server make no LLM calls.</li>
 <li><strong>Database storage.</strong> Primary records live in a SQLite database or a cloud account rather than plain Markdown files in your notes folder. (In <code>rutter</code>, SQLite FTS5 — SQLite&#39;s built-in full-text search — is only a disposable cache rebuilt from your Markdown files.)</li>
 <li><strong>Volume over selectivity.</strong> Capturing every tool use records a lot of scaffolding. <code>rutter</code> asks the session for a line only when a turn decided or produced something worth recalling later.</li>
 </ol>
@@ -286,7 +286,7 @@
 <li><a href="known-issues.html">Known issues</a>: what is confirmed broken or untested.</li>
 </ul>
 
-<p class="ref-line"><code>docs/comparisons.md@sha256:6f8cd2810d96 · built from docs/comparisons-language@5365940</code> · <time class="date" datetime="2026-11-02">November 2, 2026</time> · <a href="sources.json">source hashes</a></p>
+<p class="ref-line"><code>docs/comparisons.md@sha256:e108c770d03a · built from docs/comparisons-language@f2538ca</code> · <time class="date" datetime="2026-11-02">November 2, 2026</time> · <a href="sources.json">source hashes</a></p>
 <p class="to-dir"><a href="#doc-directory">Docs navigation</a></p>
 </article>
 </div>
