@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How rutter compares — rutter</title>
+<meta name="description" content="Built-in memory, Markdown vaults, decision logs, and git provenance — what each tool keeps, and when to pick something else.">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="canonical" href="https://ruttermemory.com/comparisons.html">
+<link rel="stylesheet" href="style.css">
+<!-- Privacy-friendly analytics by Plausible -->
+<script async src="https://plausible.io/js/pa-4uYr10ruU_MEGNd7hGilg.js"></script>
+<script>
+  window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
+  plausible.init()
+</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<a class="skip-link" href="#doc-directory">Skip to documentation</a>
+<div class="dead-channel" aria-hidden="true"></div>
+
+<header class="site">
+  <div class="site-inner">
+    <div class="brand"><a class="wordmark" href="index.html">rutter_</a><span class="brand-line">Who owns memory owns truth.</span></div>
+    <nav class="site-nav" aria-label="Site">
+      <ul>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="getting-started.html">Get started</a></li>
+        <li><a href="docs.html" aria-current="true">Docs</a></li>
+        <li><a href="https://github.com/shinytoyrobots/rutter">GitHub</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+<div class="doc-layout">
+<div class="doc-dir-wrap">
+<nav id="doc-directory" aria-label="Documentation">
+<p class="dir-label">Documentation</p>
+<details class="doc-dir" open>
+<summary>Docs · How rutter compares</summary>
+<ul>
+<li><a href="docs.html">All docs</a></li>
+<li><a href="getting-started.html">Get started</a></li>
+<li><a href="design.html">Why is it built this way?</a></li>
+<li><a href="comparisons.html" aria-current="page">How rutter compares</a></li>
+<li><a href="memory-of-use.html">How it works</a></li>
+<li><a href="faq.html">FAQ</a></li>
+<li><a href="from-source.html">From source</a></li>
+<li><a href="manage-and-privacy.html">Pause, remove, and privacy</a></li>
+<li><a href="known-issues.html">Known issues</a></li>
+</ul>
+</details>
+</nav>
+</div>
+<article class="doc">
+<nav aria-label="Breadcrumb"><p class="crumbs"><a href="docs.html">Docs</a> / How rutter compares</p></nav>
+<h1 id="how-rutter-compares">How rutter compares</h1>
+<p class="dek">Built-in memory, Markdown vaults, decision logs, and git provenance — what each tool keeps, and when to pick something else.</p>
+
+<p>Dozens of tools now offer memory for AI coding and research sessions. They share a label, yet they solve different jobs. Some summarize every tool call into a database. Some give the model write access to your notes. Others attach reasoning to git commits, or merge past sessions into a single evolving profile.</p>
+<p>When you compare them, three questions separate the designs:</p>
+<ol>
+<li><strong>What gets written down, and who writes it?</strong> Some tools save raw transcripts or run a background model to summarize the session. Others give the agent a write tool, or lift one line written at the end of a turn.</li>
+<li><strong>What happens to old entries?</strong> Are earlier decisions merged into a current summary, overwritten when a view changes, or kept in date order as an append-only log?</li>
+<li><strong>How are sources checked later?</strong> When a record cites a note, it can store a content hash (a fingerprint of the file&#39;s bytes at capture). What happens later when that file moves or changes?</li>
+</ol>
+<p><code>rutter</code> takes a specific position on those three questions. When a turn decides or produces something worth keeping, your AI client ends its reply with one plain-English HTML comment. That comment names what was decided, why, and which notes the session cited. A capture hook (a script the client runs after each turn) lifts the line and appends it to <code>_librarian/sessions/&lt;date&gt;.md</code> inside your notes folder. For each cited note, the server computes and stores a SHA-256 content hash of the file as it stood when capture ran. Capture runs no second model and makes no network call.</p>
+<p>Reading uses three read-only MCP (Model Context Protocol, the standard way an AI client connects to an outside data source) tools: <code>librarian-search</code>, <code>librarian-get-note</code>, and <code>librarian-recent</code>. <code>rutter</code>&#39;s tools (<code>librarian-*</code>), environment variables (<code>LIBRARIAN_*</code>), and the <code>_librarian/</code> folder keep the project&#39;s earlier name, <em>librarian</em>.</p>
+<p>Six clients have a working capture hook today: Claude Code, Grok, Codex, GitHub Copilot CLI, Antigravity CLI (<code>agy</code>), and Muse Code (<code>muse</code>). Any other MCP client can search and recall with one <code>npx</code> entry, without capturing.</p>
+
+<h2 id="the-short-version">The short version</h2>
+<div class="table-scroll">
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Where records live</th>
+<th>How capture works</th>
+<th>What happens to old entries</th>
+<th>How sources are checked</th>
+<th>Pick this when…</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>rutter</strong></td>
+<td><code>_librarian/sessions/&lt;date&gt;.md</code> inside your notes folder</td>
+<td>Turn-end hook lifts one HTML comment written by the active session (zero extra model calls)</td>
+<td>Append-only dated lines; earlier decisions stay beside later ones</td>
+<td>Server hashes cited notes at capture; follows unedited renames; marks missing refs <code>[UNRESOLVED]</code>; same-path edits are not flagged today</td>
+<td>You keep a Markdown notes folder, use multiple AI clients, and want dated decisions tied to the notes they cited</td>
+</tr>
+<tr>
+<td><strong>Claude Code Auto Memory</strong></td>
+<td><code>~/.claude/projects/&lt;project&gt;/memory/</code> (<code>MEMORY.md</code> + topic files)</td>
+<td>Built-in client writes recaps; background Auto Dream pass consolidates entries</td>
+<td>Merged and pruned periodically so the file stays short</td>
+<td>None</td>
+<td>You only use Claude Code and want zero-setup project preferences</td>
+</tr>
+<tr>
+<td><strong>GitHub Copilot Memory</strong></td>
+<td>GitHub cloud account (per repository)</td>
+<td>Built-in agent captures repo conventions during coding and review</td>
+<td>Entries expire after 28 days unless re-verified</td>
+<td>Cites code lines and checks them against the branch on read</td>
+<td>Your team lives in GitHub and wants short-lived repo facts shared across Copilot tasks</td>
+</tr>
+<tr>
+<td><strong>Kage</strong> (<code>@kage-core/kage-graph-mcp</code>)</td>
+<td><code>.agent_memory/</code> Markdown files in a code repository</td>
+<td>Agent calls <code>kage_learn</code> MCP tool during a session</td>
+<td>Append-only Markdown files with superseded status flags</td>
+<td>Hashes cited code lines (<code>x-kage-fingerprint</code>); <strong>withholds</strong> stale memories on recall</td>
+<td>You want code-coupled memories that refuse to return when the cited code changes</td>
+</tr>
+<tr>
+<td><strong>Funes</strong> (<code>huggingface/funes</code>)</td>
+<td>Local vector dataset (<code>~/.funes/store.lance</code>)</td>
+<td>Hook ingests full session transcripts from Claude Code, Codex, pi, and Hermes (zero model cost)</td>
+<td>Append-only raw conversation turns; never summarized</td>
+<td>None (stores full turn text and workspace path)</td>
+<td>You want semantic and keyword search over every raw turn you ever had, without distilling decisions</td>
+</tr>
+<tr>
+<td><strong>Recall</strong> (<code>raiyanyahya/recall</code>)</td>
+<td><code>.recall/history.md</code> and <code>.recall/context.md</code> in a repo</td>
+<td>Git and Claude hooks extract turn text offline using word-frequency scoring</td>
+<td><code>history.md</code> is append-only; <code>context.md</code> is overwritten each run</td>
+<td>None</td>
+<td>You want an offline, zero-token session log inside a single git repository</td>
+</tr>
+<tr>
+<td><strong>Nauro</strong> (<code>Nauro-AI/nauro</code>)</td>
+<td><code>.nauro/</code> Markdown decision records in a repo</td>
+<td>Agent calls <code>propose_decision</code> MCP tool</td>
+<td>Append-only Markdown files; older records can be marked superseded</td>
+<td>Links file paths without content hashes</td>
+<td>You want formal multi-section decision records (<code>Context</code>, <code>Decision</code>, <code>Rejected Alternatives</code>) in a repo</td>
+</tr>
+<tr>
+<td><strong>AdrMcp</strong> (<code>Atypical-Consulting/AdrMcp</code>)</td>
+<td><code>docs/adr/</code> Markdown ADR (Architecture Decision Record) files</td>
+<td>Agent calls <code>create_adr</code> or <code>supersede_adr</code> MCP tools</td>
+<td>Numbered ADR files with explicit supersession links</td>
+<td><code>find_stale_adrs</code> checks whether cited file paths and code symbols still exist</td>
+<td>You want a structured ADR linter that checks code symbols in a software project</td>
+</tr>
+<tr>
+<td><strong>Basic Memory</strong> (<code>basicmachines-co/basic-memory</code>)</td>
+<td>Your Markdown vault (Obsidian-compatible)</td>
+<td>Agent calls <code>write_note</code> and <code>edit_note</code> MCP tools to write notes directly</td>
+<td>Agent edits notes in place or appends observations</td>
+<td>Wikilinks between notes; no content hashes</td>
+<td>You want the AI to author and reorganize your vault notes directly</td>
+</tr>
+<tr>
+<td><strong>claude-memory-compiler</strong> (<code>coleam00</code>)</td>
+<td>Markdown knowledge wiki + <code>daily/</code> logs</td>
+<td>Hook triggers background Claude SDK calls to compile sessions into wiki articles</td>
+<td>Background model rewrites and merges wiki pages</td>
+<td>None</td>
+<td>You want an AI-written personal wiki compiled automatically from your transcripts</td>
+</tr>
+<tr>
+<td><strong>Lore</strong> / <strong>Entire CLI</strong></td>
+<td>Git commit trailers (<code>Lore</code>) or a shadow branch (<code>Entire</code>)</td>
+<td>Prompt rule writes commit trailers (<code>Lore</code>), or CLI checkpoints commits (<code>Entire</code>)</td>
+<td>Immutable git commit history</td>
+<td>Pinned to the git commit hash</td>
+<td>Every decision you care about ends in a git commit inside a code repository</td>
+</tr>
+<tr>
+<td><strong>claude-mem</strong> (<code>thedotmack/claude-mem</code>)</td>
+<td><code>~/.claude-mem/claude-mem.db</code> (SQLite + Chroma vectors)</td>
+<td>Lifecycle hooks run a background worker that summarizes every tool call via the Claude SDK</td>
+<td>Compressed observations stored in SQLite</td>
+<td>None</td>
+<td>You want automatic capture of every file edit and shell command inside Claude Code</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<h2 id="built-in-memory-claude-code-copilot-and-codex">Built-in memory: Claude Code, Copilot, and Codex</h2>
+<p>Every major AI coding tool now ships with built-in memory.</p>
+<ul>
+<li><strong>Claude Code</strong> offers <code>CLAUDE.md</code> (rules you write by hand) and <strong>Auto Memory</strong> (<code>MEMORY.md</code> plus topic files under <code>~/.claude/projects/</code>). Its background <strong>Auto Dream</strong> pass periodically reviews those files, merges overlapping entries, and removes what looks outdated.</li>
+<li><strong>GitHub Copilot Memory</strong> stores repository conventions in your GitHub account. Each entry cites specific code lines, checks those lines against the current branch before using the memory, and expires after 28 days of inactivity.</li>
+<li><strong>OpenAI Codex</strong> stores user memories in your OpenAI account and reads project <code>AGENTS.md</code> files from disk.</li>
+</ul>
+<p>Built-in memory is convenient because there is nothing to install. Two limits show up when you work across multiple tools or over long horizons. First, the memory stays inside one vendor&#39;s tool. What Claude Code learns on Monday is invisible to Codex or Grok on Tuesday. Second, consolidation flattens history. Once Auto Dream merges two entries, you only see what the summary says today. The sequence of decisions that led there — and the date you changed your mind — is gone.</p>
+<p><code>rutter</code> keeps the memory in your notes folder so all six supported clients share one log. Every dated entry stays intact.</p>
+
+<h2 id="session-and-provenance-neighbors-kage-funes-and-recall">Session and provenance neighbors: Kage, Funes, and Recall</h2>
+<p>Three open-source tools sit closest to <code>rutter</code>&#39;s design. Each shares part of the mechanism and makes a different call on the rest.</p>
+
+<h3 id="kage-kage-core-kage-graph-mcp">Kage (<code>@kage-core/kage-graph-mcp</code>)</h3>
+<p>Kage is <code>rutter</code>&#39;s closest neighbor on content-hashed provenance. It stores memories as Markdown files with YAML metadata in a code repository&#39;s <code>.agent_memory/</code> folder. When an agent records a memory through Kage&#39;s <code>kage_learn</code> tool, Kage anchors the entry to specific file paths and line ranges. It also computes a content fingerprint (<code>x-kage-fingerprint</code>) of that code block.</p>
+<p>The sharpest difference is what happens when a cited file changes:</p>
+<ul>
+<li><strong>Kage withholds the memory.</strong> On recall (<code>kage_recall</code> and <code>kage_context</code>), Kage checks the fingerprint against the working tree. If the cited code lines have changed, Kage flags the memory as stale and withholds it from the agent until it is re-verified.</li>
+<li><strong>rutter shows the record and marks what it cannot place.</strong> If a cited note was renamed without edits, <code>rutter</code> follows the SHA-256 hash to the new path. If the path is gone and no single note matches the hash, <code>rutter</code> still returns the decision and marks the reference <code>[UNRESOLVED]</code>. Checking whether a note was edited <em>in place</em> at the same path is not built in <code>rutter</code> today.</li>
+</ul>
+<p>Kage is built for code repositories where a stale architectural note can mislead a coding agent. <code>rutter</code> is built for a personal notes folder. It lets you see what you decided in March alongside the fact that a cited note moved or vanished.</p>
+
+<h3 id="funes-huggingface-funes">Funes (<code>huggingface/funes</code>)</h3>
+<p>Built by Thomas Wolf at Hugging Face, Funes shares <code>rutter</code>&#39;s exact stance against background summarization. Its documentation makes the same case: background summarization loses detail, costs tokens, and blurs when something happened. Funes also works across multiple clients (Claude Code, Codex, pi, and Hermes) using hooks and an MCP server.</p>
+<p>Where they diverge is <strong>what gets stored</strong>:</p>
+<ul>
+<li><strong>Funes stores the entire raw transcript.</strong> At the end of a session, Funes parses the client&#39;s transcript and embeds every user and assistant turn locally (<code>all-MiniLM-L6-v2</code>). It writes those turns into a binary Lance dataset (<code>~/.funes/store.lance</code>) for hybrid vector and keyword search.</li>
+<li><strong>rutter stores one distilled line per decision in plain Markdown.</strong> The active session writes a 40-to-60-word summary naming what was decided and which notes were cited. <code>rutter</code> appends that line to <code>_librarian/sessions/&lt;date&gt;.md</code>.</li>
+</ul>
+<p>If you want to search every raw conversation turn you have ever had across projects, pick Funes. If you want a readable log of decisions pinned to the Markdown notes they cited, pick <code>rutter</code>.</p>
+
+<h3 id="recall-raiyanyahya-recall">Recall (<code>raiyanyahya/recall</code>)</h3>
+<p>Recall is a local command-line tool that hooks into Claude Code and git commits. Like <code>rutter</code>, it makes zero model or network calls during capture, and it writes an append-only Markdown log (<code>.recall/history.md</code>).</p>
+<p>Recall does not ask the active model to emit a one-line decision summary. Instead, it runs statistical word-frequency scoring (TF-IDF and TextRank) over the session transcript. It appends the extracted points to <code>.recall/history.md</code> and overwrites a snapshot file (<code>.recall/context.md</code>). Recall has no MCP server, does not hash cited files, and lives inside a single repository instead of a shared notes folder.</p>
+
+<h2 id="decision-logs-and-adr-servers-nauro-and-adrmcp">Decision logs and ADR servers: Nauro and AdrMcp</h2>
+<p>If the part of <code>rutter</code> you care about is recording decisions and why they were made, two MCP servers approach that job from software architecture.</p>
+<ul>
+<li><strong>Nauro</strong> (<code>Nauro-AI/nauro</code>) stores multi-section Markdown decision files (<code># Context &amp; Requirement</code>, <code># Decision</code>, <code># Rejected Alternatives</code>, <code># Consequences</code>) in a repo&#39;s <code>.nauro/</code> directory. It indexes them in memory with BM25 (keyword ranking) and exposes ten MCP tools (<code>check_decision</code>, <code>propose_decision</code>, <code>diff_since_last_session</code>, and others).</li>
+<li><strong>AdrMcp</strong> (<code>Atypical-Consulting/AdrMcp</code>) manages numbered ADR (Architecture Decision Record, a short file recording a technical choice) files in <code>docs/adr/</code>. Its <code>find_stale_adrs</code> tool checks whether file paths and code symbols listed in an ADR&#39;s <code>code_refs</code> metadata still exist in the repository. A second tool, <code>detect_conflicts</code>, flags overlapping records.</li>
+</ul>
+<p>Both tools rely on <strong>explicit tool calls</strong>: the agent must call <code>propose_decision</code> or <code>create_adr</code> during the session, producing a full document per decision. <code>rutter</code> uses <strong>ambient turn-end capture</strong>. The model leaves a single HTML comment at the end of its normal reply, and the hook records it without a tool call.</p>
+
+<h2 id="markdown-and-obsidian-servers-basic-memory-and-claude-memory-compiler">Markdown and Obsidian servers: Basic Memory and claude-memory-compiler</h2>
+<p>Several tools use a local Markdown or Obsidian vault as the memory store. The dividing line is <strong>whether the AI edits your notes</strong>.</p>
+<ul>
+<li><strong>Basic Memory</strong> (<code>basicmachines-co/basic-memory</code>) is a read-write knowledge base over local Markdown files. It gives the agent MCP tools (<code>write_note</code>, <code>edit_note</code>) to create and update notes directly, using a grammar of <code>[category]observation #tag</code> bullets and <code>[[WikiLink]]</code> relations.</li>
+<li><strong>claude-memory-compiler</strong> (<code>coleam00/claude-memory-compiler</code>) uses Claude Code hooks to save session transcripts into <code>daily/</code> logs. A background worker then calls the Claude Agent SDK (Anthropic&#39;s software development kit) to compile and rewrite a personal wiki of interconnected Markdown articles.</li>
+</ul>
+<p><code>rutter</code>&#39;s MCP server is <strong>strictly read-only over your notes</strong>. It leaves your prose untouched, never reorganizes your folders, and requires no special note format. Your notes stay yours; <code>rutter</code> only appends session records inside <code>_librarian/sessions/</code> beside them. That boundary matters when you use your vault for fiction, essays, or research where the exact wording is canonical.</p>
+
+<h2 id="git-commit-provenance-lore-entire-and-git-ai">Git-commit provenance: Lore, Entire, and git-ai</h2>
+<p>Another group of tools ties AI session history directly to git commits:</p>
+<ul>
+<li><strong>Lore</strong> (<code>lore-protocol</code>) is <code>rutter</code>&#39;s closest cousin on capture mechanics. Lore instructs the active coding agent to write structured git commit trailers (<code>Directive:</code>, <code>Rejected:</code>, <code>Constraint:</code>, <code>Confidence:</code>) when it commits code. That takes zero extra tokens, runs while context is loaded, and pins the record to the commit hash.</li>
+<li><strong>Entire CLI</strong> (<code>entire.io</code>) and <strong>git-ai</strong> record session checkpoints, prompts, and line-level AI authorship metadata on git commits or shadow branches (<code>entire/checkpoints/v1</code>).</li>
+</ul>
+<p>When your work is software engineering and every meaningful decision lands in a <code>git commit</code>, commit-bound provenance is hard to beat. The git commit tree already hashes the entire repository. Those tools stop working when a session produces no code commit. Think of an hour spent evaluating strategy memos, editing an essay, or researching competitors in a notes folder. <code>rutter</code> captures at the end of the turn, whether or not you ever run <code>git commit</code>.</p>
+
+<h2 id="hook-driven-compression-databases-claude-mem-and-cloud-memory">Hook-driven compression databases: claude-mem and cloud memory</h2>
+<p>Tools such as <strong>claude-mem</strong> (<code>thedotmack/claude-mem</code>), <strong>mcp-memory-service</strong>, and cloud services like <strong>Mem0</strong> or <strong>Zep</strong> aim to capture everything the agent did.</p>
+<p><code>claude-mem</code> attaches hooks to five lifecycle events (<code>SessionStart</code>, <code>UserPromptSubmit</code>, <code>PostToolUse</code>, <code>Stop</code>, <code>SessionEnd</code>). Whenever the agent runs a command or edits a file, a background worker calls the Claude Agent SDK to compress that action. It stores those structured observations in SQLite (<code>~/.claude-mem/claude-mem.db</code>) and a Chroma vector index.</p>
+<p>That approach captures fine-grained operational telemetry automatically, at three costs <code>rutter</code> avoids:</p>
+<ol>
+<li><strong>Background model calls.</strong> Summarizing every tool call consumes API (application programming interface) quota or subscription rate limits in the background. <code>rutter</code>&#39;s hook and server contain no model.</li>
+<li><strong>Database storage.</strong> Primary records live in a SQLite database or a cloud account rather than plain Markdown files in your notes folder. (In <code>rutter</code>, SQLite FTS5 — SQLite&#39;s built-in full-text search — is only a disposable cache rebuilt from your Markdown files.)</li>
+<li><strong>Volume over selectivity.</strong> Capturing every tool use records a lot of scaffolding. <code>rutter</code> asks the session for a line only when a turn decided or produced something worth recalling later.</li>
+</ol>
+
+<h2 id="limits-to-weigh-before-choosing-rutter">Limits to weigh before choosing rutter</h2>
+<p><code>rutter</code>&#39;s design trades automation for inspectability. Those trade-offs are worth reading plainly before you install:</p>
+<ul>
+<li><strong>Capture depends on the model.</strong> A record exists only if the model followed instructions and wrote the <code>&lt;!-- librarian-session ... --&gt;</code> comment at the end of its turn. In small single-person trials, models sometimes skipped the line (see <a href="known-issues.html#capture-depends-on-the-model">Known issues</a>). Hook-driven transcript indexers like Funes or <code>claude-mem</code> capture every turn regardless of model compliance.</li>
+<li><strong>Listed is not read.</strong> A reference records which note paths the model listed in its comment, plus the server&#39;s SHA-256 hash of each file when capture ran. It does not prove the model opened or read those notes.</li>
+<li><strong>Same-path edits are not flagged yet.</strong> If a cited note is renamed without edits, <code>rutter</code> follows its hash. If it is deleted or both edited and renamed, <code>rutter</code> marks it <code>[UNRESOLVED]</code>. A note edited <em>in place</em> at the same path is not flagged at recall time today. You have to compare the stored hash by hand. Kage checks in-place code edits on every recall.</li>
+<li><strong>Keyword search only.</strong> <code>librarian-search</code> uses SQLite FTS5 keyword matching with all terms required (<code>AND</code>). Semantic vector search is an unimplemented stub (<code>embeddings.ts</code>). Funes, Basic Memory, and <code>claude-mem</code> all ship working semantic search.</li>
+<li><strong>Single-user personal tool.</strong> <code>rutter</code> is one person&#39;s reference implementation, MIT-licensed, with no support commitment and no multi-user sync.</li>
+</ul>
+
+<h2 id="when-to-use-something-else">When to use something else</h2>
+<ul>
+<li><strong>You only use Claude Code and want zero setup:</strong> use Claude Code&#39;s built-in Auto Memory and <code>CLAUDE.md</code>.</li>
+<li><strong>You want code-linked memories that block stale advice when code changes:</strong> use <a href="https://github.com/kage-core/Kage">Kage</a>.</li>
+<li><strong>You want full-transcript semantic search across all your coding sessions with zero model ingest cost:</strong> use <a href="https://github.com/huggingface/funes">Funes</a>.</li>
+<li><strong>You want an offline session log inside one git repo with no MCP server:</strong> use <a href="https://github.com/raiyanyahya/recall">Recall</a>.</li>
+<li><strong>You want the AI to write and reorganize notes inside your Obsidian vault:</strong> use <a href="https://github.com/basicmachines-co/basic-memory">Basic Memory</a> or <a href="https://github.com/coleam00/claude-memory-compiler">claude-memory-compiler</a>.</li>
+<li><strong>You want decisions attached directly to git commits:</strong> use <a href="https://github.com/lore-protocol">Lore</a> or <a href="https://entire.io">Entire CLI</a>.</li>
+<li><strong>You keep a Markdown notes folder and use multiple AI clients:</strong> <a href="getting-started.html">get started with rutter</a> for a dated log of decisions and cited notes.</li>
+</ul>
+
+<h2 id="see-also">See also</h2>
+<ul>
+<li><a href="design.html">Why is it built this way?</a>: the argument for the design, a worked example, and what each choice costs.</li>
+<li><a href="memory-of-use.html">How it works</a>: capture, recall, enrichment, and note identity in full mechanical detail.</li>
+<li><a href="getting-started.html">Getting started</a>: setup paths for Claude Code, Grok, Codex, Copilot CLI, Antigravity, and Muse Code.</li>
+<li><a href="known-issues.html">Known issues</a>: what is confirmed broken or untested.</li>
+</ul>
+
+<p class="ref-line"><code>docs/comparisons.md@sha256:bb7beeb6d02a · built from main@2224a7e</code> · <time class="date" datetime="2026-11-02">2 November 2026</time> · <a href="sources.json">source hashes</a></p>
+<p class="to-dir"><a href="#doc-directory">Docs navigation</a></p>
+</article>
+</div>
+
+</main>
+
+<footer class="site">
+  <div class="footer-inner">
+    <p>rutter — a personal tool, published as a dated reference implementation. MIT licensed. <a href="https://github.com/shinytoyrobots/rutter">Source on GitHub</a>.</p>
+    <nav class="footer-more" aria-label="More from the author">
+      <ul>
+        <li><a href="https://robin-cannon.com">robin-cannon.com</a></li>
+        <li><a href="https://static-drift.com">Fiction at static-drift.com</a>, an inspiration for this tool</li>
+      </ul>
+    </nav>
+  </div>
+</footer>
+<script>
+(function () {
+  var d = document.querySelector(".doc-dir");
+  if (!d || !window.matchMedia) return;
+  var mq = window.matchMedia("(min-width: 64rem)");
+  var s = d.querySelector("summary");
+  function apply(wide) {
+    var a = document.activeElement;
+    if (wide) {
+      var hadSummary = a === s;
+      d.open = true;
+      if (hadSummary) { var c = d.querySelector('a[aria-current="page"]'); if (c) c.focus(); }
+    } else {
+      if (a !== s && d.contains(a)) s.focus();
+      d.open = false;
+    }
+  }
+  apply(mq.matches);
+  if (mq.addEventListener) mq.addEventListener("change", function (e) { apply(e.matches); });
+  else if (mq.addListener) mq.addListener(function (e) { apply(e.matches); });
+  var wasOpen;
+  window.addEventListener("beforeprint", function () { wasOpen = d.open; d.open = true; });
+  window.addEventListener("afterprint", function () { d.open = wasOpen; });
+})();
+</script>
+</body>
+</html>

@@ -1,16 +1,17 @@
 {
-  "comment": "Content hashes of the repo docs this site was built from \u2014 the site's own ref line. Run `npm run site-drift` on main to compare; drift here means the published site has gone stale against its sources, which is exactly the failure this project exists to make visible.",
-  "builtFrom": "2e52a16",
-  "generated": "2026-11-01",
+  "comment": "Content hashes of the repo docs this site was built from — the site's own ref line. Run `npm run site-drift` on main to compare; drift here means the published site has gone stale against its sources, which is exactly the failure this project exists to make visible.",
+  "builtFrom": "2224a7e",
+  "generated": "2026-11-02",
   "sources": {
-    "docs/index.md": "sha256:5a9fb958c7e9d6936977549755d9a0867e63915c8a18f39c7ebceedd0616b338",
-    "docs/overview.md": "sha256:cd2b9074b6fc1bed3db2d70b4e387dd405fbabf083bcc5be78ee28a8d4bd16fa",
+    "docs/index.md": "sha256:b120c3bded8890f273f0f847ed33cf298d629f6adb1e335cc0cf26850e10d8cd",
+    "docs/overview.md": "sha256:82f3140678f02ec9641a239cb8dfb17950f11b9a34d14ee803a2247613b10125",
+    "docs/comparisons.md": "sha256:bb7beeb6d02a5417a684dc6491bc028f00780f97ad56e8be011d731d6384fd22",
     "docs/getting-started.md": "sha256:b8d766901111c9ef5cfd71b71cd6745c19f6cca6102adaa01c519ae24ea411c2",
     "docs/faq.md": "sha256:f9fe6ebf71efa5c9d88deceb32fd1e673fe2a5b7368f4d3cc0ea8c1649115ef1",
     "docs/memory-of-use.md": "sha256:25cdeac4f34c5ef0563b98a251c1b1c59145fb37a4fcea5e5191aca24de8576b",
     "docs/from-source.md": "sha256:04d26be52f870f450b28c462def613810c033d5d649bcbba1e024bcc47e8dfea",
     "docs/manage-and-privacy.md": "sha256:86995d1224f4510db3ce96d2fb37e8719d9d295c5274060a1a77a82945e2db0d",
     "docs/known-issues.md": "sha256:3a7c80782bc58f9c0a95517d19e7e08b351001bf75022e26addc0fae0c539e3a",
-    "docs/docs.md": "sha256:97b45a61cb0e36810b83421f33b99bc57a5ccf7145c9ed6f42fa18c9ddb23576"
+    "docs/docs.md": "sha256:94cc38bd2f7504ab08b14d7ea397d2d952e2bd55d05d7bb5c968a3e95e5ed6a0"
   }
 }
