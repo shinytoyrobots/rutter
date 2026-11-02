@@ -20,11 +20,11 @@ Six clients have a working capture hook today: Claude Code, Grok, Codex, GitHub 
 
 | Tool | Where records live | How capture works | What happens to old entries | How sources are checked | Use this when… |
 |------|--------------------|-------------------|-----------------------------|-------------------------|-----------------|
-| **rutter** | `_librarian/sessions/<date>.md` inside your notes folder | Turn-end hook lifts one HTML comment written by the active session (no extra LLM calls) | Append-only dated lines; earlier decisions stay beside later ones | Server hashes cited notes at capture; follows unedited renames; marks missing refs `[UNRESOLVED]`; same-path edits are not flagged today | You keep a Markdown notes folder, use multiple AI clients, and want dated decisions tied to the notes they cited |
+| **rutter** | `_librarian/sessions/<date>.md` inside your notes folder | Turn-end hook lifts one HTML comment written by the active session (no extra large language model (LLM) calls) | Append-only dated lines; earlier decisions stay beside later ones | Server hashes cited notes at capture; follows unedited renames; marks missing refs `[UNRESOLVED]`; same-path edits are not flagged today | You keep a Markdown notes folder, use multiple AI clients, and want dated decisions tied to the notes they cited |
 | **Claude Code Auto Memory** | `~/.claude/projects/<project>/memory/` (`MEMORY.md` + topic files) | Built-in client writes recaps; background Auto Dream pass consolidates entries | Merged and pruned periodically so the file stays short | None | You only use Claude Code and want zero-setup project preferences |
 | **GitHub Copilot Memory** | GitHub cloud account (per repository) | Built-in agent captures repo conventions during coding and review | Entries expire after 28 days unless re-verified | Cites code lines and checks them against the branch on read | Your team lives in GitHub and wants short-lived repo facts shared across Copilot tasks |
 | **Kage** (`@kage-core/kage-graph-mcp`) | `.agent_memory/` Markdown files in a code repository | Agent calls `kage_learn` MCP tool during a session | Append-only Markdown files with superseded status flags | Hashes cited code lines (`x-kage-fingerprint`); **withholds** stale memories on recall | You want code-coupled memories that refuse to return when the cited code changes |
-| **Funes** (`huggingface/funes`) | Local vector dataset (`~/.funes/store.lance`) | Hook ingests full session transcripts from Claude Code, Codex, pi, and Hermes (two other coding-agent clients; no LLM calls, embeds locally) | Append-only raw conversation turns; never summarized | None (stores full turn text and workspace path) | You want semantic and keyword search over every raw turn you ever had, without distilling decisions |
+| **Funes** (`huggingface/funes`) | Local vector dataset (`~/.funes/store.lance`) | Hook ingests full session transcripts from Claude Code, Codex, pi, and Hermes (no LLM calls; embeds locally) | Append-only raw conversation turns; never summarized | None (stores full turn text and workspace path) | You want semantic and keyword search over every raw turn you ever had, without distilling decisions |
 | **Recall** (`raiyanyahya/recall`) | `.recall/history.md` and `.recall/context.md` in a repo | Git and Claude hooks extract turn text offline using word-frequency scoring | `history.md` is append-only; `context.md` is overwritten each run | None | You want an offline, zero-token session log inside a single git repository |
 | **Nauro** (`Nauro-AI/nauro`) | `.nauro/` Markdown decision records in a repo | Agent calls `propose_decision` MCP tool | Append-only Markdown files; older records can be marked superseded | Links file paths without content hashes | You want formal multi-section decision records (`Context`, `Decision`, `Rejected Alternatives`) in a repo |
 | **AdrMcp** (`Atypical-Consulting/AdrMcp`) | `docs/adr/` Markdown ADR (Architecture Decision Record) files | Agent calls `create_adr` or `supersede_adr` MCP tools | Numbered ADR files with explicit supersession links | `find_stale_adrs` checks whether cited file paths and code symbols still exist | You want a structured ADR linter that checks code symbols in a software project |
@@ -62,7 +62,7 @@ Kage is built for code repositories where a stale architectural note can mislead
 
 ### Funes (`huggingface/funes`)
 
-Built by Thomas Wolf at Hugging Face, Funes also avoids background summarization: it keeps raw turns and never distills them. Funes also works across multiple clients (Claude Code, Codex, pi, and Hermes) using hooks and an MCP server.
+Built by Thomas Wolf at Hugging Face, Funes avoids background summarization too: it keeps raw turns and never distills them. Funes also works across multiple clients (Claude Code, Codex, and the coding agents pi and Hermes) using hooks and an MCP server.
 
 Where they diverge is **what gets stored**:
 
@@ -99,12 +99,12 @@ rutter's MCP server is **strictly read-only over your notes**. It leaves your pr
 
 Another group of tools ties AI session history directly to git commits:
 
-- **Lore** (`lore-protocol`) is rutter's closest cousin on capture mechanics. Lore instructs the active coding agent to write structured git commit trailers (`Directive:`, `Rejected:`, `Constraint:`, `Confidence:`) when it commits code. That takes zero extra tokens, runs while context is loaded, and pins the record to the commit hash.
+- **Lore** (`lore-protocol`) is rutter's closest cousin on capture mechanics. Lore instructs the active coding agent to write structured git commit trailers (`Directive:`, `Rejected:`, `Constraint:`, `Confidence:`) when it commits code. That takes no separate LLM call, runs while context is loaded, and pins the record to the commit hash.
 - **Entire CLI** (`entire.io`) and **git-ai** record session checkpoints, prompts, and line-level AI authorship metadata on git commits or shadow branches (`entire/checkpoints/v1`).
 
 When your work is software engineering and every meaningful decision lands in a `git commit`, commit-bound provenance is a strong fit. The git commit tree already hashes the entire repository. Those tools stop working when a session produces no code commit. Think of an hour spent evaluating strategy memos, editing an essay, or researching competitors in a notes folder. `rutter` captures at the end of the turn, whether or not you ever run `git commit`.
 
-## Tools that summarize every action: claude-mem and cloud memory
+## Tools that summarize session activity: claude-mem and cloud memory
 
 Tools such as **claude-mem** (`thedotmack/claude-mem`), **mcp-memory-service**, and cloud services like **Mem0** or **Zep** aim to capture everything the agent did.
 
@@ -112,7 +112,7 @@ Tools such as **claude-mem** (`thedotmack/claude-mem`), **mcp-memory-service**, 
 
 That approach captures fine-grained operational telemetry automatically, with three differences from `rutter`:
 
-1. **Background model calls.** Summarizing every tool call consumes API quota or subscription rate limits in the background. rutter's hook and server make no LLM calls.
+1. **Background LLM calls.** Summarizing every tool call consumes API quota or subscription rate limits in the background. rutter's hook and server make no LLM calls.
 2. **Database storage.** Primary records live in a SQLite database or a cloud account rather than plain Markdown files in your notes folder. (In `rutter`, SQLite FTS5 — SQLite's built-in full-text search — is only a disposable cache rebuilt from your Markdown files.)
 3. **Volume over selectivity.** Capturing every tool use records a lot of scaffolding. `rutter` asks the session for a line only when a turn decided or produced something worth recalling later.
 
