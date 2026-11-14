@@ -4,6 +4,19 @@ Notable changes to rutter, newest first. Detailed per-ship records — grounds,
 disclosed gaps, and what is being watched — are kept by the maintainer
 outside this repository.
 
+## v1.0.1 — 2026-11-14
+
+- **Dependency security update.** Patched versions of the packages the MCP SDK pulls in (body-parser, qs, hono,
+  @hono/node-server, fast-uri, ip-address) and zod 3 to 4. rutter talks to your client over stdio and runs no HTTP
+  server, so most of these advisories were not reachable here; this clears them from the install anyway. Nothing
+  else changes. The three tools take the same inputs; the only visible difference is that their published input
+  schemas no longer say `additionalProperties: false` and give unbounded integers a safe-integer maximum.
+- **The Anthropic directory listing stays at v0.3.3.** The directory now accepts hooks and local MCP servers only
+  from verified organizations, so newer versions can't be listed there. Install from this repository's own
+  marketplace to get current versions: `/plugin marketplace add shinytoyrobots/rutter`, then
+  `/plugin install rutter@rutter`. If you installed from the directory, uninstall
+  `rutter@anthropic-plugin-directory` first.
+
 ## v1.0.0 — 2026-11-01
 
 - **The positions tool is removed.** `librarian-positions` and the code behind it (the recall query, the
