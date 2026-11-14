@@ -150,14 +150,12 @@
 <p>It is for people who keep their notes as markdown files and are comfortable editing a settings file, registering an MCP server, and running a few <code>npm</code> commands. The tools (<code>librarian-*</code>), the environment variables (<code>LIBRARIAN_*</code>), and the <code>_librarian/</code> folder kept the project&#39;s earlier name, <em>librarian</em>; they are all parts of rutter.</p>
 <h2 id="fast-path-for-claude-code">Fast path for Claude Code</h2>
 <p>If you use Claude Code, the plugin is the shortest route. It bundles the server and the capture hook, so you skip the clone-based <a href="from-source.html">From source</a> route. That route uses <code>npm run</code> scripts from a clone you will not have, and running it on top of the plugin registers a second server and a second hook.</p>
-<p><strong>1. Install.</strong> rutter is listed in the Anthropic Directory, which Claude Code has built in. In Claude Code, find it under <code>/plugin</code> → Discover, or run:</p>
-<pre><code class="language-text">/plugin install rutter@anthropic-plugin-directory
-</code></pre>
-<p>The directory serves the version Anthropic last reviewed, which can trail this repository. To track the repository directly, install from its own marketplace instead:</p>
+<p><strong>1. Install.</strong> For the current version, install from rutter&#39;s own marketplace in Claude Code:</p>
 <pre><code class="language-text">/plugin marketplace add shinytoyrobots/rutter
 /plugin install rutter@rutter
 </code></pre>
-<p>Pick one route, not both. Two installs register two servers and two capture hooks. The rest of this lesson writes <code>rutter@rutter</code>; if you installed from the directory, use <code>rutter@anthropic-plugin-directory</code> wherever a command names the plugin.</p>
+<p>rutter is also listed in the Anthropic Directory, which Claude Code has built in, but that listing is v0.3.3. Newer versions are available only from the marketplace above, because recent Anthropic submission standards mean the directory currently accepts hooks and local MCP servers only from verified organizations. If you want the directory version anyway, find rutter under <code>/plugin</code> → Discover, or run <code>/plugin install rutter@anthropic-plugin-directory</code>.</p>
+<p>Pick one route, not both. Two installs register two servers and two capture hooks. To switch from the directory version, run <code>/plugin uninstall rutter@anthropic-plugin-directory</code> first. The rest of this lesson writes <code>rutter@rutter</code>; if you installed from the directory, use <code>rutter@anthropic-plugin-directory</code> wherever a command names the plugin.</p>
 <p>Choose your notes folder when asked, then run <code>/reload-plugins</code>. If you install from a shell (<code>claude plugin install rutter@anthropic-plugin-directory</code>, or <code>rutter@rutter</code> after adding the marketplace), pass <code>--config vault_path=/path/to/notes</code> or run <code>/plugin configure</code> with the same plugin name afterward. Without a notes folder the server has nothing to read.</p>
 <p><strong>2. Check the server.</strong> Run this in Claude Code:</p>
 <pre><code class="language-text">/mcp
@@ -399,7 +397,7 @@ rutter-memory install-hook --client codex   # --client antigravity, --client cop
 <p>Now in <a href="manage-and-privacy.html#remove-a-record-you-dont-want">Pause, remove, and privacy</a>.</p>
 <h3 id="what-leaves-your-machine">What leaves your machine</h3>
 <p>Now in <a href="manage-and-privacy.html#what-leaves-your-machine">Pause, remove, and privacy</a>.</p>
-<p class="ref-line"><code>docs/getting-started.md@sha256:ced950c8bff2 · built from main@0e0da08</code> · <time class="date" datetime="2026-11-01">1 November 2026</time> · <a href="sources.json">source hashes</a></p>
+<p class="ref-line"><code>docs/getting-started.md@sha256:db00e9a48a6e · built from main@ba3e432</code> · <time class="date" datetime="2026-11-14">14 November 2026</time> · <a href="sources.json">source hashes</a></p>
 <p class="to-dir"><a href="#doc-directory">Docs navigation</a></p>
 </article>
 </div>
