@@ -42,20 +42,16 @@ It is for people who keep their notes as markdown files and are comfortable edit
 
 If you use Claude Code, the plugin is the shortest route. It bundles the server and the capture hook, so you skip the clone-based [From source](./from-source.md) route. That route uses `npm run` scripts from a clone you will not have, and running it on top of the plugin registers a second server and a second hook.
 
-**1. Install.** rutter is listed in the Anthropic Directory, which Claude Code has built in. In Claude Code, find it under `/plugin` → Discover, or run:
-
-```text
-/plugin install rutter@anthropic-plugin-directory
-```
-
-The directory serves the version Anthropic last reviewed, which can trail this repository. To track the repository directly, install from its own marketplace instead:
+**1. Install.** For the current version, install from rutter's own marketplace in Claude Code:
 
 ```text
 /plugin marketplace add shinytoyrobots/rutter
 /plugin install rutter@rutter
 ```
 
-Pick one route, not both. Two installs register two servers and two capture hooks. The rest of this lesson writes `rutter@rutter`; if you installed from the directory, use `rutter@anthropic-plugin-directory` wherever a command names the plugin.
+rutter is also listed in the Anthropic Directory, which Claude Code has built in, but that listing is v0.3.3. Newer versions are available only from the marketplace above, because recent Anthropic submission standards mean the directory currently accepts hooks and local MCP servers only from verified organizations. If you want the directory version anyway, find rutter under `/plugin` → Discover, or run `/plugin install rutter@anthropic-plugin-directory`.
+
+Pick one route, not both. Two installs register two servers and two capture hooks. To switch from the directory version, run `/plugin uninstall rutter@anthropic-plugin-directory` first. The rest of this lesson writes `rutter@rutter`; if you installed from the directory, use `rutter@anthropic-plugin-directory` wherever a command names the plugin.
 
 Choose your notes folder when asked, then run `/reload-plugins`. If you install from a shell (`claude plugin install rutter@anthropic-plugin-directory`, or `rutter@rutter` after adding the marketplace), pass `--config vault_path=/path/to/notes` or run `/plugin configure` with the same plugin name afterward. Without a notes folder the server has nothing to read.
 
